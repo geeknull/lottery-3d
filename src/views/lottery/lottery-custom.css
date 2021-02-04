@@ -1,0 +1,38 @@
+.element {
+  width: 140px;
+  height: 180px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+.element.prize.prize {
+  transition: background-color 1.5s ease-in 0.3s;
+  background-color: rgba(253, 105, 0, 0.85) !important;
+  box-shadow: 0 0 12px rgba(253, 105, 0, 0.95);
+}
+.element.prize .symbol {
+  text-shadow: none;
+  color: rgba(255, 255, 255, 0.85);
+}
+.element.prize .details {
+  text-shadow: none;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.element .symbol {
+  position: relative;
+  font-size: 30px;
+  top: 0;
+}
+.element .details {
+  position: relative;
+  top: 0;
+  font-size: 16px;
+}
+.card-avatar {
+  height: 100px;
+  width: 100px;
+  border-radius:50%;
+  background-color: #fff;
+}
