@@ -27,6 +27,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
       - run: pnpm build
       - uses: actions/upload-pages-artifact@v5
         with:
