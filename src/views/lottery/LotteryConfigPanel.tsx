@@ -125,6 +125,9 @@ export default function LotteryConfigPanel({ onClose }: Props) {
 
       <section>
         <h3>奖项（{prizes.length} 个，共 {totalPrizeCount} 份）</h3>
+        <p className="field-hint">
+          「总数」是该奖项的获奖名额；「每轮抽取」是点一次「停！」开出的人数。奖品总数不能超过名单人数。
+        </p>
         <table className="prize-table">
           <thead>
             <tr><th>名称</th><th>总数</th><th>每轮抽取</th><th></th></tr>
@@ -149,10 +152,14 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         <h3>
           抽奖名单（{rosterNames.length} 人{dupCount > 0 ? `，含重名 ${dupCount} 处，会自动区分` : ''}）
         </h3>
+        <p className="field-hint">
+          每行一个名字。可直接从 Excel 整列复制后粘贴（每行若含逗号或制表符，只取第一列）。
+          文件导入支持 .txt / .csv，规则相同。无需提供头像，系统会按名字自动生成。
+        </p>
         <textarea
           value={rosterText}
           onChange={e => setRosterText(e.target.value)}
-          placeholder={'一行一个名字\n也可以直接从 Excel 复制粘贴（自动取第一列）'}
+          placeholder={'张三\n李四\n王五'}
         />
         <div>
           <button onClick={() => rosterFileRef.current?.click()}>从文件导入名单（.txt / .csv）</button>

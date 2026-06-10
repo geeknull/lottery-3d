@@ -22,20 +22,40 @@
   flex: 1;
   display: flex;
 }
-.config-btn {
+// 右上角悬浮工具按钮组（配置 / 音乐），统一的赛博 HUD 风格
+.hud-btn {
   position: fixed;
-  top: 0;
-  right: 70px;
-  z-index: 5;
-  width: 50px;
-  height: 50px;
+  top: 12px;
+  z-index: 6;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  text-align: center;
-  line-height: 50px;
-  font-size: 24px;
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   user-select: none;
-  background-color: rgba(0, 127, 127, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: rgba(160, 255, 255, 0.85);
+  background: rgba(2, 22, 30, 0.55);
+  border: 1px solid rgba(127, 255, 255, 0.3);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 14px rgba(0, 180, 180, 0.18), inset 0 0 10px rgba(0, 180, 180, 0.08);
+  // 不在 transition 里包含 transform，避免与音乐播放时的旋转动画冲突
+  transition: border-color .25s, box-shadow .25s, color .25s, background-color .25s;
+
+  svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
+
+  &:hover {
+    color: #d4ffff;
+    border-color: rgba(127, 255, 255, 0.75);
+    background: rgba(4, 32, 42, 0.7);
+    box-shadow: 0 0 20px rgba(0, 220, 220, 0.4), inset 0 0 12px rgba(0, 220, 220, 0.15);
+  }
+}
+.config-btn {
+  right: 68px;
 }

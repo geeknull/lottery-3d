@@ -1,8 +1,9 @@
+// 容器缩成 0：仅承载隐藏的 audio，按钮自身用 .hud-btn 定位脱离此容器
 .lottery-music {
   position: fixed;
-  top: 0;
-  right: 10px;
-  z-index: 5;
+  width: 0;
+  height: 0;
+  overflow: hidden;
   user-select: none;
 }
 
@@ -11,16 +12,7 @@
   opacity: 0;
 }
 
+// 视觉由 .hud-btn 统一提供，这里只负责定位（最右）
 .music-box {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  text-align: center;
-  line-height: 50px;
-  font-size: 14px;
-  font-weight: bold;
-  color: #fff;
-  cursor: pointer;
-  background-color: rgba(253, 105, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  right: 12px;
 }

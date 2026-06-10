@@ -34,6 +34,14 @@
     }
   }
 
+  .field-hint {
+    color: rgba(127, 255, 255, 0.5);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: -2px 0 12px;
+    max-width: 560px;
+  }
+
   input,
   textarea {
     background: rgba(0, 127, 127, 0.15);
