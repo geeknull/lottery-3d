@@ -1,6 +1,6 @@
 <template>
   <div class="lottery-wrap">
-    <lotteryStarfield/>
+    <LotteryStarfield/>
     <LotteryMusic/>
     <header class="lottery-header">
       <span>{{ headerTitle }}</span>
@@ -39,20 +39,12 @@
 }
 </style>
 
-<script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+<script setup lang="ts">
 import Lottery3d from './lottery-3d.vue';
 import Prize from './lottery-prize.vue';
 import LotteryMusic from './lottery-music.vue';
-import lotteryStarfield from './lottery-starfield.vue';
+import LotteryStarfield from './lottery-starfield.vue';
 import lotteryConfig from './lottery-config.js';
 
-@Component({
-  components: {
-    Lottery3d, Prize, LotteryMusic, lotteryStarfield
-  }
-})
-export default class Lottery extends Vue {
-  headerTitle = lotteryConfig.headerTitle;
-}
+const headerTitle = lotteryConfig.headerTitle;
 </script>

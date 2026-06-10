@@ -35,60 +35,56 @@
 }
 </style>
 
-<script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+<script setup lang="ts">
+import { onMounted } from 'vue';
 
-@Component({
-  components: {}
-})
-export default class LotteryMusic extends Vue {
-  musicInit() {
-    const music: any = document.querySelector("#music");
+function musicInit() {
+  const music: any = document.querySelector("#music");
 
-    let rotated = 0;
-    let stopAnimate = false;
-    const musicBox: any = document.querySelector("#musicBox");
+  let rotated = 0;
+  let stopAnimate = false;
+  const musicBox: any = document.querySelector("#musicBox");
 
-    function animate() {
-      requestAnimationFrame(function () {
-        if (stopAnimate) {
-          return;
-        }
-        rotated = rotated % 360;
-        musicBox.style.transform = "rotate(" + rotated + "deg)";
-        rotated += 1;
-        animate();
-      });
-    }
-
-    musicBox.addEventListener(
-      "click",
-      function (e) {
-        if (music.paused) {
-          music.play().then(
-            () => {
-              stopAnimate = false;
-              animate();
-            },
-            () => {
-              console.log('背景音乐自动播放失败，请给权限或手动播放！');
-              // alert('背景音乐自动播放失败，请给权限或手动播放！')
-            }
-          );
-        } else {
-          music.pause();
-          stopAnimate = true;
-        }
-      },
-      false
-    );
-
-    setTimeout(function () {
-      musicBox.click();
-    }, 1000);
+  function animate() {
+    requestAnimationFrame(function () {
+      if (stopAnimate) {
+        return;
+      }
+      rotated = rotated % 360;
+      musicBox.style.transform = "rotate(" + rotated + "deg)";
+      rotated += 1;
+      animate();
+    });
   }
-  mounted () {
-    this.musicInit();
-  }
+
+  musicBox.addEventListener(
+    "click",
+    function () {
+      if (music.paused) {
+        music.play().then(
+          () => {
+            stopAnimate = false;
+            animate();
+          },
+          () => {
+            console.log('背景音乐自动播放失败，请给权限或手动播放！');
+            // alert('背景音乐自动播放失败，请给权限或手动播放！')
+          }
+        );
+      } else {
+        music.pause();
+        stopAnimate = true;
+      }
+    },
+    false
+  );
+
+  setTimeout(function () {
+    musicBox.click();
+  }, 1000);
 }
+
+onMounted(() => {
+  musicInit();
+});
 </script>

@@ -15,23 +15,19 @@
 }
 </style>
 
-<script>
+<script setup>
 // https://threejs.org/examples/css3d_periodictable.html
-import { Component, Vue } from "vue-property-decorator";
+import { onMounted } from 'vue';
 import './origin-main.css';
 import './origin-periodictable.css';
 import './lottery-custom.css';
 import { init, animate, transform } from "./3d.js";
+import { bus } from './event-bus';
 
-@Component({
-  components: {}
-})
-export default class Lottery3D extends Vue {
-  async mounted () {
-    init();
-    animate();
-    await transform( 'table', 1000 ); // sphere
-    this.$bus.$emit('lottery-3d-init');
-  }
-}
+onMounted(async () => {
+  init();
+  animate();
+  await transform( 'table', 1000 ); // sphere
+  bus.emit('lottery-3d-init');
+});
 </script>

@@ -28,51 +28,46 @@
         <span class="line-4"></span>
       </li>
     </ul>
-    <lotteryAction/>
+    <LotteryAction/>
   </div>
 </template>
 
-<script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
-import lotteryAction from './lottery-action.vue';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import LotteryAction from './lottery-action.vue';
 import lotteryConfigImport from './lottery-config.js';
 import { transform } from './3d-animate.js';
 const lotteryConfig: any = lotteryConfigImport;
 import STATUS from './3d-status.js';
 
-@Component({
-  components: { lotteryAction }
-})
-export default class Prize extends Vue {
-  $bus: any;
-  showBtn = false;
-  prizeList = lotteryConfig.prizeList;
-  currentPrizeIndex = null;
-  donePrizeIndex = null;
-  async selectPrize(prize, index) {
-    if (STATUS.isRun()) {
-      alert('正在抽奖中或者已经是当前奖项状态，不能切换奖项！');
-      return void 0;
-    }
-    STATUS.setStatusRun();
-    this.currentPrizeIndex = index;
-    lotteryConfig.currentPrize = prize.id;
-    await transform('table', 1000); // TODO重复点击处理
-    STATUS.setStatusWait();
+const prizeList: any[] = lotteryConfig.prizeList;
+const currentPrizeIndex = ref<number | null>(null);
+const donePrizeIndex = ref<number | null>(null);
+
+async function selectPrize(prize: any, index: number) {
+  if (STATUS.isRun()) {
+    alert('正在抽奖中或者已经是当前奖项状态，不能切换奖项！');
+    return void 0;
   }
-  mounted() {
-    const currentPrize = lotteryConfig.getCurrentPrize()
-    if (!currentPrize) {
-      this.currentPrizeIndex = this.prizeList.length - 1;
-      lotteryConfig.currentPrize = this.prizeList[this.prizeList.length - 1]['id'];
-    } else {
-      const index = lotteryConfig.prizeList.findIndex(_ => _.id === currentPrize.id);
-      this.currentPrizeIndex = index;
-    }
-  }
+  STATUS.setStatusRun();
+  currentPrizeIndex.value = index;
+  lotteryConfig.currentPrize = prize.id;
+  await transform('table', 1000); // TODO重复点击处理
+  STATUS.setStatusWait();
 }
+
+onMounted(() => {
+  const currentPrize = lotteryConfig.getCurrentPrize()
+  if (!currentPrize) {
+    currentPrizeIndex.value = prizeList.length - 1;
+    lotteryConfig.currentPrize = prizeList[prizeList.length - 1]['id'];
+  } else {
+    const index = lotteryConfig.prizeList.findIndex((_: any) => _.id === currentPrize.id);
+    currentPrizeIndex.value = index;
+  }
+});
 </script>
 
 <style lang="scss" scoped>
-@import './lottery-prize.scss';
+@use './lottery-prize.scss';
 </style>

@@ -40,96 +40,96 @@
   </div>
 </template>
 
-<script>
-import { Component, Vue } from "vue-property-decorator";
+<script setup>
+import { ref, onMounted } from 'vue';
 import { setSphereDist } from './3d-calc-distance.js';
 import { transform, transformStatus } from './3d-animate.js';
 import lotteryConfig from './lottery-config.js';
 import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action.js';
 import { getRandomCard } from './lottery-algorithm.js';
 import STATUS from './3d-status.js';
+import { bus } from './event-bus';
 
-@Component({
-  components: {}
-})
-export default class Prize extends Vue {
-  showBtn = false;
-  showAllWinUserPanel = false;
-  prizeList = lotteryConfig.prizeList;
-  getUserById = lotteryConfig.getUserById;
-  getRenderArr(arr) {
-    const arrRes = [];
-    const n = 10;
-    const len = arr.length;
-    const lineNum = len % n === 0 ? len / n : Math.floor( (len / n) + 1 );
-    for (let i = 0; i < lineNum; i++) {
-      const temp = arr.slice(i*n, i*n+n);
-      arrRes.push(JSON.parse(JSON.stringify(temp)));
-    }
-    return arrRes;
+const showBtn = ref(false);
+const showAllWinUserPanel = ref(false);
+const prizeList = lotteryConfig.prizeList;
+
+function getRenderArr(arr) {
+  const arrRes = [];
+  const n = 10;
+  const len = arr.length;
+  const lineNum = len % n === 0 ? len / n : Math.floor( (len / n) + 1 );
+  for (let i = 0; i < lineNum; i++) {
+    const temp = arr.slice(i*n, i*n+n);
+    arrRes.push(JSON.parse(JSON.stringify(temp)));
   }
+  return arrRes;
+}
 
-  async lotteryStart() {
-    if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
-      alert('正在抽奖或初始化，请等待一下');
-      return void 0;
-    }
-    const currentPrize = lotteryConfig.getCurrentPrize();
-    if (!currentPrize) {
-      alert('请选择奖项');
-      STATUS.setStatusWait();
-      return void 0;
-    }
-    if (currentPrize.countRemain <= 0) {
-      alert(lotteryConfig.getCurrentPrize().name + '已经抽取完毕，请选择其他奖项');
-      STATUS.setStatusWait();
-      return void 0;
-    }
-
-    // 先回到table状态再抽奖
-    STATUS.setStatusRun();
-    transformStatus !== 'table' && await transform( 'table', 500 );
-    await transform( 'sphere', 300 );
-    rotateBall();
+async function lotteryStart() {
+  if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
+    alert('正在抽奖或初始化，请等待一下');
+    return void 0;
   }
-  async lotteryStop() {
-    const currentPrize = lotteryConfig.getCurrentPrize();
-    if (!currentPrize) {
-      alert('请选择奖项');
-      STATUS.setStatusWait();
-      return void 0;
-    }
-    rotateBallStop();
-    const cardSelect = getRandomCard(currentPrize); // 当前的奖项
-    const cardSelectIndex = cardSelect.map(_ => _.index);
-
-    await setSphereDist(2, 500);
-    await cardFlyAnimation(cardSelectIndex);
+  const currentPrize = lotteryConfig.getCurrentPrize();
+  if (!currentPrize) {
+    alert('请选择奖项');
     STATUS.setStatusWait();
+    return void 0;
+  }
+  if (currentPrize.countRemain <= 0) {
+    alert(lotteryConfig.getCurrentPrize().name + '已经抽取完毕，请选择其他奖项');
+    STATUS.setStatusWait();
+    return void 0;
   }
 
-  async tableShow() {
-    if (STATUS.getStatus() !== STATUS.RUNNING_LOTTERY) {
-      STATUS.setStatusRun();
-      await transform( 'table', 1000 ); // sphere
-      STATUS.setStatusWait();
-    } else {
-      alert('抽奖正在运行中，请等待后再操作！')
-    }
+  // 先回到table状态再抽奖
+  STATUS.setStatusRun();
+  if (transformStatus !== 'table') {
+    await transform( 'table', 500 );
   }
-  resetData () {
-    if (confirm('是否要重置所有抽奖数据，此操作不可恢复！')) {
-      lotteryConfig.clearLocalStorage();
-      location.reload();
-    }
-  }
+  await transform( 'sphere', 300 );
+  rotateBall();
+}
 
-  mounted () {
-    this.$bus.$on('lottery-3d-init', () => {
-      STATUS.setStatusWait();
-    });
+async function lotteryStop() {
+  const currentPrize = lotteryConfig.getCurrentPrize();
+  if (!currentPrize) {
+    alert('请选择奖项');
+    STATUS.setStatusWait();
+    return void 0;
+  }
+  rotateBallStop();
+  const cardSelect = getRandomCard(currentPrize); // 当前的奖项
+  const cardSelectIndex = cardSelect.map(_ => _.index);
+
+  await setSphereDist(2, 500);
+  await cardFlyAnimation(cardSelectIndex);
+  STATUS.setStatusWait();
+}
+
+async function tableShow() {
+  if (STATUS.getStatus() !== STATUS.RUNNING_LOTTERY) {
+    STATUS.setStatusRun();
+    await transform( 'table', 1000 ); // sphere
+    STATUS.setStatusWait();
+  } else {
+    alert('抽奖正在运行中，请等待后再操作！')
   }
 }
+
+function resetData () {
+  if (confirm('是否要重置所有抽奖数据，此操作不可恢复！')) {
+    lotteryConfig.clearLocalStorage();
+    location.reload();
+  }
+}
+
+onMounted(() => {
+  bus.on('lottery-3d-init', () => {
+    STATUS.setStatusWait();
+  });
+});
 </script>
 
 <style lang="scss" scoped>
