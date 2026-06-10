@@ -1,15 +1,16 @@
-import lotteryConfig from './lottery-config.js';
+import lotteryConfig from './lottery-config';
+import type { Card, Prize } from './lottery-types';
 
-const random = function(min, max) {
+const random = function(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) ) + min;
 }
 
-const getRandomCard = function(currentPrize) {
-  const cardListRemainAllCopy = JSON.parse(JSON.stringify(lotteryConfig.cardListRemainAll));
+const getRandomCard = function(currentPrize: Prize): Card[] {
+  const cardListRemainAllCopy: Card[] = JSON.parse(JSON.stringify(lotteryConfig.cardListRemainAll));
   const selectCount = currentPrize.countRemain < currentPrize.everyTimeGet ? currentPrize.countRemain : currentPrize.everyTimeGet;
 
   // 随机抽取数据
-  const selectCardList = [];
+  const selectCardList: Card[] = [];
 
   // 正式抽奖逻辑
   for (let i = 0; i < selectCount; i++) {

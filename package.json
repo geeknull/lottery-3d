@@ -16,11 +16,14 @@
     "lint:fix": "oxlint . --fix && eslint . --fix"
   },
   "dependencies": {
+    "@tweenjs/tween.js": "^25.0.0",
     "mitt": "^3.0.1",
+    "three": "^0.184.0",
     "vue": "^3.5.35",
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@types/three": "^0.184.1",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/eslint-config-typescript": "^14.8.0",
     "eslint": "^10.4.1",

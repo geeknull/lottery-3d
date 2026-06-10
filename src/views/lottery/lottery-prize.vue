@@ -35,16 +35,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import LotteryAction from './lottery-action.vue';
-import lotteryConfigImport from './lottery-config.js';
-import { transform } from './3d-animate.js';
-const lotteryConfig: any = lotteryConfigImport;
-import STATUS from './3d-status.js';
+import lotteryConfig from './lottery-config';
+import { transform } from './3d-animate';
+import STATUS from './3d-status';
+import type { Prize } from './lottery-types';
 
-const prizeList: any[] = lotteryConfig.prizeList;
+const prizeList = lotteryConfig.prizeList;
 const currentPrizeIndex = ref<number | null>(null);
 const donePrizeIndex = ref<number | null>(null);
 
-async function selectPrize(prize: any, index: number) {
+async function selectPrize(prize: Prize, index: number) {
   if (STATUS.isRun()) {
     alert('正在抽奖中或者已经是当前奖项状态，不能切换奖项！');
     return void 0;
@@ -62,7 +62,7 @@ onMounted(() => {
     currentPrizeIndex.value = prizeList.length - 1;
     lotteryConfig.currentPrize = prizeList[prizeList.length - 1]['id'];
   } else {
-    const index = lotteryConfig.prizeList.findIndex((_: any) => _.id === currentPrize.id);
+    const index = lotteryConfig.prizeList.findIndex(_ => _.id === currentPrize.id);
     currentPrizeIndex.value = index;
   }
 });

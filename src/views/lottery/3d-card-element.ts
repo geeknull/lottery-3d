@@ -1,10 +1,9 @@
-import lotteryConfig from './lottery-config.js';
+import lotteryConfig from './lottery-config';
+import { scene, objects } from './3d-core';
+import { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
 const { cardList } = lotteryConfig;
-import { scene, objects } from './3d-core.js';
 
-const THREE = window.THREE;
-
-const { CSS3DObject } = THREE;
 const create3DCard = function(_objects = objects) {
   // 中奖的卡片要染色
   const cardListWinAll = lotteryConfig.cardListWinAll;

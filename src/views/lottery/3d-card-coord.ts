@@ -1,21 +1,17 @@
-import lotteryConfig from './lottery-config.js';
-const { cardList, colCount, rowCount } = lotteryConfig;
+import { Object3D, Vector3 } from 'three';
+import lotteryConfig from './lottery-config';
 import {
   objects, targets, cardSize, // 3d 变量
-} from './3d-core.js'
+} from './3d-core'
 
-const THREE = window.THREE;
+const { cardList, colCount, rowCount } = lotteryConfig;
 
 const defaultObj = {targets, objects, cardSize};
 const targetsCoord = function ({targets, objects, cardSize} = defaultObj) {
   // table 平铺节点
   for ( let i = 0, l = objects.length; i < l; i ++ ) {
     const currentCardData = cardList[i];
-    // if (!currentCardData) {
-    //   console.log(currentCardData, cardList);
-    //   debugger;
-    // }
-    const object = new THREE.Object3D();
+    const object = new Object3D();
     // 默认在中心点，需要减去总画布尺寸的一半
     object.position.x = ( currentCardData.col * (cardSize.width+20) ) - (((colCount+1) * (cardSize.width+20)) / 2);
     object.position.y = - ( currentCardData.row * (cardSize.height+20) ) + (((rowCount+1) * (cardSize.height+20)) / 2);
@@ -24,13 +20,13 @@ const targetsCoord = function ({targets, objects, cardSize} = defaultObj) {
   }
 
   // sphere 球体
-  const vector = new THREE.Vector3();
+  const vector = new Vector3();
 
   for ( let i = 0, l = objects.length; i < l; i ++ ) {
     const phi = Math.acos( - 1 + ( 2 * i ) / l );
     const theta = Math.sqrt( l * Math.PI ) * phi;
 
-    const object = new THREE.Object3D();
+    const object = new Object3D();
 
     object.position.setFromSphericalCoords( 800, phi, theta );
 
@@ -48,7 +44,7 @@ const targetsCoord = function ({targets, objects, cardSize} = defaultObj) {
     const theta = i * 0.175 + Math.PI;
     const y = - ( i * 8 ) + 450;
 
-    const object = new THREE.Object3D();
+    const object = new Object3D();
 
     object.position.setFromCylindricalCoords( 900, theta, y );
 
@@ -65,7 +61,7 @@ const targetsCoord = function ({targets, objects, cardSize} = defaultObj) {
   // grid 网格
   for ( let i = 0; i < objects.length; i ++ ) {
 
-    const object = new THREE.Object3D();
+    const object = new Object3D();
 
     object.position.x = ( ( i % 5 ) * 400 ) - 800;
     object.position.y = ( - ( Math.floor( i / 5 ) % 5 ) * 400 ) + 800;

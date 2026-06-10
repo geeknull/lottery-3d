@@ -44,7 +44,7 @@ import Lottery3d from './lottery-3d.vue';
 import Prize from './lottery-prize.vue';
 import LotteryMusic from './lottery-music.vue';
 import LotteryStarfield from './lottery-starfield.vue';
-import lotteryConfig from './lottery-config.js';
+import lotteryConfig from './lottery-config';
 
 const headerTitle = lotteryConfig.headerTitle;
 </script>

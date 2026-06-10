@@ -5,9 +5,15 @@
 <style lang="scss" scoped>
 </style>
 
-<script setup>
+<script setup lang="ts">
 // https://github.com/moshang-xc/lottery
 import { onMounted } from 'vue';
+
+interface Star {
+  x: number;
+  y: number;
+  z: number;
+}
 
 function init() {
   initElement();
@@ -15,17 +21,17 @@ function init() {
 }
 
 function initStarfield() {
-  const canvas = document.getElementById("canvas");
-  const c = canvas.getContext("2d");
+  const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+  const c = canvas.getContext("2d")!;
 
   const numStars = 1000;
   const radius = 1;
   const focalLength = canvas.width;
 
-  let centerX, centerY;
+  let centerX: number, centerY: number;
 
-  let stars = [], star;
-  let i;
+  let stars: Star[] = [], star: Star;
+  let i: number;
 
   const animate = true;
 
@@ -65,7 +71,7 @@ function initStarfield() {
   }
 
   function drawStars(){
-    let pixelX, pixelY, pixelRadius;
+    let pixelX: number, pixelY: number, pixelRadius: number;
 
     // Resize to the screen
     if(canvas.width != window.innerWidth || canvas.height != window.innerHeight){
@@ -102,9 +108,9 @@ function initStarfield() {
 function initElement() {
   const canvasBox = document.createElement('div');
   canvasBox.style.position = 'fixed';
-  canvasBox.style.top = 0;
-  canvasBox.style.left = 0;
-  canvasBox.style.zIndex = -1;
+  canvasBox.style.top = '0';
+  canvasBox.style.left = '0';
+  canvasBox.style.zIndex = '-1';
   const canvas = document.createElement('canvas');
   canvas.id = 'canvas';
   canvasBox.appendChild(canvas);

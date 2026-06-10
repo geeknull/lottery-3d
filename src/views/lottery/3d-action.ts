@@ -1,14 +1,16 @@
-import { cardSize, objects, scene, render } from './3d-core.js';
-const TWEEN = window.TWEEN;
-import { setCardDist } from './3d-calc-distance.js';
+import { Tween, Easing } from '@tweenjs/tween.js';
+import type { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+import { cardSize, objects, scene, render } from './3d-core';
+import { setCardDist } from './3d-calc-distance';
+import { tweenGroup } from './tween-group';
 
-function cardFlyAnimation(cardIndexList) {
-  return new Promise((resolve) => {
-    const selectObject = [];
+function cardFlyAnimation(cardIndexList: number[]) {
+  return new Promise<void>((resolve) => {
+    const selectObject: CSS3DObject[] = [];
     cardIndexList.forEach((item) => {
       selectObject.push(objects[item]);
     });
-    const locates = [];
+    const locates: { x: number; y: number }[] = [];
     const duration = 600;
 
     const selectRowCount = 1; // 行数 默认一行
@@ -37,7 +39,7 @@ function cardFlyAnimation(cardIndexList) {
       const objectsHeight = (cardSize.height + cardPadding) * selectRowCount - cardPadding;
       const cardDistZ = setCardDist(objectsWidth, objectsHeight);
 
-      new TWEEN.Tween(object.position)
+      new Tween(object.position, tweenGroup)
         .to(
           {
             x: locates[index].x,
@@ -46,21 +48,22 @@ function cardFlyAnimation(cardIndexList) {
           },
           Math.random() * duration + duration
         )
-        .easing(TWEEN.Easing.Exponential.InOut)
+        .easing(Easing.Exponential.InOut)
         .start();
 
-      new TWEEN.Tween(object.rotation)
+      new Tween(object.rotation, tweenGroup)
         .to(
           { x: 0, y: 0, z: 0 },
           Math.random() * duration + duration
         )
-        .easing(TWEEN.Easing.Exponential.InOut)
+        .easing(Easing.Exponential.InOut)
         .start();
 
       object.element.classList.add("prize");
     });
 
-    new TWEEN.Tween(this)
+    // 空对象 Tween 仅用作计时器，驱动渲染并在动画结束时 resolve
+    new Tween({}, tweenGroup)
       .to({}, duration * 2)
       .onUpdate(render)
       .start()
@@ -74,9 +77,9 @@ function cardFlyAnimation(cardIndexList) {
 function rotateBall() {
   const circleCount = 10000; // 1万圈
   const durationTime = 1000 * circleCount / 4;
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     scene.rotation.y = 0;
-    new TWEEN.Tween(scene.rotation)
+    new Tween(scene.rotation, tweenGroup)
       .to(
         {
           y: Math.PI * circleCount,
@@ -84,7 +87,7 @@ function rotateBall() {
         durationTime
       )
       .onUpdate(render)
-      .easing(TWEEN.Easing.Linear.None)
+      .easing(Easing.Linear.None)
       .start()
       .onComplete(() => {
         resolve();
@@ -94,7 +97,7 @@ function rotateBall() {
 
 // 停止旋转
 function rotateBallStop() {
-  TWEEN.removeAll();
+  tweenGroup.removeAll();
   setTimeout(() => {
     scene.rotation.x = 0;
     scene.rotation.y = 0;

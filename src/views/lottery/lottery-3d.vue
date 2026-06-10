@@ -15,13 +15,13 @@
 }
 </style>
 
-<script setup>
+<script setup lang="ts">
 // https://threejs.org/examples/css3d_periodictable.html
 import { onMounted } from 'vue';
 import './origin-main.css';
 import './origin-periodictable.css';
 import './lottery-custom.css';
-import { init, animate, transform } from "./3d.js";
+import { init, animate, transform } from "./3d";
 import { bus } from './event-bus';
 
 onMounted(async () => {

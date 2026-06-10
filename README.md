@@ -14,7 +14,7 @@
 - vue-router 5
 - Oxlint + ESLint 混搭 lint（create-vue 官方同款：oxlint 快扫通用规则，ESLint 负责 Vue 模板规则）
 - mitt（事件总线）
-- three.js / TWEEN（`public/lib` 全局脚本引入，见 TODO）
+- three.js（npm 依赖，CSS3DRenderer 渲染）+ @tweenjs/tween.js
 
 ## 本地开发
 
@@ -45,9 +45,7 @@ push 到 `main` 分支后，GitHub Actions 会自动构建并发布到 GitHub Pa
 ## TODO
 
 - 奖品、抽奖人员可界面配置化
-- 将 TS 贯彻到底（`3d-*.js`、`lottery-config.js` 等转 TS 并补全类型）
-- three.js / TWEEN 从全局脚本迁移为 npm 依赖
-- 背景音乐外链本地化（目前依赖网易云外链）
+- 背景音乐外链本地化（目前依赖网易云外链，直链已不可程序化下载，需换本地音频文件）
 
 ## 参考项目
 

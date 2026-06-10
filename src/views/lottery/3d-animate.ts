@@ -1,35 +1,39 @@
-import { controls, render, objects, targets } from "./3d-core.js";
-import { setTableDist, setSphereDist } from './3d-calc-distance.js';
-const TWEEN = window.TWEEN;
+import type { Object3D } from 'three';
+import { Tween, Easing } from '@tweenjs/tween.js';
+import { controls, render, objects, targets } from "./3d-core";
+import { setTableDist, setSphereDist } from './3d-calc-distance';
+import { tweenGroup } from './tween-group';
 
 function animate() {
   requestAnimationFrame( animate );
-  TWEEN.update();
+  tweenGroup.update();
   controls.update();
 }
 
-let transformStatus = null;
+export type TransformType = 'table' | 'sphere' | 'helix' | 'grid';
+
+let transformStatus: TransformType | null = null;
 
 // 将所有的卡片从一个状态转换到另一个状态
-function transform( targets, duration ) {
-  // TWEEN.removeAll();
-  return new Promise((resolve) => {
+function transform( targetList: Object3D[], duration: number ) {
+  return new Promise<void>((resolve) => {
     for ( let i = 0; i < objects.length; i ++ ) {
       const object = objects[ i ];
-      const target = targets[ i ];
+      const target = targetList[ i ];
 
-      new TWEEN.Tween( object.position )
+      new Tween( object.position, tweenGroup )
         .to( { x: target.position.x, y: target.position.y, z: target.position.z }, Math.random() * duration + duration )
-        .easing( TWEEN.Easing.Exponential.InOut )
+        .easing( Easing.Exponential.InOut )
         .start();
 
-      new TWEEN.Tween( object.rotation )
+      new Tween( object.rotation, tweenGroup )
         .to( { x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration )
-        .easing( TWEEN.Easing.Exponential.InOut )
+        .easing( Easing.Exponential.InOut )
         .start();
     }
 
-    new TWEEN.Tween( this )
+    // 空对象 Tween 仅用作计时器，驱动渲染并在动画结束时 resolve
+    new Tween( {}, tweenGroup )
       .to( {}, duration * 2 )
       .onUpdate( render )
       .start()
@@ -39,7 +43,7 @@ function transform( targets, duration ) {
   });
 }
 
-async function transformTargets(type, duration, distMultiple) {
+async function transformTargets(type: TransformType, duration: number, distMultiple?: number) {
   switch (type) {
     case 'table':
       transformStatus = 'table';

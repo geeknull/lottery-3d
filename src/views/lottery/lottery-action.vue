@@ -40,22 +40,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { setSphereDist } from './3d-calc-distance.js';
-import { transform, transformStatus } from './3d-animate.js';
-import lotteryConfig from './lottery-config.js';
-import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action.js';
-import { getRandomCard } from './lottery-algorithm.js';
-import STATUS from './3d-status.js';
+import { setSphereDist } from './3d-calc-distance';
+import { transform, transformStatus } from './3d-animate';
+import lotteryConfig from './lottery-config';
+import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action';
+import { getRandomCard } from './lottery-algorithm';
+import STATUS from './3d-status';
 import { bus } from './event-bus';
+import type { Card } from './lottery-types';
 
 const showBtn = ref(false);
 const showAllWinUserPanel = ref(false);
 const prizeList = lotteryConfig.prizeList;
 
-function getRenderArr(arr) {
-  const arrRes = [];
+function getRenderArr(arr: Card[]) {
+  const arrRes: Card[][] = [];
   const n = 10;
   const len = arr.length;
   const lineNum = len % n === 0 ? len / n : Math.floor( (len / n) + 1 );
@@ -78,7 +79,7 @@ async function lotteryStart() {
     return void 0;
   }
   if (currentPrize.countRemain <= 0) {
-    alert(lotteryConfig.getCurrentPrize().name + '已经抽取完毕，请选择其他奖项');
+    alert(currentPrize.name + '已经抽取完毕，请选择其他奖项');
     STATUS.setStatusWait();
     return void 0;
   }

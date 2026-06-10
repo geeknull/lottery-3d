@@ -2,13 +2,15 @@ const WAIT_LOTTERY = 'wait';
 const RUNNING_LOTTERY = 'running';
 const INIT = 'init';
 
-let lotteryStatus = INIT;
+export type LotteryStatus = typeof WAIT_LOTTERY | typeof RUNNING_LOTTERY | typeof INIT;
+
+let lotteryStatus: LotteryStatus = INIT;
 
 const getStatus = () => {
   return lotteryStatus;
 }
 
-const setStatus = (value) => {
+const setStatus = (value: LotteryStatus) => {
   lotteryStatus = value;
 }
 const setStatusWait = () => {

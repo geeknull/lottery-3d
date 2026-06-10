@@ -7,5 +7,5 @@
   "categories": {
     "correctness": "error"
   },
-  "ignorePatterns": ["dist", "public/lib"]
+  "ignorePatterns": ["dist"]
 }

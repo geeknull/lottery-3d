@@ -1,10 +1,12 @@
-const TWEEN = window.TWEEN;
-const THREE = window.THREE;
-import { camera, cardSize } from './3d-core.js';
-import lotteryConfig from './lottery-config.js';
+import { MathUtils } from 'three';
+import { Tween, Easing } from '@tweenjs/tween.js';
+import { camera, cardSize } from './3d-core';
+import { tweenGroup } from './tween-group';
+import lotteryConfig from './lottery-config';
+
 const { colCount, rowCount } = lotteryConfig;
 
-export const checkFixDirection = (canvasAspect, objectAspect) => {
+export const checkFixDirection = (canvasAspect: number, objectAspect: number) => {
   // canvasAspect = canvasWidth / canvasHeight
   // objectAspect = objectWidth / objectHeight
   // Aspect大于1值越大说明越扁，为1是正方形，小于1很少见是很窄的图形
@@ -18,31 +20,31 @@ export const checkFixDirection = (canvasAspect, objectAspect) => {
   }
 };
 
-export const getFitWidthZ = (width) => {
-  const vFOV = THREE.Math.degToRad(camera.fov); // 垂直的全角视野
+export const getFitWidthZ = (width: number) => {
+  const vFOV = MathUtils.degToRad(camera.fov); // 垂直的全角视野
   const hFOV = 2 * Math.atan( Math.tan( vFOV / 2 ) * camera.aspect ); // 水平的全角视野
   const z = (width / 2) / Math.tan(hFOV / 2);
   return z;
 };
 
-export const getFitHeightZ = (height) => {
-  const vFOV = THREE.Math.degToRad(camera.fov); // 垂直的全角视野
+export const getFitHeightZ = (height: number) => {
+  const vFOV = MathUtils.degToRad(camera.fov); // 垂直的全角视野
   const z = ( height / 2 ) / Math.tan(vFOV / 2);
   return z;
 };
 
-export const getFitSphereZ = (radius) => {
+export const getFitSphereZ = (radius: number) => {
   // height / 2
   const z =  (radius) / (Math.sin( camera.fov * ( Math.PI / 180 ) / 2 ));
   return z;
 };
 
-export const zAnimate = async (z, duration) => {
-  return new Promise((resolve) => {
+export const zAnimate = async (z: number, duration: number) => {
+  return new Promise<void>((resolve) => {
     let isDone = false;
-    new TWEEN.Tween( camera.position )
+    new Tween( camera.position, tweenGroup )
       .to( { z: z }, duration )
-      .easing( TWEEN.Easing.Exponential.InOut )
+      .easing( Easing.Exponential.InOut )
       .start()
       .onComplete(() => {
         resolve();
@@ -58,23 +60,19 @@ export const zAnimate = async (z, duration) => {
   });
 }
 
-export const getCameraZ = (width, height, multiple = 1.05) => {
-  let zPosition = null;
-  // console.log(width, height);
-  // debugger;
+export const getCameraZ = (width: number, height: number, multiple = 1.05) => {
+  let zPosition: number;
   const objectAspect = width / height;
   if (checkFixDirection(camera.aspect, objectAspect) === 'W') {
     zPosition = getFitWidthZ(width);
   } else {
     zPosition = getFitHeightZ(height);
   }
-  // multiple = 1;
-  // duration = 3000;
   const zPositionZoom = zPosition * multiple;
   return zPositionZoom;
 }
 
-export const setCameraZ = async (width, height, multiple = 1.05, duration = 0) => {
+export const setCameraZ = async (width: number, height: number, multiple = 1.05, duration = 0) => {
   const z = getCameraZ(width, height, multiple);
   await zAnimate(z, duration);
 }
@@ -89,10 +87,9 @@ export const setSphereDist = async (multiple = 1.05, duration = 0) => {
   return await zAnimate(getFitSphereZ(800) * multiple, duration);
 }
 
-export const setCardDist = (cardWidth, cardHeight, multiple = 0.95) => {
+export const setCardDist = (cardWidth: number, cardHeight: number, multiple = 0.95) => {
   const z = getCameraZ(cardWidth, cardHeight, 1);
   const cardToCamera = camera.position.z - z;
-  // multiple = 1;
   const cardDistZ = cardToCamera * multiple;
   return cardDistZ;
 };

@@ -3,7 +3,7 @@ import {
   initCamera, initRenderer, initScene, initControls, // 初始化3d
   render, global3D, // 3d 其他
   objects, targets, cardSize, // 3d 变量
-} from './3d-core.js';
+} from './3d-core';
 export {
   camera, scene, renderer, controls, // 3d 三大组件
   initCamera, initRenderer, initScene, initControls, // 初始化3d
@@ -11,13 +11,13 @@ export {
   objects, targets, cardSize, // 3d 变量
 }
 
-import { transform, transformStatus, animate } from './3d-animate.js';
+import { transform, transformStatus, animate } from './3d-animate';
 export { transform, transformStatus, animate };
 
-import { create3DCard } from './3d-card-element.js';
-import { targetsCoord } from './3d-card-coord.js';
-import { initEvent } from './3d-bind-event.js';
-export { rotateBall, rotateBallStop } from './3d-action.js';
+import { create3DCard } from './3d-card-element';
+import { targetsCoord } from './3d-card-coord';
+import { initEvent } from './3d-bind-event';
+export { rotateBall, rotateBallStop } from './3d-action';
 
 function init() {
   initCamera(); // 相机
