@@ -13,7 +13,7 @@ let transformStatus = null;
 // 将所有的卡片从一个状态转换到另一个状态
 function transform( targets, duration ) {
   // TWEEN.removeAll();
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     for ( let i = 0; i < objects.length; i ++ ) {
       const object = objects[ i ];
       const target = targets[ i ];

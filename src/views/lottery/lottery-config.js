@@ -88,11 +88,11 @@ lotteryConfig.getLocalStorage = () => {
   } catch (e) {
     console.log(e);
   }
-  lotteryConfig.headerTitle = _lotteryConfig.headerTitle && _lotteryConfig.headerTitle;
-  lotteryConfig.currentPrize = _lotteryConfig.currentPrize && _lotteryConfig.currentPrize;
-  lotteryConfig.prizeList = _lotteryConfig.prizeList && _lotteryConfig.prizeList;
-  lotteryConfig.cardListWinAll = _lotteryConfig.cardListWinAll && _lotteryConfig.cardListWinAll;
-  lotteryConfig.cardListRemainAll = _lotteryConfig.cardListRemainAll && _lotteryConfig.cardListRemainAll;
+  lotteryConfig.headerTitle = _lotteryConfig.headerTitle;
+  lotteryConfig.currentPrize = _lotteryConfig.currentPrize;
+  lotteryConfig.prizeList = _lotteryConfig.prizeList;
+  lotteryConfig.cardListWinAll = _lotteryConfig.cardListWinAll;
+  lotteryConfig.cardListRemainAll = _lotteryConfig.cardListRemainAll;
 }
 lotteryConfig.clearLocalStorage = () => {
   localStorage.removeItem(localStorageKey)

@@ -68,7 +68,7 @@ function initStarfield() {
     let pixelX, pixelY, pixelRadius;
 
     // Resize to the screen
-    if(canvas.width != window.innerWidth || canvas.width != window.innerWidth){
+    if(canvas.width != window.innerWidth || canvas.height != window.innerHeight){
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       initializeStars();

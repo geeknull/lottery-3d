@@ -38,7 +38,7 @@ export const getFitSphereZ = (radius) => {
 };
 
 export const zAnimate = async (z, duration) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let isDone = false;
     new TWEEN.Tween( camera.position )
       .to( { z: z }, duration )

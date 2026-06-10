@@ -1,4 +1,5 @@
 import pluginVue from 'eslint-plugin-vue'
+import pluginOxlint from 'eslint-plugin-oxlint'
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
 
 export default defineConfigWithVueTs(
@@ -17,5 +18,7 @@ export default defineConfigWithVueTs(
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-explicit-any': 'off'
     }
-  }
+  },
+  // 关掉 oxlint 已覆盖的重叠规则，避免两个 linter 重复报告
+  ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json')
 )

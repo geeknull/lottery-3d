@@ -3,9 +3,9 @@ const TWEEN = window.TWEEN;
 import { setCardDist } from './3d-calc-distance.js';
 
 function cardFlyAnimation(cardIndexList) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const selectObject = [];
-    cardIndexList.forEach((item, index) => {
+    cardIndexList.forEach((item) => {
       selectObject.push(objects[item]);
     });
     const locates = [];
@@ -74,7 +74,7 @@ function cardFlyAnimation(cardIndexList) {
 function rotateBall() {
   const circleCount = 10000; // 1万圈
   const durationTime = 1000 * circleCount / 4;
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     scene.rotation.y = 0;
     new TWEEN.Tween(scene.rotation)
       .to(

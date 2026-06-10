@@ -1,5 +1,5 @@
 import lotteryConfig from './lottery-config.js';
-const { cardList, colCount, rowCount } = lotteryConfig;
+const { cardList } = lotteryConfig;
 import { scene, objects } from './3d-core.js';
 
 const THREE = window.THREE;

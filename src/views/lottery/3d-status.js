@@ -11,10 +11,10 @@ const getStatus = () => {
 const setStatus = (value) => {
   lotteryStatus = value;
 }
-const setStatusWait = (value) => {
+const setStatusWait = () => {
   lotteryStatus = WAIT_LOTTERY;
 }
-const setStatusRun = (value) => {
+const setStatusRun = () => {
   lotteryStatus = RUNNING_LOTTERY;
 }
 const isWait = () => {

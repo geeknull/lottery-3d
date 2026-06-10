@@ -12,6 +12,7 @@
 - Vite 8（Rolldown）
 - TypeScript 6（strict）
 - vue-router 5
+- Oxlint + ESLint 混搭 lint（create-vue 官方同款：oxlint 快扫通用规则，ESLint 负责 Vue 模板规则）
 - mitt（事件总线）
 - three.js / TWEEN（`public/lib` 全局脚本引入，见 TODO）
 
