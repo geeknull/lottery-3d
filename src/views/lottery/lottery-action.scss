@@ -1,0 +1,56 @@
+.lottery-action {
+  flex: none;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#menu {
+  position: relative;
+}
+.show-all-win-user {
+  position: fixed;
+  width: calc(100vw - 60px);
+  height: calc(100vh - 50px - 60px);
+  left: 30px;
+  top: calc(50px + 30px);
+  background-color: rgba(0, 0, 0, 1);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  border: 1px solid rgba(0, 127, 127, 0.314);
+  color: #fff;
+  .close-btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    font-size: 30px;
+    cursor: pointer;
+    display: block;
+    color: rgba(255, 255, 255, .7);
+  }
+  .prize-win-item {
+    //flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0 50px;
+    .prize-name {
+      font-size: 36px;
+      line-height: 1;
+    }
+    .prize-win-user {
+      margin-top: 20px;
+      .prize-win-user-name {
+        font-size: 18px;
+        //margin-right: 10px;
+        width: 80px;
+        display: inline-block;
+        text-align: center;
+      }
+    }
+  }
+}

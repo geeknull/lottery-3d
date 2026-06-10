@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "strict": true,
     "noEmit": true,
+    "jsx": "react-jsx",
     "isolatedModules": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -16,6 +17,6 @@
     "types": ["vite/client"],
     "lib": ["esnext", "dom", "dom.iterable"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

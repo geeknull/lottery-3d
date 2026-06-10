@@ -8,11 +8,10 @@
 
 ## 技术栈
 
-- Vue 3.5（`<script setup>` Composition API）
+- React 19（函数组件 + Hooks）
 - Vite 8（Rolldown）
 - TypeScript 6（strict）
-- vue-router 5
-- Oxlint + ESLint 混搭 lint（create-vue 官方同款：oxlint 快扫通用规则，ESLint 负责 Vue 模板规则）
+- Oxlint + ESLint 混搭 lint（oxlint 快扫通用规则，ESLint 负责 react-hooks 规则）
 - mitt（事件总线）
 - three.js（npm 依赖，CSS3DRenderer 渲染）+ @tweenjs/tween.js
 
@@ -40,7 +39,7 @@ push 到 `main` 分支后，GitHub Actions 会自动构建并发布到 GitHub Pa
 - 去掉了 Express 端，改成了纯前端实现
 - 将代码做了合理的模块化，更方便进行二次开发
 - 多 3D 对象自适应屏幕做了优化
-- 2026.06：升级到 Vue 3 + Vite 8，部署切换为 GitHub Actions 自动发布
+- 2026.06：升级到 Vue 3 + Vite 8，部署切换为 GitHub Actions 自动发布；three.js/TWEEN npm 化并全量 TypeScript 化；随后整体迁移到 React 19（3D 核心与业务逻辑零改动）
 
 ## TODO
 
