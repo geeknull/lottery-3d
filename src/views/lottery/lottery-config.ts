@@ -1,5 +1,15 @@
-import { cardList, colCount, rowCount } from './lottery-config-users';
+import { buildCards, defaultPeople } from './lottery-config-users';
+import { loadUserConfig, configHash } from './config-store';
+import type { PrizeConfig } from './config-store';
 import type { Card, Prize } from './lottery-types';
+
+export const DEFAULT_HEADER_TITLE = '【GitHub】2077年终大抽奖';
+export const DEFAULT_PRIZES: PrizeConfig[] = [
+  { name: '特等奖', count: 5, everyTimeGet: 1 },
+  { name: '一等奖', count: 5, everyTimeGet: 1 },
+  { name: '二等奖', count: 10, everyTimeGet: 5 },
+  { name: '三等奖', count: 20, everyTimeGet: 10 },
+];
 
 export interface LotteryConfig {
   prizeList: Prize[]; // 奖品列表
@@ -17,55 +27,40 @@ export interface LotteryConfig {
   clearLocalStorage(): void;
 }
 
+// 优先使用用户配置，否则用内置默认
+const userConfig = loadUserConfig();
+const headerTitle = userConfig?.headerTitle ?? DEFAULT_HEADER_TITLE;
+const prizeConfigs = userConfig?.prizes ?? DEFAULT_PRIZES;
+const people = userConfig ? userConfig.roster.map(name => ({ name })) : defaultPeople;
+const { cardList, colCount, rowCount } = buildCards(people);
+
+// 重名奖项 id 加序号去重（与卡片同规则）
+const prizeNameCount = new Map<string, number>();
+const prizeList: Prize[] = prizeConfigs.map(p => {
+  const seen = prizeNameCount.get(p.name) ?? 0;
+  prizeNameCount.set(p.name, seen + 1);
+  return {
+    count: p.count,
+    countRemain: p.count,
+    everyTimeGet: p.everyTimeGet,
+    name: p.name,
+    detail: p.name + '商品',
+    img: '',
+    id: seen === 0 ? p.name : `${p.name}-${seen + 1}`,
+    round: 0,
+    cardListWin: [],
+  };
+});
+
+// 当前配置指纹：抽奖进度只在配置未变时才恢复
+const currentHash = configHash(headerTitle, prizeConfigs, cardList.map(c => c.name));
+
 let isInit = false;
 const localStorageKey = '___lottery___';
 
 const lotteryConfig: LotteryConfig = {
-  prizeList: [
-    {
-      count: 5, // 总数量
-      countRemain: 5, // 剩余的数量
-      everyTimeGet: 1,
-      name: "特等奖",
-      detail: "特等奖商品",
-      img: "",
-      id: '特等奖',
-      round: 0,
-      cardListWin: []
-    },
-    {
-      count: 5, // 总数量
-      countRemain: 5,
-      everyTimeGet: 1,
-      name: "一等奖",
-      detail: "一等奖商品",
-      img: "",
-      id: '一等奖',
-      cardListWin: [],
-      round: 0
-    },
-    {
-      count: 10,
-      countRemain: 10,
-      everyTimeGet: 5,
-      name: "二等奖",
-      detail: "二等奖商品",
-      id: '二等奖',
-      cardListWin: [],
-      round: 0
-    },
-    {
-      count: 20,
-      countRemain: 20,
-      everyTimeGet: 10,
-      name: "三等奖",
-      detail: "三等奖商品",
-      id: '三等奖',
-      cardListWin: [],
-      round: 0
-    }
-  ], // 奖品列表
-  headerTitle: '【GitHub】2077年终大抽奖',
+  prizeList,
+  headerTitle,
   currentPrize: null, // 当前抽奖的奖品
   colCount, rowCount, // table模式下行列数
   cardList, // 所有卡片的数据
@@ -81,34 +76,46 @@ const lotteryConfig: LotteryConfig = {
     return cardList.find(_ => _.id === id);
   },
   setLocalStorage() {
-    localStorage.setItem(localStorageKey, JSON.stringify(lotteryConfig));
+    localStorage.setItem(localStorageKey, JSON.stringify({
+      hash: currentHash,
+      currentPrize: lotteryConfig.currentPrize,
+      prizeList: lotteryConfig.prizeList,
+      cardListWinAll: lotteryConfig.cardListWinAll,
+      cardListRemainAll: lotteryConfig.cardListRemainAll,
+    }));
   },
   getLocalStorage() {
     if (isInit !== false) {
       return void 0;
     }
     isInit = true;
-    const _lotteryConfigString = localStorage.getItem(localStorageKey);
-    if (!_lotteryConfigString) {
+    const raw = localStorage.getItem(localStorageKey);
+    if (!raw) {
       return void 0;
     }
-    let _lotteryConfig = null;
+    let saved;
     try {
-      // TODO 数据有效性判断
-      _lotteryConfig = JSON.parse(_lotteryConfigString)
+      saved = JSON.parse(raw);
     } catch (e) {
       console.log(e);
+      return void 0;
     }
-    lotteryConfig.headerTitle = _lotteryConfig.headerTitle;
-    lotteryConfig.currentPrize = _lotteryConfig.currentPrize;
-    lotteryConfig.prizeList = _lotteryConfig.prizeList;
-    lotteryConfig.cardListWinAll = _lotteryConfig.cardListWinAll;
-    lotteryConfig.cardListRemainAll = _lotteryConfig.cardListRemainAll;
+    // 配置变过（或老版本存档没有指纹）就不恢复，避免名单/奖项对不上
+    if (!saved || saved.hash !== currentHash) {
+      return void 0;
+    }
+    lotteryConfig.currentPrize = saved.currentPrize;
+    lotteryConfig.prizeList = saved.prizeList;
+    lotteryConfig.cardListWinAll = saved.cardListWinAll;
+    lotteryConfig.cardListRemainAll = saved.cardListRemainAll;
   },
   clearLocalStorage() {
     localStorage.removeItem(localStorageKey)
   },
 };
+
+// 启动时恢复抽奖进度（原版此调用缺失导致进度只写不读）
+lotteryConfig.getLocalStorage();
 
 console.log('lotteryConfig', lotteryConfig);
 export default lotteryConfig;
