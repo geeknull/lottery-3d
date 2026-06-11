@@ -4,7 +4,8 @@ import { transform, transformStatus } from './3d-animate'
 import lotteryConfig from './lottery-config'
 import { useLotteryVersion } from './lottery-store'
 import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action'
-import { getRandomCard } from './lottery-algorithm'
+import { getRandomCard, voidWinner } from './lottery-algorithm'
+import { setCardPrizeMark } from './3d-card-element'
 import STATUS from './3d-status'
 import { bus } from './event-bus'
 import type { Card } from './lottery-types'
@@ -81,11 +82,28 @@ function resetData() {
   }
 }
 
+// 待作废的中奖记录
+interface VoidTarget {
+  prizeId: string
+  prizeName: string
+  card: Card
+}
+
 export default function LotteryAction() {
   const showBtn = false
   const [showAllWinUserPanel, setShowAllWinUserPanel] = useState(false)
+  const [voidTarget, setVoidTarget] = useState<VoidTarget | null>(null)
   useLotteryVersion() // 中奖名单面板打开期间数据变化也能刷新
   const prizeList = lotteryConfig.prizeList
+
+  function handleVoid(returnToPool: boolean) {
+    if (!voidTarget) return
+    const ok = voidWinner(voidTarget.prizeId, voidTarget.card.id, returnToPool)
+    if (ok) {
+      setCardPrizeMark(voidTarget.card.id, false) // 卡片墙去掉中奖染色
+    }
+    setVoidTarget(null)
+  }
 
   useEffect(() => {
     bus.on('lottery-3d-init', () => {
@@ -116,7 +134,7 @@ export default function LotteryAction() {
       </div>
       {showAllWinUserPanel && (
         <div className="show-all-win-user">
-          <span className="close-btn" onClick={() => setShowAllWinUserPanel(false)}>✖</span>
+          <span className="close-btn" onClick={() => { setShowAllWinUserPanel(false); setVoidTarget(null) }}>✖</span>
           {prizeList.map((item, index) => (
             <div className="prize-win-item" key={index}>
               <div className="prize-name">{item.name}</div>
@@ -127,6 +145,11 @@ export default function LotteryAction() {
                     {arr.map((user, userIndex) => (
                       <span className="prize-win-user-name" key={userIndex}>
                         {user.name}
+                        <i
+                          className="void-btn"
+                          title="作废此中奖（名额退回，可补抽）"
+                          onClick={() => setVoidTarget({ prizeId: item.id, prizeName: item.name, card: user })}
+                        >✖</i>
                       </span>
                     ))}
                     <br />
@@ -135,6 +158,19 @@ export default function LotteryAction() {
               </div>
             </div>
           ))}
+          {voidTarget && (
+            <div className="void-confirm">
+              <p>
+                作废「{voidTarget.prizeName} - {voidTarget.card.name}」的中奖记录？
+                名额将退回该奖项，可重新抽取。
+              </p>
+              <div className="void-confirm-btns">
+                <button onClick={() => handleVoid(true)}>作废，TA 回到奖池</button>
+                <button onClick={() => handleVoid(false)}>作废，TA 不再参与</button>
+                <button onClick={() => setVoidTarget(null)}>取消</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

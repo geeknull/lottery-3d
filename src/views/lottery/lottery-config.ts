@@ -20,6 +20,7 @@ export interface LotteryConfig {
   cardList: Card[]; // 所有卡片的数据
   cardListWinAll: Card[]; // 已经中奖的卡片
   cardListRemainAll: Card[]; // 剩余未中奖的卡片
+  cardListExcluded: Card[]; // 作废且不退回奖池的卡片（不再参与抽奖）
   getCurrentPrize(prizeId?: string | null): Prize | undefined;
   getUserById(id: string): Card | undefined;
   setLocalStorage(): void;
@@ -66,6 +67,7 @@ const lotteryConfig: LotteryConfig = {
   cardList, // 所有卡片的数据
   cardListWinAll: [], // 已经中奖的卡片
   cardListRemainAll: cardList, // 剩余未中奖的卡片
+  cardListExcluded: [], // 作废且不退回奖池的卡片
 
   getCurrentPrize(prizeId = lotteryConfig.currentPrize) {
     return lotteryConfig.prizeList.find(_ => {
@@ -82,6 +84,7 @@ const lotteryConfig: LotteryConfig = {
       prizeList: lotteryConfig.prizeList,
       cardListWinAll: lotteryConfig.cardListWinAll,
       cardListRemainAll: lotteryConfig.cardListRemainAll,
+      cardListExcluded: lotteryConfig.cardListExcluded,
     }));
   },
   getLocalStorage() {
@@ -108,6 +111,7 @@ const lotteryConfig: LotteryConfig = {
     lotteryConfig.prizeList = saved.prizeList;
     lotteryConfig.cardListWinAll = saved.cardListWinAll;
     lotteryConfig.cardListRemainAll = saved.cardListRemainAll;
+    lotteryConfig.cardListExcluded = saved.cardListExcluded ?? []; // 老存档没有该字段
   },
   clearLocalStorage() {
     localStorage.removeItem(localStorageKey)

@@ -44,4 +44,10 @@ const create3DCard = function(_objects = objects) {
   }
 }
 
-export { create3DCard }
+// 作废/恢复中奖后同步卡片墙上的中奖染色
+const setCardPrizeMark = function(cardId: string, isPrize: boolean) {
+  const element = document.querySelector(`.element[data-card-id="${CSS.escape(cardId)}"]`);
+  element?.classList.toggle('prize', isPrize);
+}
+
+export { create3DCard, setCardPrizeMark }

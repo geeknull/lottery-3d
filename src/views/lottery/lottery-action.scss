@@ -31,6 +31,39 @@
     display: block;
     color: rgba(255, 255, 255, .7);
   }
+  // 作废确认条
+  .void-confirm {
+    position: absolute;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    max-width: 90%;
+    padding: 16px 24px;
+    text-align: center;
+    background: rgba(4, 32, 42, 0.95);
+    border: 1px solid rgba(255, 110, 110, 0.5);
+    box-shadow: 0 0 20px rgba(255, 110, 110, 0.2);
+
+    p {
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+    .void-confirm-btns button {
+      margin: 0 8px;
+      padding: 6px 14px;
+      cursor: pointer;
+      color: #fff;
+      background: rgba(127, 255, 255, 0.12);
+      border: 1px solid rgba(127, 255, 255, 0.4);
+
+      &:hover {
+        background: rgba(127, 255, 255, 0.25);
+      }
+      &:first-child {
+        border-color: rgba(255, 180, 110, 0.6);
+      }
+    }
+  }
   .prize-win-item {
     //flex: 1;
     display: flex;
@@ -50,6 +83,24 @@
         width: 80px;
         display: inline-block;
         text-align: center;
+        position: relative;
+
+        // 悬停名字时显现作废按钮
+        .void-btn {
+          position: absolute;
+          top: -6px;
+          right: 2px;
+          font-size: 12px;
+          font-style: normal;
+          line-height: 1;
+          color: rgba(255, 110, 110, 0.9);
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity .15s;
+        }
+        &:hover .void-btn {
+          opacity: 1;
+        }
       }
     }
   }

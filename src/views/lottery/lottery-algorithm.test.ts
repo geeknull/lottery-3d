@@ -8,18 +8,19 @@ async function loadFreshModules() {
   vi.resetModules()
   localStorage.clear()
   const { default: lotteryConfig } = await import('./lottery-config')
-  const { getRandomCard } = await import('./lottery-algorithm')
+  const { getRandomCard, voidWinner } = await import('./lottery-algorithm')
   const store = await import('./lottery-store')
-  return { lotteryConfig, getRandomCard, store }
+  return { lotteryConfig, getRandomCard, voidWinner, store }
 }
 
 let lotteryConfig: LotteryConfig
 let getRandomCard: (prize: Prize) => Card[]
+let voidWinner: (prizeId: string, cardId: string, returnToPool: boolean) => boolean
 let store: typeof import('./lottery-store')
 
 beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => {}) // 业务模块加载/抽奖时有调试日志，保持测试输出干净
-  ;({ lotteryConfig, getRandomCard, store } = await loadFreshModules())
+  ;({ lotteryConfig, getRandomCard, voidWinner, store } = await loadFreshModules())
 })
 
 describe('getRandomCard', () => {
@@ -86,6 +87,73 @@ describe('getRandomCard', () => {
     const saved = JSON.parse(localStorage.getItem('___lottery___')!)
     expect(saved.hash).toBeTruthy()
     expect(saved.cardListWinAll).toHaveLength(prize.cardListWin.length)
+  })
+})
+
+describe('voidWinner 作废中奖', () => {
+  it('作废后从奖项中奖名单移除且名额退回', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const [winner] = getRandomCard(prize)
+    const countAfterDraw = prize.countRemain
+    const ok = voidWinner(prize.id, winner.id, true)
+    expect(ok).toBe(true)
+    expect(prize.cardListWin.find(c => c.id === winner.id)).toBeUndefined()
+    expect(prize.countRemain).toBe(countAfterDraw + 1)
+    expect(lotteryConfig.cardListWinAll.find(c => c.id === winner.id)).toBeUndefined()
+  })
+
+  it('退回奖池：作废的人可再次被抽中', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const [winner] = getRandomCard(prize)
+    voidWinner(prize.id, winner.id, true)
+    expect(lotteryConfig.cardListRemainAll.some(c => c.id === winner.id)).toBe(true)
+  })
+
+  it('不退回奖池：作废的人后续永远不会被抽中', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const [winner] = getRandomCard(prize)
+    voidWinner(prize.id, winner.id, false)
+    expect(lotteryConfig.cardListRemainAll.some(c => c.id === winner.id)).toBe(false)
+    // 把池子全部抽干验证不会抽到被排除的人
+    const bigPrize: Prize = {
+      ...prize,
+      id: '验证奖',
+      countRemain: lotteryConfig.cardListRemainAll.length,
+      everyTimeGet: lotteryConfig.cardListRemainAll.length,
+      cardListWin: [],
+    }
+    const all = getRandomCard(bigPrize)
+    expect(all.some(c => c.id === winner.id)).toBe(false)
+  })
+
+  it('作废状态持久化，刷新后不丢失', async () => {
+    const prize = lotteryConfig.prizeList[0]
+    const [winner] = getRandomCard(prize)
+    voidWinner(prize.id, winner.id, false)
+
+    vi.resetModules()
+    const { default: reloaded } = await import('./lottery-config')
+    expect(reloaded.cardListExcluded.map(c => c.id)).toEqual([winner.id])
+    expect(reloaded.cardListRemainAll.some(c => c.id === winner.id)).toBe(false)
+    expect(reloaded.prizeList[0].countRemain).toBe(prize.countRemain)
+  })
+
+  it('作废后通知 UI 数据已变化', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const [winner] = getRandomCard(prize)
+    const listener = vi.fn()
+    store.subscribeLottery(listener)
+    voidWinner(prize.id, winner.id, true)
+    expect(listener).toHaveBeenCalled()
+  })
+
+  it('奖项或中奖记录不存在时返回 false 且不改数据', () => {
+    const prize = lotteryConfig.prizeList[0]
+    getRandomCard(prize)
+    const before = JSON.stringify(lotteryConfig.cardListWinAll)
+    expect(voidWinner('不存在的奖', 'x', true)).toBe(false)
+    expect(voidWinner(prize.id, '不存在的人', true)).toBe(false)
+    expect(JSON.stringify(lotteryConfig.cardListWinAll)).toBe(before)
   })
 })
 
