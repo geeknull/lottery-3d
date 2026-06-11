@@ -20,7 +20,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: space-around;
-  border: 1px solid rgba(0, 127, 127, 0.314);
+  border: 1px solid rgba(var(--accent-dark-rgb), 0.314);
   color: #fff;
   .close-btn {
     position: absolute;
@@ -40,7 +40,7 @@
     max-width: 90%;
     padding: 16px 24px;
     text-align: center;
-    background: rgba(4, 32, 42, 0.95);
+    background: rgba(var(--hud-bg-rgb), 0.95);
     border: 1px solid rgba(255, 110, 110, 0.5);
     box-shadow: 0 0 20px rgba(255, 110, 110, 0.2);
 
@@ -53,11 +53,11 @@
       padding: 6px 14px;
       cursor: pointer;
       color: #fff;
-      background: rgba(127, 255, 255, 0.12);
-      border: 1px solid rgba(127, 255, 255, 0.4);
+      background: rgba(var(--accent-light-rgb), 0.12);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.4);
 
       &:hover {
-        background: rgba(127, 255, 255, 0.25);
+        background: rgba(var(--accent-light-rgb), 0.25);
       }
       &:first-child {
         border-color: rgba(255, 180, 110, 0.6);

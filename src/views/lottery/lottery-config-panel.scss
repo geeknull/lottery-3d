@@ -18,7 +18,7 @@
   }
 
   .panel-title {
-    color: lightseagreen;
+    color: var(--header-color);
     margin-bottom: 24px;
     font-size: 26px;
   }
@@ -27,7 +27,7 @@
     margin-bottom: 28px;
 
     h3 {
-      color: rgba(127, 255, 255, 0.85);
+      color: rgba(var(--accent-light-rgb), 0.85);
       font-size: 16px;
       font-weight: normal;
       margin-bottom: 10px;
@@ -35,7 +35,7 @@
   }
 
   .field-hint {
-    color: rgba(127, 255, 255, 0.5);
+    color: rgba(var(--accent-light-rgb), 0.5);
     font-size: 13px;
     line-height: 1.6;
     margin: -2px 0 12px;
@@ -44,8 +44,8 @@
 
   input,
   textarea {
-    background: rgba(0, 127, 127, 0.15);
-    border: 1px solid rgba(127, 255, 255, 0.25);
+    background: rgba(var(--accent-dark-rgb), 0.15);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.25);
     color: #fff;
     border-radius: 4px;
     padding: 6px 10px;
@@ -53,13 +53,42 @@
 
     &:focus {
       outline: none;
-      border-color: lightseagreen;
+      border-color: var(--header-color);
     }
   }
 
   .title-input {
     width: 420px;
     max-width: 90vw;
+  }
+
+  // 主题选择：每个按钮用各自主题的代表色，选中加亮边框
+  .theme-options {
+    display: flex;
+    gap: 12px;
+
+    .theme-option {
+      padding: 8px 18px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      color: #fff;
+
+      &.theme-cyan {
+        background: rgba(0, 127, 127, 0.55);
+      }
+      &.theme-festive {
+        background: rgba(158, 32, 32, 0.7);
+        color: #ffd166;
+      }
+      &.theme-violet {
+        background: rgba(92, 50, 160, 0.65);
+      }
+      &.selected {
+        border-color: #fff;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+      }
+    }
   }
 
   .prize-table {
@@ -102,7 +131,7 @@
     flex-wrap: wrap;
 
     .primary {
-      background-color: rgba(0, 127, 127, 0.75);
+      background-color: rgba(var(--accent-dark-rgb), 0.75);
     }
   }
 }

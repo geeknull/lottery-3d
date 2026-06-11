@@ -14,7 +14,7 @@ const create3DCard = function(_objects = objects) {
     const element = document.createElement( 'div' );
     element.className = 'element';
     element.dataset.cardId = currentCardData.id; // 卡片唯一ID
-    element.style.backgroundColor = 'rgba(0,127,127,' + ( Math.random() * 0.5 + 0.25 ) + ')';
+    element.style.backgroundColor = 'rgba(var(--card-rgb), ' + ( Math.random() * 0.5 + 0.25 ) + ')'; // 底色随主题 CSS 变量
     if (cardListWinAllIds.includes(currentCardData.id)) {
       element.classList.add('prize');
     }

@@ -15,12 +15,12 @@
 .toast-item {
   padding: 10px 22px;
   font-size: 15px;
-  color: #d4ffff;
-  background: rgba(2, 22, 30, 0.88);
-  border: 1px solid rgba(127, 255, 255, 0.45);
+  color: var(--text-bright);
+  background: rgba(var(--hud-bg-rgb), 0.88);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.45);
   border-radius: 4px;
   backdrop-filter: blur(6px);
-  box-shadow: 0 0 16px rgba(0, 200, 200, 0.25);
+  box-shadow: 0 0 16px rgba(var(--accent-glow-rgb), 0.25);
   animation: toast-in .2s ease-out;
 }
 
@@ -50,11 +50,11 @@
   max-width: 480px;
   padding: 26px 30px;
   text-align: center;
-  color: #e8ffff;
-  background: rgba(3, 26, 35, 0.96);
-  border: 1px solid rgba(127, 255, 255, 0.4);
+  color: var(--text-bright);
+  background: rgba(var(--hud-bg-rgb), 0.96);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.4);
   border-radius: 6px;
-  box-shadow: 0 0 30px rgba(0, 200, 200, 0.25);
+  box-shadow: 0 0 30px rgba(var(--accent-glow-rgb), 0.25);
 
   .confirm-message {
     font-size: 16px;
@@ -72,21 +72,21 @@
       padding: 7px 22px;
       font-size: 14px;
       cursor: pointer;
-      color: #d4ffff;
-      background: rgba(127, 255, 255, 0.08);
-      border: 1px solid rgba(127, 255, 255, 0.35);
+      color: var(--text-bright);
+      background: rgba(var(--accent-light-rgb), 0.08);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.35);
       border-radius: 3px;
       transition: background-color .15s, border-color .15s;
 
       &:hover {
-        background: rgba(127, 255, 255, 0.2);
+        background: rgba(var(--accent-light-rgb), 0.2);
       }
       &.primary {
-        border-color: rgba(127, 255, 255, 0.7);
-        background: rgba(0, 160, 160, 0.35);
+        border-color: rgba(var(--accent-light-rgb), 0.7);
+        background: rgba(var(--accent-dark-rgb), 0.5);
 
         &:hover {
-          background: rgba(0, 180, 180, 0.5);
+          background: rgba(var(--accent-dark-rgb), 0.7);
         }
       }
     }

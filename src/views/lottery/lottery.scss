@@ -13,7 +13,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  color: lightseagreen;
+  color: var(--header-color);
   font-size: 26px;
   font-weight: bold;
   //position: fixed;
@@ -35,11 +35,11 @@
   justify-content: center;
   cursor: pointer;
   user-select: none;
-  color: rgba(160, 255, 255, 0.85);
-  background: rgba(2, 22, 30, 0.55);
-  border: 1px solid rgba(127, 255, 255, 0.3);
+  color: rgba(var(--accent-light-rgb), 0.85);
+  background: rgba(var(--hud-bg-rgb), 0.55);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.3);
   backdrop-filter: blur(6px);
-  box-shadow: 0 0 14px rgba(0, 180, 180, 0.18), inset 0 0 10px rgba(0, 180, 180, 0.08);
+  box-shadow: 0 0 14px rgba(var(--accent-glow-rgb), 0.18), inset 0 0 10px rgba(var(--accent-glow-rgb), 0.08);
   // 不在 transition 里包含 transform，避免与音乐播放时的旋转动画冲突
   transition: border-color .25s, box-shadow .25s, color .25s, background-color .25s;
 
@@ -50,10 +50,10 @@
   }
 
   &:hover {
-    color: #d4ffff;
-    border-color: rgba(127, 255, 255, 0.75);
-    background: rgba(4, 32, 42, 0.7);
-    box-shadow: 0 0 20px rgba(0, 220, 220, 0.4), inset 0 0 12px rgba(0, 220, 220, 0.15);
+    color: var(--text-bright);
+    border-color: rgba(var(--accent-light-rgb), 0.75);
+    background: rgba(var(--hud-bg-rgb), 0.75);
+    box-shadow: 0 0 20px rgba(var(--accent-glow-rgb), 0.4), inset 0 0 12px rgba(var(--accent-glow-rgb), 0.15);
   }
 }
 .config-btn {

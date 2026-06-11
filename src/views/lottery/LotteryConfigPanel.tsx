@@ -6,6 +6,8 @@ import {
 } from './config-store'
 import type { PrizeConfig, UserLotteryConfig } from './config-store'
 import { toast, appConfirm } from './feedback'
+import { THEMES, loadTheme, applyTheme } from './lottery-theme'
+import type { ThemeId } from './lottery-theme'
 import './lottery-config-panel.scss'
 
 interface Props {
@@ -19,6 +21,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet }))
   )
   const [rosterText, setRosterText] = useState(() => lotteryConfig.cardList.map(c => c.name).join('\n'))
+  const [theme, setTheme] = useState<ThemeId>(loadTheme)
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
 
@@ -122,6 +125,22 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       <section>
         <h3>活动标题</h3>
         <input className="title-input" value={title} onChange={e => setTitle(e.target.value)} />
+      </section>
+
+      <section>
+        <h3>主题配色</h3>
+        <p className="field-hint">点击立即生效，无需保存。</p>
+        <div className="theme-options">
+          {THEMES.map(t => (
+            <button
+              key={t.id}
+              className={'theme-option theme-' + t.id + (theme === t.id ? ' selected' : '')}
+              onClick={() => { applyTheme(t.id); setTheme(t.id) }}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section>

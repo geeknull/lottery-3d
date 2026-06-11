@@ -1,0 +1,39 @@
+// 主题 CSS 变量。带 -rgb 后缀的是 RGB 三元组，供 rgba(var(--x-rgb), a) 按需配透明度。
+:root {
+  // 赛博青（默认）
+  --accent-dark-rgb: 0, 127, 127; // 面板/卡片底色
+  --accent-light-rgb: 127, 255, 255; // 文字/边框
+  --accent-glow-rgb: 0, 255, 255; // 发光/悬停
+  --shine-color: #03e9f4; // 选中奖项流光
+  --header-color: lightseagreen; // 标题
+  --text-bright: #d4ffff; // 高亮文字
+  --hud-bg-rgb: 2, 22, 30; // HUD/对话框深色底
+  --card-rgb: 0, 127, 127; // 3D 卡片底色（随机透明度）
+  --prize-mark-rgb: 253, 105, 0; // 中奖卡片染色
+}
+
+:root[data-theme='festive'] {
+  // 春节红金
+  --accent-dark-rgb: 150, 28, 28;
+  --accent-light-rgb: 255, 205, 130;
+  --accent-glow-rgb: 255, 120, 60;
+  --shine-color: #ffd700;
+  --header-color: #ffd166;
+  --text-bright: #fff1d6;
+  --hud-bg-rgb: 42, 8, 8;
+  --card-rgb: 158, 32, 32;
+  --prize-mark-rgb: 255, 196, 0;
+}
+
+:root[data-theme='violet'] {
+  // 极客紫
+  --accent-dark-rgb: 84, 44, 150;
+  --accent-light-rgb: 205, 175, 255;
+  --accent-glow-rgb: 168, 108, 255;
+  --shine-color: #b388ff;
+  --header-color: #c4a4ff;
+  --text-bright: #efe4ff;
+  --hud-bg-rgb: 18, 8, 40;
+  --card-rgb: 92, 50, 160;
+  --prize-mark-rgb: 253, 105, 0;
+}
