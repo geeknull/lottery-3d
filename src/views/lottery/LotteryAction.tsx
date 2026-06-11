@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
-import { setSphereDist } from './3d-calc-distance'
-import { transform, transformStatus } from './3d-animate'
 import lotteryConfig from './lottery-config'
 import { useLotteryVersion } from './lottery-store'
-import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action'
-import { getRandomCard, voidWinner } from './lottery-algorithm'
+import { lotteryStart, lotteryStop, tableShow } from './lottery-controller'
+import { voidWinner } from './lottery-algorithm'
 import { setCardPrizeMark } from './3d-card-element'
 import STATUS from './3d-status'
-import { toast, appConfirm } from './feedback'
+import { appConfirm } from './feedback'
 import { bus } from './event-bus'
 import type { Card } from './lottery-types'
 import './lottery-action.scss'
@@ -22,58 +20,6 @@ function getRenderArr(arr: Card[]) {
     arrRes.push(JSON.parse(JSON.stringify(temp)))
   }
   return arrRes
-}
-
-async function lotteryStart() {
-  if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
-    toast('正在抽奖或初始化，请等待一下')
-    return void 0
-  }
-  const currentPrize = lotteryConfig.getCurrentPrize()
-  if (!currentPrize) {
-    toast('请选择奖项')
-    STATUS.setStatusWait()
-    return void 0
-  }
-  if (currentPrize.countRemain <= 0) {
-    toast(currentPrize.name + '已经抽取完毕，请选择其他奖项')
-    STATUS.setStatusWait()
-    return void 0
-  }
-
-  // 先回到table状态再抽奖
-  STATUS.setStatusRun()
-  if (transformStatus !== 'table') {
-    await transform('table', 500)
-  }
-  await transform('sphere', 300)
-  rotateBall()
-}
-
-async function lotteryStop() {
-  const currentPrize = lotteryConfig.getCurrentPrize()
-  if (!currentPrize) {
-    toast('请选择奖项')
-    STATUS.setStatusWait()
-    return void 0
-  }
-  rotateBallStop()
-  const cardSelect = getRandomCard(currentPrize) // 当前的奖项
-  const cardSelectIndex = cardSelect.map(_ => _.index)
-
-  await setSphereDist(2, 500)
-  await cardFlyAnimation(cardSelectIndex)
-  STATUS.setStatusWait()
-}
-
-async function tableShow() {
-  if (STATUS.getStatus() !== STATUS.RUNNING_LOTTERY) {
-    STATUS.setStatusRun()
-    await transform('table', 1000) // sphere
-    STATUS.setStatusWait()
-  } else {
-    toast('抽奖正在运行中，请等待后再操作！')
-  }
 }
 
 async function resetData() {
@@ -124,8 +70,8 @@ export default function LotteryAction() {
           <button id="grid" style={btnDisplay}>GRID</button>
         </div>
         <div style={{ marginBottom: '10px' }}>
-          <button id="lotteryStart" onClick={lotteryStart}>开始抽奖</button>
-          <button id="lotteryStop" onClick={lotteryStop}>停！</button>
+          <button id="lotteryStart" title="快捷键：空格" onClick={lotteryStart}>开始抽奖</button>
+          <button id="lotteryStop" title="快捷键：空格" onClick={lotteryStop}>停！</button>
           <button id="tableShow" onClick={tableShow}>展示全部</button>
           <button id="winShow" onClick={() => setShowAllWinUserPanel(true)}>展示中奖</button>
         </div>

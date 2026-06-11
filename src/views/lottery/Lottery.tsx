@@ -5,17 +5,27 @@ import LotteryPrize from './LotteryPrize'
 import Lottery3d from './Lottery3d'
 import LotteryConfigPanel from './LotteryConfigPanel'
 import { FeedbackHost } from './feedback'
+import { useLotteryShortcuts, toggleFullscreen } from './lottery-shortcuts'
 import lotteryConfig from './lottery-config'
 import './lottery.scss'
 
 export default function Lottery() {
   const [showConfig, setShowConfig] = useState(false)
+  useLotteryShortcuts() // 空格=开始/停止，F=全屏
 
   return (
     <div className="lottery-wrap">
       <LotteryStarfield />
       <LotteryMusic />
       <FeedbackHost />
+      <div className="hud-btn fullscreen-btn" title="全屏（快捷键 F）" onClick={toggleFullscreen}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+          <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+          <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+          <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+        </svg>
+      </div>
       <div className="hud-btn config-btn" title="抽奖配置" onClick={() => setShowConfig(true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3" />
