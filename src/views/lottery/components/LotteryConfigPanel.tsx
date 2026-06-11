@@ -9,6 +9,7 @@ import { toast, appConfirm } from './feedback'
 import { THEMES, loadTheme, applyTheme } from '../core/lottery-theme'
 import type { ThemeId } from '../core/lottery-theme'
 import { compressImageToDataUrl } from '../core/image-utils'
+import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
 import './lottery-config-panel.scss'
 
 interface Props {
@@ -29,6 +30,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       : lotteryConfig.cardList.map(c => c.name).join('\n')
   })
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
+  const [soundOn, setSoundOn] = useState(isSoundEnabled)
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
 
@@ -170,6 +172,19 @@ export default function LotteryConfigPanel({ onClose }: Props) {
             </button>
           ))}
         </div>
+      </section>
+
+      <section>
+        <h3>抽奖音效</h3>
+        <p className="field-hint">旋转滴答声与开奖音效，纯合成、无需音频文件。点击立即生效，无需保存。</p>
+        <label className="sound-toggle">
+          <input
+            type="checkbox"
+            checked={soundOn}
+            onChange={e => { setSoundEnabled(e.target.checked); setSoundOn(e.target.checked) }}
+          />
+          <span>{soundOn ? '已开启' : '已关闭'}</span>
+        </label>
       </section>
 
       <section>

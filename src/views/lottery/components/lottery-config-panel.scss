@@ -62,6 +62,21 @@
     max-width: 90vw;
   }
 
+  .sound-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: rgba(var(--accent-light-rgb), 0.85);
+
+    input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+  }
+
   // 主题选择：每个按钮用各自主题的代表色，选中加亮边框
   .theme-options {
     display: flex;

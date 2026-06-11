@@ -8,6 +8,7 @@ import { toast } from '../components/feedback'
 import { bus } from './event-bus'
 import { stopShowcase } from './lottery-showcase'
 import { ensureSeedCommit } from './lottery-fairness'
+import { startSpinTicks, stopSpinTicks, playReveal } from './lottery-sound'
 
 // 抽奖的开始/停止流程。从 LotteryAction 组件抽出来，
 // 按钮和键盘快捷键共用同一套入口。
@@ -47,6 +48,7 @@ export async function lotteryStart() {
   }
   await transform('sphere', 300)
   spinning = true
+  startSpinTicks() // 旋转滴答音效
   rotateBall()
 }
 
@@ -58,13 +60,15 @@ export async function lotteryStop() {
     return void 0
   }
   spinning = false
+  stopSpinTicks()
   rotateBallStop()
   const cardSelect = getRandomCard(currentPrize) // 当前的奖项
   const cardSelectIndex = cardSelect.map(_ => _.index)
 
   await setSphereDist(2, 500)
   await cardFlyAnimation(cardSelectIndex)
-  // 彩带庆祝 + 揭晓横幅
+  // 彩带庆祝 + 揭晓横幅 + 揭晓音效
+  playReveal()
   bus.emit('lottery-win-reveal', { prizeName: currentPrize.name, prizeImg: currentPrize.img || undefined, winners: cardSelect })
   STATUS.setStatusWait()
 }
