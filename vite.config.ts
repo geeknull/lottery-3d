@@ -37,6 +37,7 @@ export default defineConfig({
     host: true
   },
   test: {
-    environment: 'jsdom' // 业务逻辑里有 localStorage / document 访问
+    environment: 'jsdom', // 业务逻辑里有 localStorage / document 访问
+    exclude: ['node_modules', 'dist', 'e2e/**'] // e2e 用 @playwright/test 单独跑
   }
 })
