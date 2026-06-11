@@ -1,5 +1,5 @@
 import { buildCards, defaultPeople } from './lottery-config-users';
-import { loadUserConfig, configHash } from './config-store';
+import { loadUserConfig, configHash, normalizeRoster } from './config-store';
 import type { PrizeConfig } from './config-store';
 import type { Card, Prize } from './lottery-types';
 
@@ -32,7 +32,7 @@ export interface LotteryConfig {
 const userConfig = loadUserConfig();
 const headerTitle = userConfig?.headerTitle ?? DEFAULT_HEADER_TITLE;
 const prizeConfigs = userConfig?.prizes ?? DEFAULT_PRIZES;
-const people = userConfig ? userConfig.roster.map(name => ({ name })) : defaultPeople;
+const people = userConfig ? normalizeRoster(userConfig.roster) : defaultPeople;
 const { cardList, colCount, rowCount } = buildCards(people);
 
 // 重名奖项 id 加序号去重（与卡片同规则）

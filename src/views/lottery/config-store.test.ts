@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRosterText, parseConfigJson, configHash } from './config-store'
+import { parseRosterText, parseRosterEntries, normalizeRoster, parseConfigJson, configHash } from './config-store'
 import type { UserLotteryConfig } from './config-store'
 
 const validConfig: UserLotteryConfig = {
@@ -24,6 +24,38 @@ describe('parseRosterText', () => {
 
   it('去掉名字两端空白', () => {
     expect(parseRosterText('  张三  \n李四')).toEqual(['张三', '李四'])
+  })
+})
+
+describe('parseRosterEntries', () => {
+  it('第二列是 http/data 链接时识别为头像', () => {
+    const entries = parseRosterEntries('张三,https://example.com/a.png\n李四,data:image/png;base64,xx\n王五')
+    expect(entries).toEqual([
+      { name: '张三', avatar: 'https://example.com/a.png' },
+      { name: '李四', avatar: 'data:image/png;base64,xx' },
+      { name: '王五' },
+    ])
+  })
+
+  it('第二列不是链接时按 Excel 多列粘贴处理（忽略）', () => {
+    const entries = parseRosterEntries('张三,研发部\n李四\t市场部')
+    expect(entries).toEqual([{ name: '张三' }, { name: '李四' }])
+  })
+
+  it('空行过滤、名字去空白', () => {
+    expect(parseRosterEntries(' 张三 \n\n李四,https://a.com/b.jpg ')).toEqual([
+      { name: '张三' },
+      { name: '李四', avatar: 'https://a.com/b.jpg' },
+    ])
+  })
+})
+
+describe('normalizeRoster', () => {
+  it('字符串与对象混合的名单统一成对象形态', () => {
+    expect(normalizeRoster(['张三', { name: '李四', avatar: 'https://a.com/b.png' }])).toEqual([
+      { name: '张三' },
+      { name: '李四', avatar: 'https://a.com/b.png' },
+    ])
   })
 })
 
@@ -58,6 +90,16 @@ describe('parseConfigJson', () => {
     expect(parseConfigJson(JSON.stringify({ ...validConfig, version: 2 }))).toBeNull()
   })
 
+  it('名单条目可以是带头像的对象，混合形态也合法', () => {
+    const mixed = {
+      ...validConfig,
+      roster: ['张三', { name: '李四', avatar: 'https://example.com/a.png' }],
+    }
+    expect(parseConfigJson(JSON.stringify(mixed))).not.toBeNull()
+    const badEntry = { ...validConfig, roster: [{ avatar: 'https://a.com/b.png' }] } // 缺 name
+    expect(parseConfigJson(JSON.stringify(badEntry))).toBeNull()
+  })
+
   it('奖项可带可选的奖品图（img），非字符串则拒绝', () => {
     const withImg = {
       ...validConfig,
@@ -89,6 +131,12 @@ describe('configHash', () => {
     const a = configHash('标题', [{ name: '一等奖', count: 1, everyTimeGet: 1 }], validConfig.roster)
     const b = configHash('标题', [{ name: '一等奖', count: 2, everyTimeGet: 1 }], validConfig.roster)
     expect(a).not.toBe(b)
+  })
+
+  it('头像变化不影响指纹（换头像不重置抽奖进度）', () => {
+    const a = configHash('标题', validConfig.prizes, ['张三', '李四'])
+    const b = configHash('标题', validConfig.prizes, [{ name: '张三', avatar: 'https://a.com/x.png' }, '李四'])
+    expect(a).toBe(b)
   })
 
   it('奖品图变化不影响指纹（换图不重置抽奖进度）', () => {

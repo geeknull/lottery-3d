@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import lotteryConfig from './lottery-config'
 import {
-  saveUserConfig, clearUserConfig, parseRosterText, parseConfigJson,
-  exportConfigFile, exportWinnersCsv, configHash,
+  saveUserConfig, clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
+  rosterEntriesToText, parseConfigJson, exportConfigFile, exportWinnersCsv, configHash,
 } from './config-store'
 import type { PrizeConfig, UserLotteryConfig } from './config-store'
 import { toast, appConfirm } from './feedback'
@@ -21,7 +21,13 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const [prizes, setPrizes] = useState<PrizeConfig[]>(() =>
     lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet, img: p.img || undefined }))
   )
-  const [rosterText, setRosterText] = useState(() => lotteryConfig.cardList.map(c => c.name).join('\n'))
+  // 名单文本优先取用户配置原文（保留「名字,头像」行），默认配置则只有名字
+  const [rosterText, setRosterText] = useState(() => {
+    const userConfig = loadUserConfig()
+    return userConfig
+      ? rosterEntriesToText(userConfig.roster)
+      : lotteryConfig.cardList.map(c => c.name).join('\n')
+  })
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
@@ -77,7 +83,8 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       version: 1,
       headerTitle: title.trim(),
       prizes: prizes.map(p => ({ name: p.name.trim(), count: p.count, everyTimeGet: p.everyTimeGet, ...(p.img ? { img: p.img } : {}) })),
-      roster: rosterNames,
+      // 不带头像的条目存纯字符串，配置 JSON 更紧凑
+      roster: parseRosterEntries(rosterText).map(entry => (entry.avatar ? entry : entry.name)),
     }
   }
 
@@ -109,12 +116,12 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const names = parseRosterText(await file.text())
-    if (names.length === 0) {
+    const entries = parseRosterEntries(await file.text())
+    if (entries.length === 0) {
       toast('文件里没有解析出任何名字')
       return
     }
-    setRosterText(names.join('\n'))
+    setRosterText(rosterEntriesToText(entries))
   }
 
   async function handleConfigFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -128,7 +135,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     }
     setTitle(cfg.headerTitle)
     setPrizes(cfg.prizes)
-    setRosterText(cfg.roster.join('\n'))
+    setRosterText(rosterEntriesToText(cfg.roster))
     toast('配置已载入面板，请检查后点「保存并应用」生效')
   }
 
@@ -203,8 +210,8 @@ export default function LotteryConfigPanel({ onClose }: Props) {
           抽奖名单（{rosterNames.length} 人{dupCount > 0 ? `，含重名 ${dupCount} 处，会自动区分` : ''}）
         </h3>
         <p className="field-hint">
-          每行一个名字。可直接从 Excel 整列复制后粘贴（每行若含逗号或制表符，只取第一列）。
-          文件导入支持 .txt / .csv，规则相同。无需提供头像，系统会按名字自动生成。
+          每行一个人：「名字」或「名字,头像链接」（http(s) 或 data:image 链接才识别为头像，没有头像时按名字自动生成）。
+          可直接从 Excel 整列复制后粘贴（第二列不是链接时只取名字）。文件导入支持 .txt / .csv，规则相同。
         </p>
         <textarea
           value={rosterText}
