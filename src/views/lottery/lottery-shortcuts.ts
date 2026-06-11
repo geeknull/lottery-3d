@@ -20,7 +20,9 @@ export function getShortcutAction(e: KeyInfo, blocked: boolean): ShortcutAction 
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {
     return null
   }
-  if (e.key === ' ') {
+  // 空格 + 翻页笔常见键：「下一页」多为 PageDown 或 B（黑屏键），「上一页」为 PageUp，
+  // 部分型号确认键发 Enter，都映射到开始/停止抽奖
+  if (e.key === ' ' || e.key === 'PageDown' || e.key === 'PageUp' || e.key === 'Enter' || e.key === 'b' || e.key === 'B') {
     return 'toggle-draw'
   }
   if (e.key === 'f' || e.key === 'F') {

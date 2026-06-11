@@ -89,8 +89,8 @@ export default function LotteryAction() {
           <button id="grid" style={btnDisplay}>GRID</button>
         </div>
         <div style={{ marginBottom: '10px' }}>
-          <button id="lotteryStart" title="快捷键：空格" onClick={lotteryStart}>开始抽奖</button>
-          <button id="lotteryStop" title="快捷键：空格" onClick={lotteryStop}>停！</button>
+          <button id="lotteryStart" title="快捷键：空格 / 翻页笔（PageDown、B、Enter）" onClick={lotteryStart}>开始抽奖</button>
+          <button id="lotteryStop" title="快捷键：空格 / 翻页笔（PageDown、B、Enter）" onClick={lotteryStop}>停！</button>
           <button id="tableShow" onClick={tableShow}>展示全部</button>
           <button id="winShow" onClick={() => setShowAllWinUserPanel(true)}>展示中奖</button>
           <button id="showcase" title="待机时自动循环球体/螺旋/网格/平铺布局" onClick={toggleShowcase}>

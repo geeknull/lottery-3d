@@ -11,6 +11,15 @@ describe('getShortcutAction', () => {
     expect(getShortcutAction(keyEvent(' '), false)).toBe('toggle-draw')
   })
 
+  it('翻页笔常见键（PageDown/PageUp/B/Enter）也切换抽奖', () => {
+    // 翻页笔「下一页」通常发 PageDown 或 B（黑屏键），「上一页」发 PageUp
+    expect(getShortcutAction(keyEvent('PageDown'), false)).toBe('toggle-draw')
+    expect(getShortcutAction(keyEvent('PageUp'), false)).toBe('toggle-draw')
+    expect(getShortcutAction(keyEvent('b'), false)).toBe('toggle-draw')
+    expect(getShortcutAction(keyEvent('B'), false)).toBe('toggle-draw')
+    expect(getShortcutAction(keyEvent('Enter'), false)).toBe('toggle-draw')
+  })
+
   it('F 键切换全屏（大小写均可）', () => {
     expect(getShortcutAction(keyEvent('f'), false)).toBe('fullscreen')
     expect(getShortcutAction(keyEvent('F'), false)).toBe('fullscreen')
@@ -18,7 +27,7 @@ describe('getShortcutAction', () => {
 
   it('其他按键不触发动作', () => {
     expect(getShortcutAction(keyEvent('a'), false)).toBeNull()
-    expect(getShortcutAction(keyEvent('Enter'), false)).toBeNull()
+    expect(getShortcutAction(keyEvent('Escape'), false)).toBeNull()
   })
 
   it('焦点在输入框/文本域时不触发', () => {
