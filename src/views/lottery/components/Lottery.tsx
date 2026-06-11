@@ -7,8 +7,8 @@ import LotteryPrize from './LotteryPrize'
 import Lottery3d from './Lottery3d'
 import LotteryConfigPanel from './LotteryConfigPanel'
 import { FeedbackHost } from './feedback'
-import { useLotteryShortcuts, toggleFullscreen } from './lottery-shortcuts'
-import lotteryConfig from './lottery-config'
+import { useLotteryShortcuts, toggleFullscreen } from '../core/lottery-shortcuts'
+import lotteryConfig from '../core/lottery-config'
 import './lottery.scss'
 
 export default function Lottery() {

@@ -1,8 +1,8 @@
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import App from './App'
-import { initTheme } from './views/lottery/lottery-theme'
-import './views/lottery/lottery-theme.scss'
+import { initTheme } from './views/lottery/core/lottery-theme'
+import './views/lottery/core/lottery-theme.scss'
 import './app.scss'
 
 // 首帧渲染前恢复持久化的主题，避免颜色闪变

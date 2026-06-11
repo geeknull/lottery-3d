@@ -1,6 +1,6 @@
-import { transform } from './3d-animate'
-import type { TransformType } from './3d-animate'
-import STATUS from './3d-status'
+import { transform } from '../3d/3d-animate'
+import type { TransformType } from '../3d/3d-animate'
+import STATUS from '../3d/3d-status'
 import { bus } from './event-bus'
 
 // 待机轮播展示：自动循环切换 sphere/helix/grid/table 四种布局，

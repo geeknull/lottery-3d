@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 import LotteryAction from './LotteryAction'
-import lotteryConfig from './lottery-config'
-import { useLotteryVersion, notifyLotteryChange } from './lottery-store'
-import { transform } from './3d-animate'
-import STATUS from './3d-status'
+import lotteryConfig from '../core/lottery-config'
+import { useLotteryVersion, notifyLotteryChange } from '../core/lottery-store'
+import { transform } from '../3d/3d-animate'
+import STATUS from '../3d/3d-status'
 import { toast } from './feedback'
-import { stopShowcase } from './lottery-showcase'
-import type { Prize } from './lottery-types'
+import { stopShowcase } from '../core/lottery-showcase'
+import type { Prize } from '../core/lottery-types'
 import './lottery-prize.scss'
 
 async function selectPrize(prize: Prize) {

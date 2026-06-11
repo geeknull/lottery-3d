@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { bus } from './event-bus'
-import { createBurst, stepParticles } from './lottery-confetti'
-import type { ConfettiParticle } from './lottery-confetti'
+import { bus } from '../core/event-bus'
+import { createBurst, stepParticles } from '../core/lottery-confetti'
+import type { ConfettiParticle } from '../core/lottery-confetti'
 
 // 中奖揭晓时的全屏彩带庆祝（canvas 自绘，与 LotteryStarfield 同模式）
 export default function LotteryConfetti() {

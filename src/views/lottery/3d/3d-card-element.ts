@@ -1,4 +1,4 @@
-import lotteryConfig from './lottery-config';
+import lotteryConfig from '../core/lottery-config';
 import { scene, objects } from './3d-core';
 import { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 

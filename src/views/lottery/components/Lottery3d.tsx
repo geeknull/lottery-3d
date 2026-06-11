@@ -1,11 +1,11 @@
 // https://threejs.org/examples/css3d_periodictable.html
 import { useEffect } from 'react'
-import './origin-main.css'
-import './origin-periodictable.css'
-import './lottery-custom.css'
-import './lottery-3d.scss'
-import { init, animate, transform } from './3d'
-import { bus } from './event-bus'
+import '../3d/origin-main.css'
+import '../3d/origin-periodictable.css'
+import '../3d/lottery-custom.css'
+import '../3d/lottery-3d.scss'
+import { init, animate, transform } from '../3d/3d'
+import { bus } from '../core/event-bus'
 
 export default function Lottery3d() {
   useEffect(() => {

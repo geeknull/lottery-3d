@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
-import lotteryConfig from './lottery-config'
+import lotteryConfig from '../core/lottery-config'
 import {
   saveUserConfig, clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
   rosterEntriesToText, parseConfigJson, exportConfigFile, exportWinnersCsv, configHash,
-} from './config-store'
-import type { PrizeConfig, UserLotteryConfig } from './config-store'
+} from '../core/config-store'
+import type { PrizeConfig, UserLotteryConfig } from '../core/config-store'
 import { toast, appConfirm } from './feedback'
-import { THEMES, loadTheme, applyTheme } from './lottery-theme'
-import type { ThemeId } from './lottery-theme'
-import { compressImageToDataUrl } from './image-utils'
+import { THEMES, loadTheme, applyTheme } from '../core/lottery-theme'
+import type { ThemeId } from '../core/lottery-theme'
+import { compressImageToDataUrl } from '../core/image-utils'
 import './lottery-config-panel.scss'
 
 interface Props {

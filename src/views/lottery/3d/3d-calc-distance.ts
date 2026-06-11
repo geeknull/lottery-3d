@@ -2,7 +2,7 @@ import { MathUtils } from 'three';
 import { Tween, Easing } from '@tweenjs/tween.js';
 import { camera, cardSize } from './3d-core';
 import { tweenGroup } from './tween-group';
-import lotteryConfig from './lottery-config';
+import lotteryConfig from '../core/lottery-config';
 
 const { colCount, rowCount } = lotteryConfig;
 

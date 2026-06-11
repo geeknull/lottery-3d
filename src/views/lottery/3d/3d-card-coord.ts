@@ -1,5 +1,5 @@
 import { Object3D, Vector3 } from 'three';
-import lotteryConfig from './lottery-config';
+import lotteryConfig from '../core/lottery-config';
 import {
   objects, targets, cardSize, // 3d 变量
 } from './3d-core'

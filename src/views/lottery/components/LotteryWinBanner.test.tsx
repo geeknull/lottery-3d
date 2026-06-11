@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react'
 import LotteryWinBanner from './LotteryWinBanner'
-import { bus } from './event-bus'
-import type { Card } from './lottery-types'
+import { bus } from '../core/event-bus'
+import type { Card } from '../core/lottery-types'
 
 afterEach(cleanup)
 

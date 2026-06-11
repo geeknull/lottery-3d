@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { bus } from './event-bus'
-import type { Card } from './lottery-types'
+import { bus } from '../core/event-bus'
+import type { Card } from '../core/lottery-types'
 import './lottery-win-banner.scss'
 
 interface RevealData {
