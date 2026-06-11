@@ -3,6 +3,7 @@ import lotteryConfig from '../core/lottery-config'
 import {
   saveUserConfig, clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
   rosterEntriesToText, parseConfigJson, exportConfigFile, exportWinnersCsv, configHash,
+  PERF_WARN_ROSTER,
 } from '../core/config-store'
 import type { PrizeConfig, UserLotteryConfig } from '../core/config-store'
 import { toast, appConfirm } from './feedback'
@@ -238,6 +239,11 @@ export default function LotteryConfigPanel({ onClose }: Props) {
           每行一个人：「名字」或「名字,头像链接」（http(s) 或 data:image 链接才识别为头像，没有头像时按名字自动生成）。
           可直接从 Excel 整列复制后粘贴（第二列不是链接时只取名字）。文件导入支持 .txt / .csv，规则相同。
         </p>
+        {rosterNames.length > PERF_WARN_ROSTER && (
+          <p className="perf-warning">
+            ⚠ 名单 {rosterNames.length} 人较多，3D 旋转抽奖在部分设备上可能不流畅，建议精简到 {PERF_WARN_ROSTER} 人以内或分批抽奖。
+          </p>
+        )}
         <textarea
           value={rosterText}
           onChange={e => setRosterText(e.target.value)}

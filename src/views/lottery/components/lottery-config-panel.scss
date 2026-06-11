@@ -42,6 +42,14 @@
     max-width: 560px;
   }
 
+  .perf-warning {
+    color: #ffd08a;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 12px;
+    max-width: 560px;
+  }
+
   input,
   textarea {
     background: rgba(var(--accent-dark-rgb), 0.15);

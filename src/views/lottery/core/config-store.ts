@@ -23,6 +23,10 @@ export interface UserLotteryConfig {
 
 const CONFIG_KEY = '___lottery_config___';
 
+// 名单规模性能阈值：CSS3DRenderer 旋转时需每帧重算所有卡片的 3D 变换，
+// 实测 ~300 人流畅、1000 人起明显掉帧、2000 人卡顿。超过此值在配置面板给出提示。
+export const PERF_WARN_ROSTER = 1000;
+
 function isValidConfig(data: unknown): data is UserLotteryConfig {
   if (typeof data !== 'object' || data === null) return false;
   const cfg = data as Record<string, unknown>;
