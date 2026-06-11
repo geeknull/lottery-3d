@@ -1,0 +1,94 @@
+// toast 与确认对话框：与右上角 HUD 按钮一致的赛博风格
+.toast-stack {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-item {
+  padding: 10px 22px;
+  font-size: 15px;
+  color: #d4ffff;
+  background: rgba(2, 22, 30, 0.88);
+  border: 1px solid rgba(127, 255, 255, 0.45);
+  border-radius: 4px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 16px rgba(0, 200, 200, 0.25);
+  animation: toast-in .2s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.confirm-dialog {
+  min-width: 320px;
+  max-width: 480px;
+  padding: 26px 30px;
+  text-align: center;
+  color: #e8ffff;
+  background: rgba(3, 26, 35, 0.96);
+  border: 1px solid rgba(127, 255, 255, 0.4);
+  border-radius: 6px;
+  box-shadow: 0 0 30px rgba(0, 200, 200, 0.25);
+
+  .confirm-message {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+  }
+
+  .confirm-btns {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+
+    button {
+      padding: 7px 22px;
+      font-size: 14px;
+      cursor: pointer;
+      color: #d4ffff;
+      background: rgba(127, 255, 255, 0.08);
+      border: 1px solid rgba(127, 255, 255, 0.35);
+      border-radius: 3px;
+      transition: background-color .15s, border-color .15s;
+
+      &:hover {
+        background: rgba(127, 255, 255, 0.2);
+      }
+      &.primary {
+        border-color: rgba(127, 255, 255, 0.7);
+        background: rgba(0, 160, 160, 0.35);
+
+        &:hover {
+          background: rgba(0, 180, 180, 0.5);
+        }
+      }
+    }
+  }
+}

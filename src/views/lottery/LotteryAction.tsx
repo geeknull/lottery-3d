@@ -7,6 +7,7 @@ import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action'
 import { getRandomCard, voidWinner } from './lottery-algorithm'
 import { setCardPrizeMark } from './3d-card-element'
 import STATUS from './3d-status'
+import { toast, appConfirm } from './feedback'
 import { bus } from './event-bus'
 import type { Card } from './lottery-types'
 import './lottery-action.scss'
@@ -25,17 +26,17 @@ function getRenderArr(arr: Card[]) {
 
 async function lotteryStart() {
   if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
-    alert('正在抽奖或初始化，请等待一下')
+    toast('正在抽奖或初始化，请等待一下')
     return void 0
   }
   const currentPrize = lotteryConfig.getCurrentPrize()
   if (!currentPrize) {
-    alert('请选择奖项')
+    toast('请选择奖项')
     STATUS.setStatusWait()
     return void 0
   }
   if (currentPrize.countRemain <= 0) {
-    alert(currentPrize.name + '已经抽取完毕，请选择其他奖项')
+    toast(currentPrize.name + '已经抽取完毕，请选择其他奖项')
     STATUS.setStatusWait()
     return void 0
   }
@@ -52,7 +53,7 @@ async function lotteryStart() {
 async function lotteryStop() {
   const currentPrize = lotteryConfig.getCurrentPrize()
   if (!currentPrize) {
-    alert('请选择奖项')
+    toast('请选择奖项')
     STATUS.setStatusWait()
     return void 0
   }
@@ -71,12 +72,12 @@ async function tableShow() {
     await transform('table', 1000) // sphere
     STATUS.setStatusWait()
   } else {
-    alert('抽奖正在运行中，请等待后再操作！')
+    toast('抽奖正在运行中，请等待后再操作！')
   }
 }
 
-function resetData() {
-  if (confirm('是否要重置所有抽奖数据，此操作不可恢复！')) {
+async function resetData() {
+  if (await appConfirm('是否要重置所有抽奖数据？此操作不可恢复！', { confirmText: '重置' })) {
     lotteryConfig.clearLocalStorage()
     location.reload()
   }

@@ -4,6 +4,7 @@ import LotteryMusic from './LotteryMusic'
 import LotteryPrize from './LotteryPrize'
 import Lottery3d from './Lottery3d'
 import LotteryConfigPanel from './LotteryConfigPanel'
+import { FeedbackHost } from './feedback'
 import lotteryConfig from './lottery-config'
 import './lottery.scss'
 
@@ -14,6 +15,7 @@ export default function Lottery() {
     <div className="lottery-wrap">
       <LotteryStarfield />
       <LotteryMusic />
+      <FeedbackHost />
       <div className="hud-btn config-btn" title="抽奖配置" onClick={() => setShowConfig(true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3" />

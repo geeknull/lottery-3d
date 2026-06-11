@@ -4,12 +4,13 @@ import lotteryConfig from './lottery-config'
 import { useLotteryVersion, notifyLotteryChange } from './lottery-store'
 import { transform } from './3d-animate'
 import STATUS from './3d-status'
+import { toast } from './feedback'
 import type { Prize } from './lottery-types'
 import './lottery-prize.scss'
 
 async function selectPrize(prize: Prize) {
   if (STATUS.isRun()) {
-    alert('正在抽奖中或者已经是当前奖项状态，不能切换奖项！')
+    toast('正在抽奖中，不能切换奖项！')
     return void 0
   }
   STATUS.setStatusRun()

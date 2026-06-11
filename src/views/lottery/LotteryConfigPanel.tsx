@@ -5,6 +5,7 @@ import {
   exportConfigFile, exportWinnersCsv,
 } from './config-store'
 import type { PrizeConfig, UserLotteryConfig } from './config-store'
+import { toast, appConfirm } from './feedback'
 import './lottery-config-panel.scss'
 
 interface Props {
@@ -31,29 +32,29 @@ export default function LotteryConfigPanel({ onClose }: Props) {
 
   function buildConfig(): UserLotteryConfig | null {
     if (!title.trim()) {
-      alert('请填写活动标题')
+      toast('请填写活动标题')
       return null
     }
     if (prizes.length === 0) {
-      alert('至少需要一个奖项')
+      toast('至少需要一个奖项')
       return null
     }
     for (const p of prizes) {
       if (!p.name.trim()) {
-        alert('奖项名称不能为空')
+        toast('奖项名称不能为空')
         return null
       }
       if (!(p.count >= 1) || !(p.everyTimeGet >= 1)) {
-        alert('奖项总数和每轮抽取数至少为 1')
+        toast('奖项总数和每轮抽取数至少为 1')
         return null
       }
     }
     if (rosterNames.length === 0) {
-      alert('抽奖名单不能为空')
+      toast('抽奖名单不能为空')
       return null
     }
     if (totalPrizeCount > rosterNames.length) {
-      alert(`奖品总数（${totalPrizeCount}）超过了名单人数（${rosterNames.length}），请调整奖项数量或补充名单`)
+      toast(`奖品总数（${totalPrizeCount}）超过了名单人数（${rosterNames.length}），请调整奖项数量或补充名单`)
       return null
     }
     return {
@@ -64,10 +65,10 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     const cfg = buildConfig()
     if (!cfg) return
-    if (!confirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？')) return
+    if (!(await appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }))) return
     saveUserConfig(cfg)
     lotteryConfig.clearLocalStorage()
     location.reload()
@@ -85,7 +86,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     if (!file) return
     const names = parseRosterText(await file.text())
     if (names.length === 0) {
-      alert('文件里没有解析出任何名字')
+      toast('文件里没有解析出任何名字')
       return
     }
     setRosterText(names.join('\n'))
@@ -97,17 +98,17 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     if (!file) return
     const cfg = parseConfigJson(await file.text())
     if (!cfg) {
-      alert('配置文件格式不正确')
+      toast('配置文件格式不正确')
       return
     }
     setTitle(cfg.headerTitle)
     setPrizes(cfg.prizes)
     setRosterText(cfg.roster.join('\n'))
-    alert('配置已载入面板，请检查后点「保存并应用」生效')
+    toast('配置已载入面板，请检查后点「保存并应用」生效')
   }
 
-  function handleRestoreDefaults() {
-    if (!confirm('恢复内置默认配置并清空抽奖进度，确定吗？')) return
+  async function handleRestoreDefaults() {
+    if (!(await appConfirm('恢复内置默认配置并清空抽奖进度，确定吗？', { confirmText: '恢复默认' }))) return
     clearUserConfig()
     lotteryConfig.clearLocalStorage()
     location.reload()
