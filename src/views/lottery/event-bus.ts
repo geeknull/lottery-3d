@@ -4,4 +4,5 @@ import mitt from 'mitt'
 export const bus = mitt<{
   'lottery-3d-init': undefined
   'lottery-win-reveal': undefined // 中奖卡片飞出定格后触发（彩带庆祝）
+  'showcase-change': undefined // 轮播展示启停（按钮高亮态同步）
 }>()

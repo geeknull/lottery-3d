@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import lotteryConfig from './lottery-config'
 import { useLotteryVersion } from './lottery-store'
 import { lotteryStart, lotteryStop, tableShow } from './lottery-controller'
+import { startShowcase, stopShowcase, returnToTable, isShowcaseActive } from './lottery-showcase'
 import { voidWinner } from './lottery-algorithm'
 import { setCardPrizeMark } from './3d-card-element'
 import STATUS from './3d-status'
-import { appConfirm } from './feedback'
+import { toast, appConfirm } from './feedback'
 import { bus } from './event-bus'
 import type { Card } from './lottery-types'
 import './lottery-action.scss'
@@ -26,6 +27,19 @@ async function resetData() {
   if (await appConfirm('是否要重置所有抽奖数据？此操作不可恢复！', { confirmText: '重置' })) {
     lotteryConfig.clearLocalStorage()
     location.reload()
+  }
+}
+
+async function toggleShowcase() {
+  if (isShowcaseActive()) {
+    stopShowcase()
+    await returnToTable()
+  } else {
+    if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
+      toast('正在抽奖或动画中，稍后再开启轮播展示')
+      return void 0
+    }
+    startShowcase()
   }
 }
 
@@ -52,10 +66,15 @@ export default function LotteryAction() {
     setVoidTarget(null)
   }
 
+  const [showcaseOn, setShowcaseOn] = useState(isShowcaseActive())
+
   useEffect(() => {
     bus.on('lottery-3d-init', () => {
       STATUS.setStatusWait()
     })
+    const syncShowcase = () => setShowcaseOn(isShowcaseActive())
+    bus.on('showcase-change', syncShowcase)
+    return () => bus.off('showcase-change', syncShowcase)
   }, [])
 
   const btnDisplay = { display: showBtn ? undefined : 'none' }
@@ -74,6 +93,9 @@ export default function LotteryAction() {
           <button id="lotteryStop" title="快捷键：空格" onClick={lotteryStop}>停！</button>
           <button id="tableShow" onClick={tableShow}>展示全部</button>
           <button id="winShow" onClick={() => setShowAllWinUserPanel(true)}>展示中奖</button>
+          <button id="showcase" title="待机时自动循环球体/螺旋/网格/平铺布局" onClick={toggleShowcase}>
+            {showcaseOn ? '停止轮播' : '轮播展示'}
+          </button>
         </div>
         <div>
           <button id="reset" onClick={resetData}>重置所有数据</button>

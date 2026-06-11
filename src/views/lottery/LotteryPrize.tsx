@@ -5,10 +5,12 @@ import { useLotteryVersion, notifyLotteryChange } from './lottery-store'
 import { transform } from './3d-animate'
 import STATUS from './3d-status'
 import { toast } from './feedback'
+import { stopShowcase } from './lottery-showcase'
 import type { Prize } from './lottery-types'
 import './lottery-prize.scss'
 
 async function selectPrize(prize: Prize) {
+  stopShowcase()
   if (STATUS.isRun()) {
     toast('正在抽奖中，不能切换奖项！')
     return void 0

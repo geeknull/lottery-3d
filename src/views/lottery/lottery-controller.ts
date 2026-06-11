@@ -6,6 +6,7 @@ import { getRandomCard } from './lottery-algorithm'
 import STATUS from './3d-status'
 import { toast } from './feedback'
 import { bus } from './event-bus'
+import { stopShowcase } from './lottery-showcase'
 
 // 抽奖的开始/停止流程。从 LotteryAction 组件抽出来，
 // 按钮和键盘快捷键共用同一套入口。
@@ -18,6 +19,7 @@ export function isSpinning(): boolean {
 }
 
 export async function lotteryStart() {
+  stopShowcase() // 轮播展示中开始抽奖则先停轮播
   if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
     toast('正在抽奖或初始化，请等待一下')
     return void 0
@@ -72,6 +74,7 @@ export function toggleDraw() {
 }
 
 export async function tableShow() {
+  stopShowcase()
   if (STATUS.getStatus() !== STATUS.RUNNING_LOTTERY) {
     STATUS.setStatusRun()
     await transform('table', 1000) // sphere
