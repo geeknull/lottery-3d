@@ -35,4 +35,5 @@ export interface DrawLogEntry {
   // 仅抽奖（type==='draw'）有以下复算字段：
   rngStateBefore?: number // 本轮抽取前的 rng 状态（首轮 = seed）
   poolIds?: string[] // 抽取前奖池的 id 顺序
+  undone?: boolean // 该轮抽奖已被撤销（中奖作废，但仍消耗了随机流，验证时照常复算）
 }

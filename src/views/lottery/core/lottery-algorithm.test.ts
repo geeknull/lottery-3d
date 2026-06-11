@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { replaySequence } from './lottery-rng'
+import { verifyDrawLog } from './lottery-fairness'
 import type { LotteryConfig } from './lottery-config'
 import type { Card, Prize } from './lottery-types'
 
@@ -9,19 +10,20 @@ async function loadFreshModules() {
   vi.resetModules()
   localStorage.clear()
   const { default: lotteryConfig } = await import('./lottery-config')
-  const { getRandomCard, voidWinner } = await import('./lottery-algorithm')
+  const { getRandomCard, voidWinner, undoLastDraw } = await import('./lottery-algorithm')
   const store = await import('./lottery-store')
-  return { lotteryConfig, getRandomCard, voidWinner, store }
+  return { lotteryConfig, getRandomCard, voidWinner, undoLastDraw, store }
 }
 
 let lotteryConfig: LotteryConfig
 let getRandomCard: (prize: Prize) => Card[]
 let voidWinner: (prizeId: string, cardId: string, returnToPool: boolean) => boolean
+let undoLastDraw: () => string[] | null
 let store: typeof import('./lottery-store')
 
 beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => {}) // 业务模块加载/抽奖时有调试日志，保持测试输出干净
-  ;({ lotteryConfig, getRandomCard, voidWinner, store } = await loadFreshModules())
+  ;({ lotteryConfig, getRandomCard, voidWinner, undoLastDraw, store } = await loadFreshModules())
 })
 
 describe('getRandomCard', () => {
@@ -141,6 +143,86 @@ describe('可验证公平：种子化抽奖', () => {
     const [a, b] = lotteryConfig.drawLog
     expect(a.rngStateBefore).toBe(99)
     expect(b.rngStateBefore).not.toBe(99) // 第二轮从推进后的状态开始
+  })
+})
+
+describe('undoLastDraw 撤销整轮', () => {
+  it('撤销后中奖人移出、名额退回、轮数减一', () => {
+    const prize = lotteryConfig.prizeList.find(p => p.everyTimeGet === 10)!
+    getRandomCard(prize)
+    expect(prize.countRemain).toBe(10)
+    expect(prize.round).toBe(1)
+
+    expect(undoLastDraw()).not.toBeNull()
+    expect(prize.countRemain).toBe(20)
+    expect(prize.round).toBe(0)
+    expect(prize.cardListWin).toHaveLength(0)
+    expect(lotteryConfig.cardListWinAll).toHaveLength(0)
+  })
+
+  it('撤销后被撤销的人回到奖池', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const winner = getRandomCard(prize)[0]
+    expect(lotteryConfig.cardListRemainAll.some(c => c.id === winner.id)).toBe(false)
+    undoLastDraw()
+    expect(lotteryConfig.cardListRemainAll.some(c => c.id === winner.id)).toBe(true)
+  })
+
+  it('撤销不回退 rng 状态：被撤销轮标记 undone，重抽从撤销后的状态续接', () => {
+    lotteryConfig.seed = 7
+    lotteryConfig.rngState = 7
+    const prize = lotteryConfig.prizeList[0]
+    getRandomCard(prize)
+    const stateAfterFirst = lotteryConfig.rngState
+    undoLastDraw()
+    expect(lotteryConfig.rngState).toBe(stateAfterFirst) // 未回退
+    expect(lotteryConfig.drawLog[0].undone).toBe(true)
+
+    getRandomCard(prize)
+    const liveDraw = lotteryConfig.drawLog.find(e => e.type === 'draw' && !e.undone)!
+    expect(liveDraw.rngStateBefore).toBe(stateAfterFirst) // 重抽用新随机流
+  })
+
+  it('撤销后整场仍可离线验证（含被撤销轮，链连续）', () => {
+    lotteryConfig.seed = 33
+    lotteryConfig.rngState = 33
+    const prize = lotteryConfig.prizeList[0]
+    getRandomCard(prize)
+    getRandomCard(prize)
+    undoLastDraw()
+    getRandomCard(prize)
+    expect(verifyDrawLog(lotteryConfig.seed, lotteryConfig.drawLog).ok).toBe(true)
+  })
+
+  it('记录一条 undo 历史条目', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const picked = getRandomCard(prize)
+    undoLastDraw()
+    const undoEntry = lotteryConfig.drawLog.find(e => e.type === 'undo')!
+    expect(undoEntry).toBeTruthy()
+    expect(undoEntry.winnerIds).toEqual(picked.map(c => c.id))
+  })
+
+  it('没有可撤销的抽奖时返回 null', () => {
+    expect(undoLastDraw()).toBeNull()
+  })
+
+  it('只撤销最近一轮，更早的抽奖保留', () => {
+    const prize = lotteryConfig.prizeList.find(p => p.everyTimeGet === 10)!
+    getRandomCard(prize)
+    getRandomCard(prize)
+    expect(prize.cardListWin).toHaveLength(20)
+    undoLastDraw()
+    expect(prize.cardListWin).toHaveLength(10)
+  })
+
+  it('撤销后通知 UI 数据已变化', () => {
+    const prize = lotteryConfig.prizeList[0]
+    getRandomCard(prize)
+    const listener = vi.fn()
+    store.subscribeLottery(listener)
+    undoLastDraw()
+    expect(listener).toHaveBeenCalled()
   })
 })
 

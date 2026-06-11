@@ -79,4 +79,41 @@ const voidWinner = function(prizeId: string, cardId: string, returnToPool: boole
   return true;
 }
 
-export { getRandomCard, voidWinner }
+// 撤销最近一次抽奖（整轮重来）：中奖人退回奖池、名额归还、轮数减一。
+// 关键：不回退 rng 状态——被撤销的那轮确实消耗了随机流，回退会导致重抽必然抽到同一批人。
+// 被撤销轮在 drawLog 里标记 undone 保留（验证时照常复算，链才连续），重抽用新的随机流。
+const undoLastDraw = function(): string[] | null {
+  const idx = lotteryConfig.drawLog.findLastIndex(e => e.type === 'draw' && !e.undone);
+  if (idx === -1) {
+    return null;
+  }
+  const entry = lotteryConfig.drawLog[idx];
+  const prize = lotteryConfig.prizeList.find(p => p.id === entry.prizeId);
+  if (!prize) {
+    return null;
+  }
+  const ids = new Set(entry.winnerIds);
+  prize.cardListWin = prize.cardListWin.filter(c => !ids.has(c.id));
+  prize.countRemain += entry.winnerIds.length;
+  prize.round = Math.max(0, prize.round - 1);
+  lotteryConfig.cardListWinAll = lotteryConfig.cardListWinAll.filter(c => !ids.has(c.id));
+  recomputeRemain();
+
+  // 标记被撤销 + 追加一条 undo 历史（不消耗随机流）
+  const newLog = lotteryConfig.drawLog.map((e, i) => (i === idx ? { ...e, undone: true } : e));
+  newLog.push({
+    type: 'undo',
+    at: Date.now(),
+    prizeId: entry.prizeId,
+    prizeName: entry.prizeName,
+    winnerNames: entry.winnerNames,
+    winnerIds: entry.winnerIds,
+  });
+  lotteryConfig.drawLog = newLog;
+
+  lotteryConfig.setLocalStorage();
+  notifyLotteryChange();
+  return entry.winnerIds;
+}
+
+export { getRandomCard, voidWinner, undoLastDraw }
