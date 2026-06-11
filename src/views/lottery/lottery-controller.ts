@@ -5,6 +5,7 @@ import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action'
 import { getRandomCard } from './lottery-algorithm'
 import STATUS from './3d-status'
 import { toast } from './feedback'
+import { bus } from './event-bus'
 
 // 抽奖的开始/停止流程。从 LotteryAction 组件抽出来，
 // 按钮和键盘快捷键共用同一套入口。
@@ -57,6 +58,7 @@ export async function lotteryStop() {
 
   await setSphereDist(2, 500)
   await cardFlyAnimation(cardSelectIndex)
+  bus.emit('lottery-win-reveal') // 彩带庆祝
   STATUS.setStatusWait()
 }
 

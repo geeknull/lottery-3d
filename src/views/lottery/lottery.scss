@@ -62,3 +62,10 @@
 .fullscreen-btn {
   right: 124px;
 }
+// 中奖揭晓彩带画布：盖在 3D 场景上方、面板下方，不挡交互
+.lottery-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+  pointer-events: none;
+}

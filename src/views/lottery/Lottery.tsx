@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LotteryStarfield from './LotteryStarfield'
+import LotteryConfetti from './LotteryConfetti'
 import LotteryMusic from './LotteryMusic'
 import LotteryPrize from './LotteryPrize'
 import Lottery3d from './Lottery3d'
@@ -16,6 +17,7 @@ export default function Lottery() {
   return (
     <div className="lottery-wrap">
       <LotteryStarfield />
+      <LotteryConfetti />
       <LotteryMusic />
       <FeedbackHost />
       <div className="hud-btn fullscreen-btn" title="全屏（快捷键 F）" onClick={toggleFullscreen}>
