@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
@@ -12,5 +12,8 @@ export default defineConfig({
   server: {
     port: 8080,
     host: true
+  },
+  test: {
+    environment: 'jsdom' // 业务逻辑里有 localStorage / document 访问
   }
 })
