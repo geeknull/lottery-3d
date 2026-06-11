@@ -1,38 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import LotteryAction from './LotteryAction'
 import lotteryConfig from './lottery-config'
+import { useLotteryVersion, notifyLotteryChange } from './lottery-store'
 import { transform } from './3d-animate'
 import STATUS from './3d-status'
 import type { Prize } from './lottery-types'
 import './lottery-prize.scss'
 
-async function selectPrize(prize: Prize, index: number, setCurrentPrizeIndex: (i: number) => void) {
+async function selectPrize(prize: Prize) {
   if (STATUS.isRun()) {
     alert('正在抽奖中或者已经是当前奖项状态，不能切换奖项！')
     return void 0
   }
   STATUS.setStatusRun()
-  setCurrentPrizeIndex(index)
   lotteryConfig.currentPrize = prize.id
+  notifyLotteryChange()
   await transform('table', 1000) // TODO重复点击处理
   STATUS.setStatusWait()
 }
 
 export default function LotteryPrize() {
+  useLotteryVersion() // 抽奖/切换奖项后剩余数量、进度条、选中态自动刷新
   const prizeList = lotteryConfig.prizeList
-  // 初始选中：沿用已选奖项，否则默认最后一个（等级最低的奖项）
-  const [currentPrizeIndex, setCurrentPrizeIndex] = useState<number | null>(() => {
-    const currentPrize = lotteryConfig.getCurrentPrize()
-    if (!currentPrize) {
-      return prizeList.length - 1
-    }
-    return lotteryConfig.prizeList.findIndex(_ => _.id === currentPrize.id)
-  })
+  // 选中态直接从全局配置派生：沿用已选奖项，否则默认最后一个（等级最低的奖项）
+  const currentPrize = lotteryConfig.getCurrentPrize()
+  const currentPrizeIndex = currentPrize
+    ? prizeList.findIndex(_ => _.id === currentPrize.id)
+    : prizeList.length - 1
 
   useEffect(() => {
     // 把默认选中同步回全局配置（渲染期不允许改外部状态，放到 effect 里）
     if (!lotteryConfig.currentPrize) {
       lotteryConfig.currentPrize = prizeList[prizeList.length - 1]['id']
+      notifyLotteryChange()
     }
   }, [prizeList])
 
@@ -43,7 +43,7 @@ export default function LotteryPrize() {
           <li
             key={index}
             className={'prize-item' + (index === currentPrizeIndex ? ' shine' : '')}
-            onClick={() => selectPrize(item, index, setCurrentPrizeIndex)}
+            onClick={() => selectPrize(item)}
           >
             <div className="prize-item-right">
               <div className="prize-item-title">{item.name}</div>

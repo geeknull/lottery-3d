@@ -9,15 +9,17 @@ async function loadFreshModules() {
   localStorage.clear()
   const { default: lotteryConfig } = await import('./lottery-config')
   const { getRandomCard } = await import('./lottery-algorithm')
-  return { lotteryConfig, getRandomCard }
+  const store = await import('./lottery-store')
+  return { lotteryConfig, getRandomCard, store }
 }
 
 let lotteryConfig: LotteryConfig
 let getRandomCard: (prize: Prize) => Card[]
+let store: typeof import('./lottery-store')
 
 beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => {}) // 业务模块加载/抽奖时有调试日志，保持测试输出干净
-  ;({ lotteryConfig, getRandomCard } = await loadFreshModules())
+  ;({ lotteryConfig, getRandomCard, store } = await loadFreshModules())
 })
 
 describe('getRandomCard', () => {
@@ -69,6 +71,13 @@ describe('getRandomCard', () => {
     expect(lotteryConfig.cardListRemainAll).toHaveLength(
       lotteryConfig.cardList.length - lotteryConfig.cardListWinAll.length
     )
+  })
+
+  it('抽取后通知 UI 数据已变化', () => {
+    const listener = vi.fn()
+    store.subscribeLottery(listener)
+    getRandomCard(lotteryConfig.prizeList[0])
+    expect(listener).toHaveBeenCalled()
   })
 
   it('抽奖进度写入 localStorage', () => {

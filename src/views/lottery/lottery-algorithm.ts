@@ -1,4 +1,5 @@
 import lotteryConfig from './lottery-config';
+import { notifyLotteryChange } from './lottery-store';
 import type { Card, Prize } from './lottery-types';
 
 const random = function(min: number, max: number) {
@@ -33,6 +34,7 @@ const getRandomCard = function(currentPrize: Prize): Card[] {
   currentPrize.round += 1;
 
   lotteryConfig.setLocalStorage();
+  notifyLotteryChange();
   return selectCardList;
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { setSphereDist } from './3d-calc-distance'
 import { transform, transformStatus } from './3d-animate'
 import lotteryConfig from './lottery-config'
+import { useLotteryVersion } from './lottery-store'
 import { cardFlyAnimation, rotateBall, rotateBallStop } from './3d-action'
 import { getRandomCard } from './lottery-algorithm'
 import STATUS from './3d-status'
@@ -83,6 +84,7 @@ function resetData() {
 export default function LotteryAction() {
   const showBtn = false
   const [showAllWinUserPanel, setShowAllWinUserPanel] = useState(false)
+  useLotteryVersion() // 中奖名单面板打开期间数据变化也能刷新
   const prizeList = lotteryConfig.prizeList
 
   useEffect(() => {
