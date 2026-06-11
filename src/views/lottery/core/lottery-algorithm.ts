@@ -74,6 +74,17 @@ const voidWinner = function(prizeId: string, cardId: string, returnToPool: boole
   }
   recomputeRemain();
 
+  // 写入作废流水（历史时间线）
+  lotteryConfig.drawLog = [...lotteryConfig.drawLog, {
+    type: 'void',
+    at: Date.now(),
+    prizeId: prize.id,
+    prizeName: prize.name,
+    winnerNames: [card.name],
+    winnerIds: [card.id],
+    note: returnToPool ? '退回奖池' : '不再参与',
+  }];
+
   lotteryConfig.setLocalStorage();
   notifyLotteryChange();
   return true;

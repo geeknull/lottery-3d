@@ -32,6 +32,7 @@ export interface DrawLogEntry {
   prizeName: string
   winnerNames: string[] // 涉及的人名（展示用）
   winnerIds: string[]
+  note?: string // 备注（如作废是否退回奖池）
   // 仅抽奖（type==='draw'）有以下复算字段：
   rngStateBefore?: number // 本轮抽取前的 rng 状态（首轮 = seed）
   poolIds?: string[] // 抽取前奖池的 id 顺序

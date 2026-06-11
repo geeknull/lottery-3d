@@ -283,6 +283,17 @@ describe('voidWinner 作废中奖', () => {
     expect(listener).toHaveBeenCalled()
   })
 
+  it('作废写入一条 void 流水（含人名与退回方式）', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const [winner] = getRandomCard(prize)
+    voidWinner(prize.id, winner.id, false)
+    const voidEntry = lotteryConfig.drawLog.find(e => e.type === 'void')!
+    expect(voidEntry).toBeTruthy()
+    expect(voidEntry.winnerIds).toEqual([winner.id])
+    expect(voidEntry.prizeId).toBe(prize.id)
+    expect(voidEntry.note).toBe('不再参与')
+  })
+
   it('奖项或中奖记录不存在时返回 false 且不改数据', () => {
     const prize = lotteryConfig.prizeList[0]
     getRandomCard(prize)

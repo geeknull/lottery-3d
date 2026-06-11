@@ -1,0 +1,94 @@
+.lottery-history {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 40px 60px;
+  color: #fff;
+  background-color: rgba(0, 5, 10, 0.97);
+
+  .close-btn {
+    position: fixed;
+    right: 20px;
+    top: 14px;
+    font-size: 30px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .panel-title {
+    color: var(--header-color);
+    margin-bottom: 18px;
+    font-size: 26px;
+  }
+
+  .history-empty {
+    color: rgba(var(--accent-light-rgb), 0.6);
+    font-size: 15px;
+  }
+
+  .export-btn {
+    margin-bottom: 20px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-bright);
+    background: rgba(var(--accent-light-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.4);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(var(--accent-light-rgb), 0.22);
+    }
+  }
+
+  .history-list {
+    max-width: 760px;
+
+    .history-item {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      padding: 10px 14px;
+      border-left: 3px solid rgba(var(--accent-light-rgb), 0.4);
+      margin-bottom: 8px;
+      background: rgba(var(--accent-dark-rgb), 0.12);
+      border-radius: 0 4px 4px 0;
+
+      &.type-void {
+        border-left-color: rgba(255, 110, 110, 0.7);
+      }
+      &.type-undo {
+        border-left-color: rgba(255, 200, 110, 0.7);
+      }
+    }
+
+    .history-time {
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 13px;
+      color: rgba(var(--accent-light-rgb), 0.6);
+      flex: none;
+    }
+    .history-type {
+      flex: none;
+      width: 40px;
+      font-weight: bold;
+      color: var(--text-bright);
+    }
+    .history-prize {
+      flex: none;
+      width: 80px;
+      color: var(--header-color);
+    }
+    .history-names {
+      flex: 1;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.5;
+    }
+    .history-note {
+      flex: none;
+      font-size: 13px;
+      color: rgba(var(--accent-light-rgb), 0.55);
+    }
+  }
+}

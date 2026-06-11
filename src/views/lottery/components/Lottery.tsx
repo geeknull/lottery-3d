@@ -8,6 +8,7 @@ import LotteryPrize from './LotteryPrize'
 import Lottery3d from './Lottery3d'
 import LotteryConfigPanel from './LotteryConfigPanel'
 import LotteryFairness from './LotteryFairness'
+import LotteryHistory from './LotteryHistory'
 import { FeedbackHost } from './feedback'
 import { useLotteryShortcuts, toggleFullscreen } from '../core/lottery-shortcuts'
 import lotteryConfig from '../core/lottery-config'
@@ -16,6 +17,7 @@ import './lottery.scss'
 export default function Lottery() {
   const [showConfig, setShowConfig] = useState(false)
   const [showFairness, setShowFairness] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   useLotteryShortcuts() // 空格=开始/停止，F=全屏
 
   return (
@@ -34,6 +36,12 @@ export default function Lottery() {
           <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
         </svg>
       </div>
+      <div className="hud-btn history-btn" title="抽奖历史" onClick={() => setShowHistory(true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      </div>
       <div className="hud-btn fairness-btn" title="抽奖公平性（可验证）" onClick={() => setShowFairness(true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -48,6 +56,7 @@ export default function Lottery() {
       </div>
       {showConfig && <LotteryConfigPanel onClose={() => setShowConfig(false)} />}
       {showFairness && <LotteryFairness onClose={() => setShowFairness(false)} />}
+      {showHistory && <LotteryHistory onClose={() => setShowHistory(false)} />}
       <header className="lottery-header">
         <span>{lotteryConfig.headerTitle}</span>
       </header>
