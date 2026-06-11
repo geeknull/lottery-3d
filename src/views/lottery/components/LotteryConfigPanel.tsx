@@ -10,6 +10,7 @@ import { THEMES, loadTheme, applyTheme } from '../core/lottery-theme'
 import type { ThemeId } from '../core/lottery-theme'
 import { compressImageToDataUrl } from '../core/image-utils'
 import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
+import { isCountdownEnabled, setCountdownEnabled } from '../core/lottery-countdown'
 import './lottery-config-panel.scss'
 
 interface Props {
@@ -31,6 +32,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   })
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
   const [soundOn, setSoundOn] = useState(isSoundEnabled)
+  const [countdownOn, setCountdownOn] = useState(isCountdownEnabled)
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
 
@@ -175,15 +177,23 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       </section>
 
       <section>
-        <h3>抽奖音效</h3>
-        <p className="field-hint">旋转滴答声与开奖音效，纯合成、无需音频文件。点击立即生效，无需保存。</p>
+        <h3>抽奖音效与蓄力</h3>
+        <p className="field-hint">音效为纯合成、无需音频文件；倒计时为开抽前 3-2-1 蓄力。点击立即生效，无需保存。</p>
         <label className="sound-toggle">
           <input
             type="checkbox"
             checked={soundOn}
             onChange={e => { setSoundEnabled(e.target.checked); setSoundOn(e.target.checked) }}
           />
-          <span>{soundOn ? '已开启' : '已关闭'}</span>
+          <span>音效{soundOn ? '已开启' : '已关闭'}</span>
+        </label>
+        <label className="sound-toggle" style={{ marginLeft: '24px' }}>
+          <input
+            type="checkbox"
+            checked={countdownOn}
+            onChange={e => { setCountdownEnabled(e.target.checked); setCountdownOn(e.target.checked) }}
+          />
+          <span>倒计时{countdownOn ? '已开启' : '已关闭'}</span>
         </label>
       </section>
 

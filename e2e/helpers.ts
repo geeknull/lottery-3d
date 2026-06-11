@@ -10,6 +10,7 @@ export async function gotoFresh(page: Page) {
   await page.evaluate(() => {
     localStorage.removeItem('___lottery___')
     localStorage.removeItem('___lottery_config___')
+    localStorage.setItem('___lottery_countdown___', 'off') // 关倒计时，保持测试时序确定
   })
   await page.reload()
   await page.waitForTimeout(INIT_WAIT)

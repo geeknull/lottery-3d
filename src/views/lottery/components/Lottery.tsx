@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import LotteryStarfield from './LotteryStarfield'
 import LotteryConfetti from './LotteryConfetti'
+import LotteryCountdown from './LotteryCountdown'
 import LotteryWinBanner from './LotteryWinBanner'
 import LotteryMusic from './LotteryMusic'
 import LotteryPrize from './LotteryPrize'
@@ -21,6 +22,7 @@ export default function Lottery() {
     <div className="lottery-wrap">
       <LotteryStarfield />
       <LotteryConfetti />
+      <LotteryCountdown />
       <LotteryWinBanner />
       <LotteryMusic />
       <FeedbackHost />

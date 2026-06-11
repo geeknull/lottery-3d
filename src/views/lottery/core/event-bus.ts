@@ -6,4 +6,5 @@ export const bus = mitt<{
   'lottery-3d-init': undefined
   'lottery-win-reveal': { prizeName: string; prizeImg?: string; winners: Card[] } // 中奖卡片飞出定格后触发（彩带庆祝 + 揭晓横幅）
   'showcase-change': undefined // 轮播展示启停（按钮高亮态同步）
+  'countdown': number // 倒计时当前数字（n>0 数字，0=GO，-1=隐藏）
 }>()

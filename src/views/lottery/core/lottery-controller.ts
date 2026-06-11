@@ -9,6 +9,7 @@ import { bus } from './event-bus'
 import { stopShowcase } from './lottery-showcase'
 import { ensureSeedCommit } from './lottery-fairness'
 import { startSpinTicks, stopSpinTicks, playReveal } from './lottery-sound'
+import { isCountdownEnabled, playCountdown } from './lottery-countdown'
 
 // 抽奖的开始/停止流程。从 LotteryAction 组件抽出来，
 // 按钮和键盘快捷键共用同一套入口。
@@ -47,6 +48,10 @@ export async function lotteryStart() {
     await transform('table', 500)
   }
   await transform('sphere', 300)
+  // 3-2-1 蓄力倒计时（可关闭）
+  if (isCountdownEnabled()) {
+    await playCountdown()
+  }
   spinning = true
   startSpinTicks() // 旋转滴答音效
   rotateBall()

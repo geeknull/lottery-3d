@@ -1,0 +1,37 @@
+// 倒计时蓄力：全屏居中大数字，每次切换缩放弹入
+.lottery-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 850;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  .countdown-num {
+    font-size: 180px;
+    font-weight: bold;
+    color: var(--text-bright);
+    text-shadow: 0 0 40px rgba(var(--accent-glow-rgb), 0.8), 0 0 80px rgba(var(--accent-glow-rgb), 0.4);
+    animation: countdown-pop 0.8s ease-out;
+  }
+}
+
+@keyframes countdown-pop {
+  0% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.2;
+    transform: scale(0.85);
+  }
+}
