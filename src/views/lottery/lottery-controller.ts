@@ -61,7 +61,7 @@ export async function lotteryStop() {
   await setSphereDist(2, 500)
   await cardFlyAnimation(cardSelectIndex)
   // 彩带庆祝 + 揭晓横幅
-  bus.emit('lottery-win-reveal', { prizeName: currentPrize.name, winners: cardSelect })
+  bus.emit('lottery-win-reveal', { prizeName: currentPrize.name, prizeImg: currentPrize.img || undefined, winners: cardSelect })
   STATUS.setStatusWait()
 }
 

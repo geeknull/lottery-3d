@@ -30,6 +30,15 @@
     margin-bottom: 10px;
   }
 
+  .banner-prize-img {
+    max-width: 220px;
+    max-height: 160px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(var(--accent-light-rgb), 0.4);
+    box-shadow: 0 0 20px rgba(var(--accent-glow-rgb), 0.35);
+  }
+
   .banner-prize-name {
     font-size: 56px;
     font-weight: bold;

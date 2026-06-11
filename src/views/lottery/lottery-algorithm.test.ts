@@ -168,4 +168,25 @@ describe('抽奖进度恢复', () => {
     expect(reloaded.cardListWinAll.map(c => c.id)).toEqual(selected.map(c => c.id))
     expect(reloaded.prizeList[0].countRemain).toBe(prize.countRemain)
   })
+
+  it('恢复进度时保留当前配置的奖品图等展示字段', async () => {
+    // 先抽一轮存下进度（此时没有奖品图）
+    const prize = lotteryConfig.prizeList[0]
+    getRandomCard(prize)
+    const countAfterDraw = prize.countRemain
+
+    // 用户随后给奖项配了图（标题/奖项数量/名单都没变 → hash 一致）
+    const { DEFAULT_HEADER_TITLE, DEFAULT_PRIZES } = await import('./lottery-config')
+    localStorage.setItem('___lottery_config___', JSON.stringify({
+      version: 1,
+      headerTitle: DEFAULT_HEADER_TITLE,
+      prizes: DEFAULT_PRIZES.map((p, i) => (i === 0 ? { ...p, img: 'data:image/jpeg;base64,xxx' } : p)),
+      roster: lotteryConfig.cardList.map(c => c.name),
+    }))
+
+    vi.resetModules()
+    const { default: reloaded } = await import('./lottery-config')
+    expect(reloaded.prizeList[0].countRemain).toBe(countAfterDraw) // 进度还在
+    expect(reloaded.prizeList[0].img).toBe('data:image/jpeg;base64,xxx') // 图也还在
+  })
 })

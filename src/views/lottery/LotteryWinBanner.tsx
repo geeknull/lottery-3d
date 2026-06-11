@@ -5,6 +5,7 @@ import './lottery-win-banner.scss'
 
 interface RevealData {
   prizeName: string
+  prizeImg?: string
   winners: Card[]
 }
 
@@ -38,6 +39,7 @@ export default function LotteryWinBanner({ duration = 6000 }: Props) {
     <div className="lottery-win-banner" onClick={() => setReveal(null)}>
       <div className="banner-inner">
         <div className="banner-congrats">🎉 恭喜中奖 🎉</div>
+        {reveal.prizeImg && <img className="banner-prize-img" src={reveal.prizeImg} alt="" />}
         <div className="banner-prize-name">{reveal.prizeName}</div>
         <div className="banner-winners">
           {reveal.winners.map(w => (

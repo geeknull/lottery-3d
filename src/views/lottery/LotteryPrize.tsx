@@ -48,6 +48,11 @@ export default function LotteryPrize() {
             className={'prize-item' + (index === currentPrizeIndex ? ' shine' : '')}
             onClick={() => selectPrize(item)}
           >
+            {item.img && (
+              <div className="prize-item-left">
+                <img src={item.img} alt={item.name} />
+              </div>
+            )}
             <div className="prize-item-right">
               <div className="prize-item-title">{item.name}</div>
               <div className="prize-item-count" style={{ display: 'none' }}>{item.count}名</div>

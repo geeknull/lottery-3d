@@ -57,6 +57,19 @@ describe('parseConfigJson', () => {
   it('版本号不对返回 null', () => {
     expect(parseConfigJson(JSON.stringify({ ...validConfig, version: 2 }))).toBeNull()
   })
+
+  it('奖项可带可选的奖品图（img），非字符串则拒绝', () => {
+    const withImg = {
+      ...validConfig,
+      prizes: [{ name: '一等奖', count: 2, everyTimeGet: 1, img: 'data:image/jpeg;base64,xxx' }],
+    }
+    expect(parseConfigJson(JSON.stringify(withImg))?.prizes[0].img).toBe('data:image/jpeg;base64,xxx')
+    const badImg = {
+      ...validConfig,
+      prizes: [{ name: '一等奖', count: 2, everyTimeGet: 1, img: 123 }],
+    }
+    expect(parseConfigJson(JSON.stringify(badImg))).toBeNull()
+  })
 })
 
 describe('configHash', () => {
@@ -76,5 +89,11 @@ describe('configHash', () => {
     const a = configHash('标题', [{ name: '一等奖', count: 1, everyTimeGet: 1 }], validConfig.roster)
     const b = configHash('标题', [{ name: '一等奖', count: 2, everyTimeGet: 1 }], validConfig.roster)
     expect(a).not.toBe(b)
+  })
+
+  it('奖品图变化不影响指纹（换图不重置抽奖进度）', () => {
+    const a = configHash('标题', [{ name: '一等奖', count: 1, everyTimeGet: 1 }], validConfig.roster)
+    const b = configHash('标题', [{ name: '一等奖', count: 1, everyTimeGet: 1, img: 'data:image/jpeg;base64,xxx' }], validConfig.roster)
+    expect(a).toBe(b)
   })
 })

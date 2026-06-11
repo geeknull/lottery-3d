@@ -46,7 +46,7 @@ const prizeList: Prize[] = prizeConfigs.map(p => {
     everyTimeGet: p.everyTimeGet,
     name: p.name,
     detail: p.name + '商品',
-    img: '',
+    img: p.img ?? '',
     id: seen === 0 ? p.name : `${p.name}-${seen + 1}`,
     round: 0,
     cardListWin: [],
@@ -108,7 +108,17 @@ const lotteryConfig: LotteryConfig = {
       return void 0;
     }
     lotteryConfig.currentPrize = saved.currentPrize;
-    lotteryConfig.prizeList = saved.prizeList;
+    // 只恢复进度字段，展示字段（img/detail 等）以当前配置为准——
+    // 整体覆盖会把"中途给奖项配的图"冲掉
+    const savedPrizeList: Prize[] = saved.prizeList ?? [];
+    lotteryConfig.prizeList.forEach(prize => {
+      const savedPrize = savedPrizeList.find(_ => _.id === prize.id);
+      if (savedPrize) {
+        prize.countRemain = savedPrize.countRemain;
+        prize.round = savedPrize.round;
+        prize.cardListWin = savedPrize.cardListWin;
+      }
+    });
     lotteryConfig.cardListWinAll = saved.cardListWinAll;
     lotteryConfig.cardListRemainAll = saved.cardListRemainAll;
     lotteryConfig.cardListExcluded = saved.cardListExcluded ?? []; // 老存档没有该字段

@@ -5,6 +5,7 @@ export interface PrizeConfig {
   name: string;
   count: number; // 总数量
   everyTimeGet: number; // 每轮抽取数量
+  img?: string; // 奖品图（data URL 或 http URL），可选
 }
 
 export interface UserLotteryConfig {
@@ -29,7 +30,8 @@ function isValidConfig(data: unknown): data is UserLotteryConfig {
       return typeof prize === 'object' && prize !== null &&
         typeof prize.name === 'string' && prize.name.length > 0 &&
         typeof prize.count === 'number' && prize.count >= 1 &&
-        typeof prize.everyTimeGet === 'number' && prize.everyTimeGet >= 1;
+        typeof prize.everyTimeGet === 'number' && prize.everyTimeGet >= 1 &&
+        (prize.img === undefined || typeof prize.img === 'string');
     }) &&
     Array.isArray(cfg.roster) &&
     cfg.roster.length > 0 &&
@@ -70,9 +72,11 @@ export function parseRosterText(text: string): string[] {
     .filter(name => name.length > 0);
 }
 
-// 配置指纹：用于校验 localStorage 里的抽奖进度是否属于当前配置
+// 配置指纹：用于校验 localStorage 里的抽奖进度是否属于当前配置。
+// 奖品图是纯展示字段，不参与指纹（换图不应清空抽奖进度）。
 export function configHash(headerTitle: string, prizes: PrizeConfig[], rosterNames: string[]): string {
-  const str = JSON.stringify({ headerTitle, prizes, rosterNames });
+  const prizeKeys = prizes.map(({ name, count, everyTimeGet }) => ({ name, count, everyTimeGet }));
+  const str = JSON.stringify({ headerTitle, prizes: prizeKeys, rosterNames });
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0;

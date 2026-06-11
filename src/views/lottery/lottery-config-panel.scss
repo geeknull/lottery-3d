@@ -114,6 +114,32 @@
     input[type='number'] {
       width: 80px;
     }
+
+    .prize-img-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .prize-img-thumb {
+        width: 36px;
+        height: 36px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid rgba(var(--accent-light-rgb), 0.35);
+      }
+      .prize-img-upload {
+        cursor: pointer;
+        padding: 4px 10px;
+        font-size: 13px;
+        color: rgba(var(--accent-light-rgb), 0.85);
+        border: 1px solid rgba(var(--accent-light-rgb), 0.4);
+        border-radius: 3px;
+
+        &:hover {
+          background: rgba(var(--accent-light-rgb), 0.15);
+        }
+      }
+    }
   }
 
   textarea {

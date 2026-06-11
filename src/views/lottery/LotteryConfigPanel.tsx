@@ -2,12 +2,13 @@ import { useRef, useState } from 'react'
 import lotteryConfig from './lottery-config'
 import {
   saveUserConfig, clearUserConfig, parseRosterText, parseConfigJson,
-  exportConfigFile, exportWinnersCsv,
+  exportConfigFile, exportWinnersCsv, configHash,
 } from './config-store'
 import type { PrizeConfig, UserLotteryConfig } from './config-store'
 import { toast, appConfirm } from './feedback'
 import { THEMES, loadTheme, applyTheme } from './lottery-theme'
 import type { ThemeId } from './lottery-theme'
+import { compressImageToDataUrl } from './image-utils'
 import './lottery-config-panel.scss'
 
 interface Props {
@@ -18,7 +19,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   // 初始值取当前生效的配置（用户配置或内置默认）
   const [title, setTitle] = useState(lotteryConfig.headerTitle)
   const [prizes, setPrizes] = useState<PrizeConfig[]>(() =>
-    lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet }))
+    lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet, img: p.img || undefined }))
   )
   const [rosterText, setRosterText] = useState(() => lotteryConfig.cardList.map(c => c.name).join('\n'))
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
@@ -31,6 +32,18 @@ export default function LotteryConfigPanel({ onClose }: Props) {
 
   function updatePrize(index: number, patch: Partial<PrizeConfig>) {
     setPrizes(prev => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)))
+  }
+
+  async function handlePrizeImage(index: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const dataUrl = await compressImageToDataUrl(file)
+      updatePrize(index, { img: dataUrl })
+    } catch {
+      toast('图片读取失败，请换一张试试')
+    }
   }
 
   function buildConfig(): UserLotteryConfig | null {
@@ -63,7 +76,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     return {
       version: 1,
       headerTitle: title.trim(),
-      prizes: prizes.map(p => ({ name: p.name.trim(), count: p.count, everyTimeGet: p.everyTimeGet })),
+      prizes: prizes.map(p => ({ name: p.name.trim(), count: p.count, everyTimeGet: p.everyTimeGet, ...(p.img ? { img: p.img } : {}) })),
       roster: rosterNames,
     }
   }
@@ -71,9 +84,18 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   async function handleSave() {
     const cfg = buildConfig()
     if (!cfg) return
-    if (!(await appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }))) return
+    // 配置实质未变（标题/奖项/名单一致，比如只换了奖品图）时保留抽奖进度直接生效
+    const activeHash = configHash(
+      lotteryConfig.headerTitle,
+      lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet })),
+      lotteryConfig.cardList.map(c => c.name),
+    )
+    const newHash = configHash(cfg.headerTitle, cfg.prizes, cfg.roster)
+    if (newHash !== activeHash) {
+      if (!(await appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }))) return
+      lotteryConfig.clearLocalStorage()
+    }
     saveUserConfig(cfg)
-    lotteryConfig.clearLocalStorage()
     location.reload()
   }
 
@@ -150,7 +172,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         </p>
         <table className="prize-table">
           <thead>
-            <tr><th>名称</th><th>总数</th><th>每轮抽取</th><th></th></tr>
+            <tr><th>名称</th><th>总数</th><th>每轮抽取</th><th>奖品图</th><th></th></tr>
           </thead>
           <tbody>
             {prizes.map((p, i) => (
@@ -158,6 +180,14 @@ export default function LotteryConfigPanel({ onClose }: Props) {
                 <td><input value={p.name} onChange={e => updatePrize(i, { name: e.target.value })} /></td>
                 <td><input type="number" min={1} value={p.count} onChange={e => updatePrize(i, { count: Number(e.target.value) })} /></td>
                 <td><input type="number" min={1} value={p.everyTimeGet} onChange={e => updatePrize(i, { everyTimeGet: Number(e.target.value) })} /></td>
+                <td className="prize-img-cell">
+                  {p.img && <img className="prize-img-thumb" src={p.img} alt="奖品图" />}
+                  <label className="prize-img-upload">
+                    {p.img ? '换图' : '传图'}
+                    <input type="file" accept="image/*" hidden onChange={e => handlePrizeImage(i, e)} />
+                  </label>
+                  {p.img && <button onClick={() => updatePrize(i, { img: undefined })}>去掉</button>}
+                </td>
                 <td><button onClick={() => setPrizes(prev => prev.filter((_, j) => j !== i))}>删除</button></td>
               </tr>
             ))}
