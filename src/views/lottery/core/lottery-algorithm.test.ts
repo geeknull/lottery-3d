@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { replaySequence } from './lottery-rng'
 import type { LotteryConfig } from './lottery-config'
 import type { Card, Prize } from './lottery-types'
 
@@ -87,6 +88,59 @@ describe('getRandomCard', () => {
     const saved = JSON.parse(localStorage.getItem('___lottery___')!)
     expect(saved.hash).toBeTruthy()
     expect(saved.cardListWinAll).toHaveLength(prize.cardListWin.length)
+  })
+})
+
+describe('可验证公平：种子化抽奖', () => {
+  it('相同种子产生完全相同的中奖结果（可复现）', async () => {
+    lotteryConfig.seed = 20260612
+    lotteryConfig.rngState = 20260612
+    const prize = lotteryConfig.prizeList.find(p => p.everyTimeGet === 10)!
+    const first = getRandomCard(prize).map(c => c.id)
+
+    // 全新一局，同样种子，应抽出同样的人
+    const fresh = await loadFreshModules()
+    fresh.lotteryConfig.seed = 20260612
+    fresh.lotteryConfig.rngState = 20260612
+    const prize2 = fresh.lotteryConfig.prizeList.find(p => p.everyTimeGet === 10)!
+    const second = fresh.getRandomCard(prize2).map(c => c.id)
+
+    expect(second).toEqual(first)
+  })
+
+  it('每轮抽取写入 drawLog（抽取前池快照 + 抽中名单 + 抽前 rng 状态）', () => {
+    lotteryConfig.seed = 1
+    lotteryConfig.rngState = 1
+    const prize = lotteryConfig.prizeList[0]
+    const picked = getRandomCard(prize)
+    expect(lotteryConfig.drawLog).toHaveLength(1)
+    const entry = lotteryConfig.drawLog[0]
+    expect(entry.type).toBe('draw')
+    expect(entry.prizeId).toBe(prize.id)
+    expect(entry.winnerIds).toEqual(picked.map(c => c.id))
+    expect(entry.rngStateBefore).toBe(1) // 首轮抽前状态 = seed
+    expect(entry.poolIds).toEqual(lotteryConfig.cardList.map(c => c.id)) // 首轮池子是全员
+  })
+
+  it('drawLog + seed 可离线复算出相同中奖结果', () => {
+    lotteryConfig.seed = 555
+    lotteryConfig.rngState = 555
+    const prize = lotteryConfig.prizeList[0]
+    const picked = getRandomCard(prize).map(c => c.id)
+    const entry = lotteryConfig.drawLog[0]
+    const replayed = replaySequence(entry.rngStateBefore!, entry.poolIds!, entry.winnerIds.length)
+    expect(replayed).toEqual(picked)
+  })
+
+  it('连续多轮 rng 状态连续推进（每轮 rngStateBefore 接上一轮结果）', () => {
+    lotteryConfig.seed = 99
+    lotteryConfig.rngState = 99
+    const prize = lotteryConfig.prizeList.find(p => p.everyTimeGet === 10)!
+    getRandomCard(prize)
+    getRandomCard(prize)
+    const [a, b] = lotteryConfig.drawLog
+    expect(a.rngStateBefore).toBe(99)
+    expect(b.rngStateBefore).not.toBe(99) // 第二轮从推进后的状态开始
   })
 })
 

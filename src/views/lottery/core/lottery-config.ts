@@ -1,7 +1,8 @@
 import { buildCards, defaultPeople } from './lottery-config-users';
 import { loadUserConfig, configHash, normalizeRoster } from './config-store';
+import { randomSeed } from './lottery-rng';
 import type { PrizeConfig } from './config-store';
-import type { Card, Prize } from './lottery-types';
+import type { Card, Prize, DrawLogEntry } from './lottery-types';
 
 export const DEFAULT_HEADER_TITLE = '【GitHub】2077年终大抽奖';
 export const DEFAULT_PRIZES: PrizeConfig[] = [
@@ -21,6 +22,10 @@ export interface LotteryConfig {
   cardListWinAll: Card[]; // 已经中奖的卡片
   cardListRemainAll: Card[]; // 剩余未中奖的卡片
   cardListExcluded: Card[]; // 作废且不退回奖池的卡片（不再参与抽奖）
+  seed: number; // 整场抽奖的随机种子（可验证公平）
+  rngState: number; // 流式推进的当前 rng 状态
+  seedCommit: string; // 种子的承诺哈希（SHA-256），开始前公布
+  drawLog: DrawLogEntry[]; // 操作流水（抽奖/作废/撤销）
   getCurrentPrize(prizeId?: string | null): Prize | undefined;
   getUserById(id: string): Card | undefined;
   setLocalStorage(): void;
@@ -56,6 +61,9 @@ const prizeList: Prize[] = prizeConfigs.map(p => {
 // 当前配置指纹：抽奖进度只在配置未变时才恢复
 const currentHash = configHash(headerTitle, prizeConfigs, cardList.map(c => c.name));
 
+// 整场抽奖的种子：无存档时新生成（rngState 从 seed 起步）
+const initialSeed = randomSeed();
+
 let isInit = false;
 const localStorageKey = '___lottery___';
 
@@ -68,6 +76,10 @@ const lotteryConfig: LotteryConfig = {
   cardListWinAll: [], // 已经中奖的卡片
   cardListRemainAll: cardList, // 剩余未中奖的卡片
   cardListExcluded: [], // 作废且不退回奖池的卡片
+  seed: initialSeed,
+  rngState: initialSeed,
+  seedCommit: '', // 异步算出后填充
+  drawLog: [],
 
   getCurrentPrize(prizeId = lotteryConfig.currentPrize) {
     return lotteryConfig.prizeList.find(_ => {
@@ -85,6 +97,10 @@ const lotteryConfig: LotteryConfig = {
       cardListWinAll: lotteryConfig.cardListWinAll,
       cardListRemainAll: lotteryConfig.cardListRemainAll,
       cardListExcluded: lotteryConfig.cardListExcluded,
+      seed: lotteryConfig.seed,
+      rngState: lotteryConfig.rngState,
+      seedCommit: lotteryConfig.seedCommit,
+      drawLog: lotteryConfig.drawLog,
     }));
   },
   getLocalStorage() {
@@ -122,6 +138,13 @@ const lotteryConfig: LotteryConfig = {
     lotteryConfig.cardListWinAll = saved.cardListWinAll;
     lotteryConfig.cardListRemainAll = saved.cardListRemainAll;
     lotteryConfig.cardListExcluded = saved.cardListExcluded ?? []; // 老存档没有该字段
+    // 种子/进度字段：老存档没有时沿用本次新生成的种子
+    if (typeof saved.seed === 'number') {
+      lotteryConfig.seed = saved.seed;
+      lotteryConfig.rngState = typeof saved.rngState === 'number' ? saved.rngState : saved.seed;
+      lotteryConfig.seedCommit = saved.seedCommit ?? '';
+      lotteryConfig.drawLog = saved.drawLog ?? [];
+    }
   },
   clearLocalStorage() {
     localStorage.removeItem(localStorageKey)

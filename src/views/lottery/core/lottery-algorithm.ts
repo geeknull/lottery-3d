@@ -1,10 +1,7 @@
 import lotteryConfig from './lottery-config';
 import { notifyLotteryChange } from './lottery-store';
+import { rngFromState } from './lottery-rng';
 import type { Card, Prize } from './lottery-types';
-
-const random = function(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1) ) + min;
-}
 
 // 重算未中奖池：全员 - 已中奖 - 已作废排除
 const recomputeRemain = function() {
@@ -17,18 +14,20 @@ const recomputeRemain = function() {
 
 const getRandomCard = function(currentPrize: Prize): Card[] {
   const cardListRemainAllCopy: Card[] = JSON.parse(JSON.stringify(lotteryConfig.cardListRemainAll));
+  const poolIds = cardListRemainAllCopy.map(c => c.id); // 抽取前的奖池快照（复算用）
   const selectCount = currentPrize.countRemain < currentPrize.everyTimeGet ? currentPrize.countRemain : currentPrize.everyTimeGet;
 
-  // 随机抽取数据
-  const selectCardList: Card[] = [];
+  // 种子化抽取：从持久化的 rng 状态续接，保证整场可复算
+  const rngStateBefore = lotteryConfig.rngState;
+  const rng = rngFromState(rngStateBefore);
 
-  // 正式抽奖逻辑
+  const selectCardList: Card[] = [];
   for (let i = 0; i < selectCount; i++) {
-    const curSelectIndex = random(0, cardListRemainAllCopy.length - 1);
+    const curSelectIndex = rng.nextInt(0, cardListRemainAllCopy.length - 1);
     const card = cardListRemainAllCopy.splice(curSelectIndex, 1)[0];
     selectCardList.push(card);
   }
-  console.log('getRandomCard', JSON.parse(JSON.stringify(lotteryConfig)));
+  lotteryConfig.rngState = rng.getState(); // 推进 rng 状态
 
   // 分别统计出获奖和未获奖的名单
   lotteryConfig.cardListWinAll = [...lotteryConfig.cardListWinAll, ...selectCardList];
@@ -38,6 +37,18 @@ const getRandomCard = function(currentPrize: Prize): Card[] {
   currentPrize.cardListWin = [...currentPrize.cardListWin, ...selectCardList];
   currentPrize.countRemain = currentPrize.countRemain - selectCardList.length;
   currentPrize.round += 1;
+
+  // 写入操作流水（可验证复算 + 历史时间线）
+  lotteryConfig.drawLog = [...lotteryConfig.drawLog, {
+    type: 'draw',
+    at: Date.now(),
+    prizeId: currentPrize.id,
+    prizeName: currentPrize.name,
+    winnerNames: selectCardList.map(c => c.name),
+    winnerIds: selectCardList.map(c => c.id),
+    rngStateBefore,
+    poolIds,
+  }];
 
   lotteryConfig.setLocalStorage();
   notifyLotteryChange();

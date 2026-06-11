@@ -7,6 +7,7 @@ import STATUS from '../3d/3d-status'
 import { toast } from '../components/feedback'
 import { bus } from './event-bus'
 import { stopShowcase } from './lottery-showcase'
+import { ensureSeedCommit } from './lottery-fairness'
 
 // 抽奖的开始/停止流程。从 LotteryAction 组件抽出来，
 // 按钮和键盘快捷键共用同一套入口。
@@ -35,6 +36,9 @@ export async function lotteryStart() {
     STATUS.setStatusWait()
     return void 0
   }
+
+  // 第一次开抽前固定种子承诺（开始旋转即等于"已锁定结果"）
+  void ensureSeedCommit()
 
   // 先回到table状态再抽奖
   STATUS.setStatusRun()

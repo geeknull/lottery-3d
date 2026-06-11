@@ -23,3 +23,16 @@ export interface Prize {
   round: number // 已抽取轮数
   cardListWin: Card[] // 本奖项的中奖名单
 }
+
+// 一次操作的流水记录（抽奖 / 作废 / 撤销），用于历史时间线与可验证复算
+export interface DrawLogEntry {
+  type: 'draw' | 'void' | 'undo' // 操作类型
+  at: number // 时间戳（毫秒）
+  prizeId: string
+  prizeName: string
+  winnerNames: string[] // 涉及的人名（展示用）
+  winnerIds: string[]
+  // 仅抽奖（type==='draw'）有以下复算字段：
+  rngStateBefore?: number // 本轮抽取前的 rng 状态（首轮 = seed）
+  poolIds?: string[] // 抽取前奖池的 id 顺序
+}

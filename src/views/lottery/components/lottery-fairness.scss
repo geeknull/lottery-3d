@@ -1,0 +1,110 @@
+.lottery-fairness {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 40px 60px;
+  color: #fff;
+  background-color: rgba(0, 5, 10, 0.97);
+
+  .close-btn {
+    position: fixed;
+    right: 20px;
+    top: 14px;
+    font-size: 30px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .panel-title {
+    color: var(--header-color);
+    margin-bottom: 18px;
+    font-size: 26px;
+  }
+
+  .fairness-intro {
+    max-width: 640px;
+    line-height: 1.8;
+    font-size: 15px;
+    color: rgba(var(--accent-light-rgb), 0.85);
+    margin-bottom: 26px;
+
+    strong {
+      color: var(--text-bright);
+    }
+  }
+
+  .fairness-field {
+    margin-bottom: 24px;
+
+    h3 {
+      font-size: 15px;
+      font-weight: normal;
+      color: rgba(var(--accent-light-rgb), 0.7);
+      margin-bottom: 8px;
+    }
+
+    .mono {
+      display: block;
+      max-width: 640px;
+      padding: 10px 14px;
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 14px;
+      word-break: break-all;
+      color: var(--text-bright);
+      background: rgba(var(--accent-dark-rgb), 0.2);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.25);
+      border-radius: 4px;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 13px;
+      color: rgba(var(--accent-light-rgb), 0.5);
+      max-width: 640px;
+      line-height: 1.6;
+    }
+  }
+
+  .fairness-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+
+    button {
+      padding: 8px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-bright);
+      background: rgba(var(--accent-light-rgb), 0.1);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.4);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(var(--accent-light-rgb), 0.22);
+      }
+      &.primary {
+        border-color: rgba(var(--accent-light-rgb), 0.7);
+        background: rgba(var(--accent-dark-rgb), 0.5);
+      }
+    }
+  }
+
+  .verify-result {
+    max-width: 640px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 15px;
+
+    &.ok {
+      color: #aef0c0;
+      background: rgba(40, 160, 90, 0.18);
+      border: 1px solid rgba(80, 200, 120, 0.5);
+    }
+    &.fail {
+      color: #ffb3b3;
+      background: rgba(180, 50, 50, 0.18);
+      border: 1px solid rgba(220, 90, 90, 0.5);
+    }
+  }
+}
