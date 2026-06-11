@@ -72,6 +72,39 @@ test.describe('中奖作废与补抽', () => {
   })
 })
 
+test.describe('可验证公平与历史', () => {
+  test('抽奖后公平性面板自验证通过，历史记录该轮', async ({ page }) => {
+    await gotoFresh(page)
+    await drawOneRound(page)
+    await closeBanner(page)
+
+    // 公平性自验证
+    await page.locator('.fairness-btn').click()
+    await page.locator('button:has-text("立即自验证")').click()
+    await expect(page.locator('.verify-result.ok')).toBeVisible()
+    await page.locator('.lottery-fairness .close-btn').click()
+
+    // 历史时间线记录了这一轮抽奖
+    await page.locator('.history-btn').click()
+    await expect(page.locator('.history-item.type-draw')).toHaveCount(1)
+  })
+})
+
+test.describe('撤销整轮', () => {
+  test('撤销后名额退回、卡片去染色', async ({ page }) => {
+    await gotoFresh(page)
+    await drawOneRound(page)
+    await closeBanner(page)
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.element.prize')).toHaveCount(10)
+
+    await page.locator('#undo').click()
+    await page.locator('.confirm-btns button.primary').click()
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('20/20')
+    await expect(page.locator('.element.prize')).toHaveCount(0)
+  })
+})
+
 test.describe('快捷键与主题', () => {
   test('空格控制开始/停止抽奖', async ({ page }) => {
     await gotoFresh(page)
