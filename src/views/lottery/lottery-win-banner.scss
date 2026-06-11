@@ -1,0 +1,86 @@
+// 开奖揭晓横幅：盖在 3D 场景上、彩带画布下
+.lottery-win-banner {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.62);
+  cursor: pointer;
+  animation: banner-in .35s ease-out;
+
+  .banner-inner {
+    max-width: 86vw;
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 38px 60px;
+    text-align: center;
+    background: rgba(var(--hud-bg-rgb), 0.92);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.45);
+    border-radius: 10px;
+    box-shadow: 0 0 50px rgba(var(--accent-glow-rgb), 0.35), inset 0 0 30px rgba(var(--accent-glow-rgb), 0.06);
+    backdrop-filter: blur(4px);
+  }
+
+  .banner-congrats {
+    font-size: 26px;
+    color: var(--text-bright);
+    letter-spacing: 6px;
+    margin-bottom: 10px;
+  }
+
+  .banner-prize-name {
+    font-size: 56px;
+    font-weight: bold;
+    color: var(--header-color);
+    text-shadow: 0 0 24px rgba(var(--accent-glow-rgb), 0.7);
+    margin-bottom: 26px;
+  }
+
+  .banner-winners {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 22px 34px;
+    max-width: 72vw;
+  }
+
+  .banner-winner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    .banner-avatar {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid rgba(var(--accent-light-rgb), 0.6);
+      box-shadow: 0 0 16px rgba(var(--accent-glow-rgb), 0.45);
+    }
+    .banner-name {
+      font-size: 26px;
+      font-weight: bold;
+      color: var(--text-bright);
+    }
+  }
+
+  .banner-hint {
+    margin-top: 24px;
+    font-size: 13px;
+    color: rgba(var(--accent-light-rgb), 0.55);
+  }
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
