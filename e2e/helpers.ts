@@ -17,10 +17,11 @@ export async function gotoFresh(page: Page) {
 }
 
 // 完整抽一轮：开始 → 等旋转 → 停 → 等开奖
+// 主操作是单个 toggle 大按钮 #primaryCta（开始抽奖 ↔ 停 !），两次点同一按钮
 export async function drawOneRound(page: Page) {
-  await page.locator('#lotteryStart').click()
+  await page.locator('#primaryCta').click()
   await page.waitForTimeout(DRAW_SPIN_WAIT)
-  await page.locator('#lotteryStop').click()
+  await page.locator('#primaryCta').click()
   await page.waitForTimeout(FLY_WAIT)
 }
 

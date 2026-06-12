@@ -37,7 +37,9 @@ test.describe('抽奖核心流程', () => {
     await drawOneRound(page)
     await closeBanner(page)
 
-    await page.locator('#reset').click()
+    // 重置入口已移入配置面板（避免现场误点）
+    await page.locator('.config-btn').click()
+    await page.locator('.panel-actions .danger').click()
     await expect(page.locator('.confirm-dialog')).toBeVisible()
     await page.locator('.confirm-btns button.primary').click()
     await page.waitForTimeout(3500)
@@ -56,7 +58,7 @@ test.describe('中奖作废与补抽', () => {
     await expect(page.locator('.prize-item-count-text').first()).toHaveText('4/5')
 
     // 打开中奖名单作废（不退回奖池）
-    await page.locator('#winShow').click()
+    await page.locator('.icon-action:has-text("展示中奖")').click()
     const voidName = (await page.locator('.prize-win-user-name').first().textContent())?.replace('✖', '').trim()
     await page.locator('.void-btn').first().click({ force: true })
     await page.locator('.void-confirm-btns button').nth(1).click() // TA 不再参与
@@ -66,7 +68,7 @@ test.describe('中奖作废与补抽', () => {
     // 补抽一轮，新中奖人与被作废的人不同
     await drawOneRound(page)
     await closeBanner(page)
-    await page.locator('#winShow').click()
+    await page.locator('.icon-action:has-text("展示中奖")').click()
     const newName = (await page.locator('.prize-win-user-name').first().textContent())?.replace('✖', '').trim()
     expect(newName).not.toBe(voidName)
   })
@@ -98,7 +100,7 @@ test.describe('撤销整轮', () => {
     await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
     await expect(page.locator('.element.prize')).toHaveCount(10)
 
-    await page.locator('#undo').click()
+    await page.locator('.icon-action:has-text("撤销")').click()
     await page.locator('.confirm-btns button.primary').click()
     await expect(page.locator('.prize-item-count-text').last()).toHaveText('20/20')
     await expect(page.locator('.element.prize')).toHaveCount(0)
