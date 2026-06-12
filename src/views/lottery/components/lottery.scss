@@ -55,6 +55,28 @@
     background: rgba(var(--hud-bg-rgb), 0.75);
     box-shadow: 0 0 20px rgba(var(--accent-glow-rgb), 0.4), inset 0 0 12px rgba(var(--accent-glow-rgb), 0.15);
   }
+
+  // hover 文字气泡：图标含义一目了然
+  &[data-label]::after {
+    content: attr(data-label);
+    position: absolute;
+    top: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 3px 9px;
+    font-size: 12px;
+    white-space: nowrap;
+    color: var(--text-bright);
+    background: rgba(var(--hud-bg-rgb), 0.92);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.35);
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s;
+  }
+  &[data-label]:hover::after {
+    opacity: 1;
+  }
 }
 .config-btn {
   right: 68px;

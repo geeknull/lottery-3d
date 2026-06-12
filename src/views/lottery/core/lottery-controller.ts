@@ -21,6 +21,12 @@ export function isSpinning(): boolean {
   return spinning
 }
 
+// 改变旋转状态并广播，让主操作按钮在「开始抽奖 ↔ 停！」间切换文案
+function setSpinning(v: boolean) {
+  spinning = v
+  bus.emit('spin-change', v)
+}
+
 export async function lotteryStart() {
   stopShowcase() // 轮播展示中开始抽奖则先停轮播
   if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
@@ -52,7 +58,7 @@ export async function lotteryStart() {
   if (isCountdownEnabled()) {
     await playCountdown()
   }
-  spinning = true
+  setSpinning(true)
   startSpinTicks() // 旋转滴答音效
   rotateBall()
 }
@@ -64,7 +70,7 @@ export async function lotteryStop() {
     STATUS.setStatusWait()
     return void 0
   }
-  spinning = false
+  setSpinning(false)
   stopSpinTicks()
   rotateBallStop()
   const cardSelect = getRandomCard(currentPrize) // 当前的奖项

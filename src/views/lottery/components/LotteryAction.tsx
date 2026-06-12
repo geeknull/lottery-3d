@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import { useLotteryVersion } from '../core/lottery-store'
-import { lotteryStart, lotteryStop, tableShow } from '../core/lottery-controller'
+import { toggleDraw, isSpinning, tableShow } from '../core/lottery-controller'
 import { startShowcase, stopShowcase, returnToTable, isShowcaseActive } from '../core/lottery-showcase'
 import { voidWinner, undoLastDraw } from '../core/lottery-algorithm'
 import { setCardPrizeMark } from '../3d/3d-card-element'
@@ -21,13 +21,6 @@ function getRenderArr(arr: Card[]) {
     arrRes.push(JSON.parse(JSON.stringify(temp)))
   }
   return arrRes
-}
-
-async function resetData() {
-  if (await appConfirm('是否要重置所有抽奖数据？此操作不可恢复！', { confirmText: '重置' })) {
-    lotteryConfig.clearLocalStorage()
-    location.reload()
-  }
 }
 
 async function handleUndo() {
@@ -86,6 +79,7 @@ export default function LotteryAction() {
   }
 
   const [showcaseOn, setShowcaseOn] = useState(isShowcaseActive())
+  const [spinning, setSpinning] = useState(isSpinning())
 
   useEffect(() => {
     bus.on('lottery-3d-init', () => {
@@ -93,7 +87,12 @@ export default function LotteryAction() {
     })
     const syncShowcase = () => setShowcaseOn(isShowcaseActive())
     bus.on('showcase-change', syncShowcase)
-    return () => bus.off('showcase-change', syncShowcase)
+    const syncSpin = (v: boolean) => setSpinning(v)
+    bus.on('spin-change', syncSpin)
+    return () => {
+      bus.off('showcase-change', syncShowcase)
+      bus.off('spin-change', syncSpin)
+    }
   }, [])
 
   const btnDisplay = { display: showBtn ? undefined : 'none' }
@@ -101,24 +100,48 @@ export default function LotteryAction() {
   return (
     <div className="lottery-action">
       <div id="menu">
-        <div style={{ marginBottom: '10px' }}>
+        <div className="hidden-layout-btns">
           <button id="table" style={btnDisplay}>TABLE</button>
           <button id="sphere" style={btnDisplay}>SPHERE</button>
           <button id="helix" style={btnDisplay}>HELIX</button>
           <button id="grid" style={btnDisplay}>GRID</button>
         </div>
-        <div style={{ marginBottom: '10px' }}>
-          <button id="lotteryStart" title="快捷键：空格 / 翻页笔（PageDown、B、Enter）" onClick={lotteryStart}>开始抽奖</button>
-          <button id="lotteryStop" title="快捷键：空格 / 翻页笔（PageDown、B、Enter）" onClick={lotteryStop}>停！</button>
-          <button id="tableShow" onClick={tableShow}>展示全部</button>
-          <button id="winShow" onClick={() => setShowAllWinUserPanel(true)}>展示中奖</button>
-          <button id="showcase" title="待机时自动循环球体/螺旋/网格/平铺布局" onClick={toggleShowcase}>
-            {showcaseOn ? '停止轮播' : '轮播展示'}
+        <button
+          id="primaryCta"
+          className={'primary-cta' + (spinning ? ' is-spinning' : '')}
+          title="快捷键：空格 / 翻页笔（PageDown、B、Enter）"
+          onClick={toggleDraw}
+        >
+          <span className="cta-dot" aria-hidden="true" />
+          {spinning ? '停 !' : '开始抽奖'}
+        </button>
+        <div className="secondary-actions">
+          <button className="icon-action" title="平铺展示全部卡片" onClick={tableShow}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            <span>展示全部</span>
           </button>
-        </div>
-        <div>
-          <button id="undo" title="撤销最近一轮抽奖，名额退回可重抽" onClick={handleUndo}>撤销上轮</button>
-          <button id="reset" onClick={resetData}>重置所有数据</button>
+          <button className="icon-action" title="查看中奖名单（可作废补抽）" onClick={() => setShowAllWinUserPanel(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+              <circle cx="3.5" cy="6" r="1" /><circle cx="3.5" cy="12" r="1" /><circle cx="3.5" cy="18" r="1" />
+            </svg>
+            <span>展示中奖</span>
+          </button>
+          <button className={'icon-action' + (showcaseOn ? ' active' : '')} title="待机时自动循环球体/螺旋/网格/平铺布局" onClick={toggleShowcase}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 2v6h-6" /><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+            </svg>
+            <span>{showcaseOn ? '停止轮播' : '轮播展示'}</span>
+          </button>
+          <button className="icon-action" title="撤销最近一轮抽奖，名额退回可重抽" onClick={handleUndo}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 14L4 9l5-5" /><path d="M4 9h11a6 6 0 0 1 0 12h-4" />
+            </svg>
+            <span>撤销</span>
+          </button>
         </div>
       </div>
       {showAllWinUserPanel && (

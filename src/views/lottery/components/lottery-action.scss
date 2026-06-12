@@ -1,12 +1,106 @@
 .lottery-action {
   flex: none;
-  height: 120px;
+  min-height: 120px;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 #menu {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.hidden-layout-btns {
+  display: none; // 调试用布局切换按钮，仅保留 DOM
+}
+
+// 主操作：开始抽奖 ↔ 停！ 单按钮 toggle，全场视觉焦点
+.primary-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 50px;
+  font-size: 22px;
+  letter-spacing: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-bright);
+  background: rgba(var(--accent-dark-rgb), 0.5);
+  border: 1.5px solid rgba(var(--accent-light-rgb), 0.85);
+  border-radius: 40px;
+  box-shadow: 0 0 18px rgba(var(--accent-glow-rgb), 0.4), inset 0 0 14px rgba(var(--accent-glow-rgb), 0.15);
+  transition: background .2s, box-shadow .2s, transform .1s;
+
+  &:hover {
+    background: rgba(var(--accent-dark-rgb), 0.7);
+    box-shadow: 0 0 28px rgba(var(--accent-glow-rgb), 0.6), inset 0 0 18px rgba(var(--accent-glow-rgb), 0.22);
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  .cta-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: rgb(var(--accent-glow-rgb));
+    box-shadow: 0 0 9px rgb(var(--accent-glow-rgb));
+  }
+  // 旋转中：脉冲发光 + 闪烁圆点，提示「点击停止」
+  &.is-spinning {
+    letter-spacing: 12px;
+    animation: cta-pulse 0.9s ease-in-out infinite;
+    .cta-dot {
+      animation: cta-blink 0.5s steps(1) infinite;
+    }
+  }
+}
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 0 22px rgba(var(--accent-glow-rgb), 0.5), inset 0 0 16px rgba(var(--accent-glow-rgb), 0.25); }
+  50% { box-shadow: 0 0 40px rgba(var(--accent-glow-rgb), 0.92), inset 0 0 22px rgba(var(--accent-glow-rgb), 0.45); }
+}
+@keyframes cta-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+// 次要操作：小号图标按钮，统一 HUD 描边语言
+.secondary-actions {
+  display: flex;
+  gap: 8px;
+
+  .icon-action {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 74px;
+    padding: 7px 0;
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(var(--accent-light-rgb), 0.72);
+    background: transparent;
+    border: 1px solid rgba(var(--accent-light-rgb), 0.22);
+    border-radius: 10px;
+    transition: color .15s, border-color .15s, background .15s;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+    &:hover {
+      color: var(--text-bright);
+      border-color: rgba(var(--accent-light-rgb), 0.6);
+      background: rgba(var(--accent-light-rgb), 0.08);
+    }
+    &.active {
+      color: var(--text-bright);
+      border-color: rgba(var(--accent-glow-rgb), 0.7);
+      background: rgba(var(--accent-glow-rgb), 0.12);
+    }
+  }
 }
 .show-all-win-user {
   position: fixed;

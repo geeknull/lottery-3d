@@ -182,5 +182,14 @@
     .primary {
       background-color: rgba(var(--accent-dark-rgb), 0.75);
     }
+    .danger {
+      border-color: rgba(255, 110, 110, 0.55);
+      color: #ffd9d9;
+
+      &:hover {
+        background-color: rgba(180, 50, 45, 0.35);
+        border-color: rgba(255, 110, 110, 0.8);
+      }
+    }
   }
 }

@@ -144,6 +144,13 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     toast('配置已载入面板，请检查后点「保存并应用」生效')
   }
 
+  async function handleResetProgress() {
+    if (await appConfirm('重置所有抽奖进度？已抽中奖名单与历史将清空，但保留当前配置。此操作不可恢复。', { confirmText: '重置进度' })) {
+      lotteryConfig.clearLocalStorage()
+      location.reload()
+    }
+  }
+
   async function handleRestoreDefaults() {
     if (!(await appConfirm('恢复内置默认配置并清空抽奖进度，确定吗？', { confirmText: '恢复默认' }))) return
     clearUserConfig()
@@ -261,6 +268,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         <button onClick={() => configFileRef.current?.click()}>导入配置 JSON</button>
         <input ref={configFileRef} type="file" accept=".json" hidden onChange={handleConfigFile} />
         <button onClick={() => exportWinnersCsv(lotteryConfig.prizeList)}>导出中奖名单 CSV</button>
+        <button className="danger" onClick={handleResetProgress}>重置抽奖进度</button>
         <button onClick={handleRestoreDefaults}>恢复默认配置</button>
       </section>
     </div>
