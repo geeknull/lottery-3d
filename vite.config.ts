@@ -6,9 +6,11 @@ export default defineConfig({
   base: './', // 线上构建出来是相对路径在demo页才好展示
   plugins: [
     react(),
-    // PWA：年会现场断网也能打开（资源全量预缓存，自动更新）
+    // PWA：年会现场断网也能打开（资源全量预缓存）。
+    // 用 prompt 而非 autoUpdate：发现新版只提示、由用户择机点更新，
+    // 避免在抽奖进行中被 Service Worker 自动刷新打断动画。
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       manifest: {
         name: 'lottery-3d 抽奖',
         short_name: '3D抽奖',

@@ -1,0 +1,61 @@
+.lottery-update-banner {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: var(--text-bright);
+  background: rgba(var(--hud-bg-rgb), 0.95);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.5);
+  border-radius: 8px;
+  box-shadow: 0 0 18px rgba(var(--accent-light-rgb), 0.25);
+  animation: update-banner-in 0.35s ease;
+
+  .update-icon {
+    font-size: 16px;
+  }
+
+  .update-text {
+    font-size: 14px;
+  }
+
+  .update-apply {
+    padding: 5px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-bright);
+    background: rgba(var(--accent-dark-rgb), 0.6);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.7);
+    border-radius: 5px;
+
+    &:hover {
+      background: rgba(var(--accent-light-rgb), 0.3);
+    }
+  }
+
+  .update-dismiss {
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: rgba(var(--accent-light-rgb), 0.6);
+
+    &:hover {
+      color: var(--text-bright);
+    }
+  }
+}
+
+@keyframes update-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
