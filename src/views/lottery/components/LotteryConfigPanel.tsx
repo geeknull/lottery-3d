@@ -10,6 +10,8 @@ import { toast, appConfirm } from './feedback'
 import { THEMES, loadTheme, applyTheme } from '../core/lottery-theme'
 import type { ThemeId } from '../core/lottery-theme'
 import { compressImageToDataUrl } from '../core/image-utils'
+import { persistConfigImages, inlineConfigImages } from '../core/config-images'
+import { isImageRef, gcImages } from '../core/image-store'
 import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
 import { isCountdownEnabled, setCountdownEnabled } from '../core/lottery-countdown'
 import './lottery-config-panel.scss'
@@ -107,14 +109,28 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       if (!(await appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }))) return
       lotteryConfig.clearLocalStorage()
     }
-    saveUserConfig(cfg)
+    // 奖品图的 dataURL 移入 IndexedDB，配置只存 idb: 引用（避免撑爆 localStorage）
+    const persisted = await persistConfigImages(cfg)
+    saveUserConfig(persisted)
+    // 清理换图后不再引用的旧图片
+    await gcImages(persisted.prizes.map(p => p.img).filter(isImageRef))
     location.reload()
   }
 
-  function handleExportConfig() {
+  async function handleExportConfig() {
     const cfg = buildConfig()
     if (!cfg) return
-    exportConfigFile(cfg)
+    const persisted = await persistConfigImages(cfg) // 统一成 idb 引用形态
+    const hasImg = persisted.prizes.some(p => isImageRef(p.img))
+    if (!hasImg) {
+      exportConfigFile(persisted)
+      return
+    }
+    const inline = await appConfirm(
+      '配置含奖品图，是否把图片一起打包进文件？\n打包后文件较大、但可直接发给他人使用；选「仅引用」文件小，换设备导入会缺图。',
+      { confirmText: '打包图片', cancelText: '仅引用' },
+    )
+    exportConfigFile(inline ? await inlineConfigImages(persisted) : persisted)
   }
 
   async function handleRosterFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -221,7 +237,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
                 <td><input type="number" min={1} value={p.count} onChange={e => updatePrize(i, { count: Number(e.target.value) })} /></td>
                 <td><input type="number" min={1} value={p.everyTimeGet} onChange={e => updatePrize(i, { everyTimeGet: Number(e.target.value) })} /></td>
                 <td className="prize-img-cell">
-                  {p.img && <img className="prize-img-thumb" src={p.img} alt="奖品图" />}
+                  {p.img && !isImageRef(p.img) && <img className="prize-img-thumb" src={p.img} alt="奖品图" />}
                   <label className="prize-img-upload">
                     {p.img ? '换图' : '传图'}
                     <input type="file" accept="image/*" hidden onChange={e => handlePrizeImage(i, e)} />

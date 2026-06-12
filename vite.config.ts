@@ -40,6 +40,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom', // 业务逻辑里有 localStorage / document 访问
+    setupFiles: ['fake-indexeddb/auto'], // jsdom 无 IndexedDB，图片仓测试需要
     exclude: ['node_modules', 'dist', 'e2e/**'] // e2e 用 @playwright/test 单独跑
   }
 })
