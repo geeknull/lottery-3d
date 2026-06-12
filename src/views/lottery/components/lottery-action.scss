@@ -1,12 +1,17 @@
 .lottery-action {
   flex: none;
+  flex-shrink: 0; // 不被奖项列表挤压
   min-height: 120px;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding-bottom: 14px; // 与屏幕底留出余量，避免最底部图标贴边/出屏
+  box-sizing: border-box;
 }
 #menu {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -69,14 +74,14 @@
 // 次要操作：小号图标按钮，统一 HUD 描边语言
 .secondary-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 
   .icon-action {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    width: 74px;
+    width: 68px; // 4×68 + 3×6 = 290 < 320(prize-wrap)，不溢出左右边界
     padding: 7px 0;
     cursor: pointer;
     font-size: 12px;

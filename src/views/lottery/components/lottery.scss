@@ -7,7 +7,7 @@
 }
 .lottery-header {
   flex: none;
-  height: 50px;
+  height: 58px;
   width: 100%;
   background-color: hsla(0,0%,100%,.1);
   display: flex;
@@ -20,12 +20,13 @@
 }
 .lottery-content {
   flex: 1;
+  min-height: 0; // 不被 3D 球内容撑破，严格占据 header 以下高度，避免整列溢出视口
   display: flex;
 }
 // 右上角悬浮工具按钮组（配置 / 音乐），统一的赛博 HUD 风格
 .hud-btn {
   position: fixed;
-  top: 12px;
+  top: 6px; // 垂直居中于 58px header 内（6 + 46 = 52 < 58），不露出标题栏外
   z-index: 6;
   width: 46px;
   height: 46px;
