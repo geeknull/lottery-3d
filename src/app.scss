@@ -20,3 +20,10 @@ ul, li {
   margin: 0;
   list-style: none;
 }
+// 全局兜底：所有按钮都用手型光标（原生 button 默认是箭头，各组件容易漏加）
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
