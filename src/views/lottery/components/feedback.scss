@@ -19,6 +19,7 @@
   background: rgba(var(--hud-bg-rgb), 0.88);
   border: 1px solid rgba(var(--accent-light-rgb), 0.45);
   border-radius: 4px;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 0 16px rgba(var(--accent-glow-rgb), 0.25);
   animation: toast-in .2s ease-out;

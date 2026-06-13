@@ -39,6 +39,7 @@
   color: rgba(var(--accent-light-rgb), 0.85);
   background: rgba(var(--hud-bg-rgb), 0.55);
   border: 1px solid rgba(var(--accent-light-rgb), 0.3);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 0 14px rgba(var(--accent-glow-rgb), 0.18), inset 0 0 10px rgba(var(--accent-glow-rgb), 0.08);
   // 不在 transition 里包含 transform，避免与音乐播放时的旋转动画冲突
