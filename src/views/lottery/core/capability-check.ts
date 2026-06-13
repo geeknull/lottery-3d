@@ -5,6 +5,7 @@ export interface CapabilityEnv {
   secureContext: boolean // HTTPS / localhost：crypto.subtle、clipboard 需要
   broadcastChannel: boolean // 双屏遥控
   indexedDB: boolean // 奖品图片本地存储
+  smallScreen: boolean // 窄屏（手机）：3D 抽奖展示建议用大屏
 }
 
 export interface CapabilityIssue {
@@ -14,10 +15,12 @@ export interface CapabilityIssue {
 
 // 读取当前运行环境能力（隔离全局读取，便于 checkCapabilities 纯函数测试）
 export function detectEnv(): CapabilityEnv {
+  const w = typeof window !== 'undefined' ? window.innerWidth : 0
   return {
     secureContext: globalThis.isSecureContext === true,
     broadcastChannel: typeof BroadcastChannel !== 'undefined',
     indexedDB: typeof globalThis.indexedDB !== 'undefined',
+    smallScreen: w > 0 && w < 768,
   }
 }
 
@@ -40,6 +43,12 @@ export function checkCapabilities(env: CapabilityEnv): CapabilityIssue[] {
     issues.push({
       feature: '奖品图片',
       detail: '当前浏览器或隐私模式不支持本地图片存储，奖品图将无法保存',
+    })
+  }
+  if (env.smallScreen) {
+    issues.push({
+      feature: '大屏 3D 展示',
+      detail: '当前屏幕较窄（手机/小窗）：配置和抽奖操作可正常用，但旋转抽奖的 3D 球展示建议投到桌面或横屏大屏',
     })
   }
   return issues

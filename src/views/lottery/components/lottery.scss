@@ -112,6 +112,25 @@
 .dual-screen-btn {
   right: 348px;
 }
+// 窄屏（手机）：7 个 HUD 按钮按桌面间距横排会出屏，缩小尺寸 + 收紧间距塞进一行
+@media (max-width: 480px) {
+  .hud-btn {
+    width: 38px;
+    height: 38px;
+    top: 8px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+  .config-btn { right: 52px; }
+  .fullscreen-btn { right: 96px; }
+  .fairness-btn { right: 140px; }
+  .history-btn { right: 184px; }
+  .github-btn { right: 228px; }
+  .dual-screen-btn { right: 272px; }
+}
 // 控制窗连上后，展示窗自动隐藏操作 UI，投影画面只剩 3D 球 + 标题 + 揭晓 + 奖项进度
 .lottery-wrap.control-active {
   .lottery-action,

@@ -16,3 +16,9 @@
 .music-box {
   right: 12px;
 }
+// 窄屏收紧（与 lottery.scss 的 HUD 窄屏间距一致）
+@media (max-width: 480px) {
+  .music-box {
+    right: 8px;
+  }
+}
