@@ -6,7 +6,7 @@ import { bus } from './event-bus';
 import type { PrizeConfig } from './config-store';
 import type { Card, Prize, DrawLogEntry } from './lottery-types';
 
-export const DEFAULT_HEADER_TITLE = '【GitHub】2077年终大抽奖';
+export const DEFAULT_HEADER_TITLE = '幸运大抽奖';
 export const DEFAULT_PRIZES: PrizeConfig[] = [
   { name: '特等奖', count: 5, everyTimeGet: 1 },
   { name: '一等奖', count: 5, everyTimeGet: 1 },
