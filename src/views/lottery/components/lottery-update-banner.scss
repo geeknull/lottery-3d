@@ -4,8 +4,9 @@
   bottom: 20px;
   z-index: 1100;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 380px;
   padding: 10px 14px;
   color: var(--text-bright);
   background: rgba(var(--hud-bg-rgb), 0.95);
@@ -14,15 +15,24 @@
   box-shadow: 0 0 18px rgba(var(--accent-light-rgb), 0.25);
   animation: update-banner-in 0.35s ease;
 
+  .update-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   .update-icon {
     font-size: 16px;
+    flex: none;
   }
 
   .update-text {
     font-size: 14px;
+    line-height: 1.5;
   }
 
   .update-apply {
+    flex: none;
     padding: 5px 14px;
     cursor: pointer;
     font-size: 13px;
@@ -37,6 +47,7 @@
   }
 
   .update-dismiss {
+    flex: none;
     cursor: pointer;
     font-size: 14px;
     line-height: 1;
@@ -48,18 +59,48 @@
     }
   }
 
-  // 抽奖进行中的警告版：橙色边框 + 限宽多行，劝主持人抽完再更新
+  // 「看看更新了什么」展开开关：低调小字链接
+  .update-detail-toggle {
+    align-self: flex-start;
+    padding: 0;
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(var(--accent-light-rgb), 0.7);
+    background: none;
+    border: none;
+
+    &:hover {
+      color: var(--text-bright);
+    }
+  }
+
+  // 本次更新内容列表
+  .update-notes {
+    margin: 0 0 2px 2px;
+    padding-left: 16px;
+
+    li {
+      font-size: 12px;
+      line-height: 1.7;
+      color: rgba(var(--accent-light-rgb), 0.82);
+      list-style: disc;
+    }
+  }
+
+  .update-notes-empty {
+    font-size: 12px;
+    color: rgba(var(--accent-light-rgb), 0.5);
+  }
+
+  // 抽奖进行中的警告版：橙色边框，劝主持人抽完再更新
   &.warn {
-    max-width: 360px;
-    align-items: flex-start;
     border-color: rgba(255, 176, 80, 0.7);
     box-shadow: 0 0 18px rgba(255, 176, 80, 0.25);
 
-    .update-text {
-      line-height: 1.5;
+    .update-row {
+      align-items: flex-start;
     }
     .update-apply {
-      flex: none;
       border-color: rgba(255, 176, 80, 0.7);
       background: rgba(180, 110, 40, 0.4);
 
@@ -68,7 +109,6 @@
       }
     }
     .update-dismiss {
-      flex: none;
       align-self: center;
     }
   }
