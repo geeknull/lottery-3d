@@ -1,7 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createDisplaySync, createControlSync } from './lottery-sync'
+import { createDisplaySync, createControlSync, isDualScreenSupported } from './lottery-sync'
 import type { Channel, SyncMessage } from './lottery-sync'
 import type { StateSnapshot } from './lottery-snapshot'
+
+describe('isDualScreenSupported', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  it('BroadcastChannel 存在时为 true', () => {
+    expect(isDualScreenSupported()).toBe(true)
+  })
+  it('BroadcastChannel 不存在（老 Safari）时为 false', () => {
+    vi.stubGlobal('BroadcastChannel', undefined)
+    expect(isDualScreenSupported()).toBe(false)
+  })
+})
 
 // 一对互通的 mock 频道：a.post 的消息进 b 的 handler，反之亦然（模拟两个窗口）
 function channelPair(): [Channel, Channel] {

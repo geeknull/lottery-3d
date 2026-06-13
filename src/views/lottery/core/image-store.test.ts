@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { putImage, getImage, getManyImages, deleteImage, gcImages, isImageRef } from './image-store'
 
 const DATA_A = 'data:image/png;base64,AAAA'
@@ -7,6 +7,22 @@ const DATA_B = 'data:image/jpeg;base64,BBBB'
 // 每个用例清空图片仓，避免 gc 等用例互相干扰
 beforeEach(async () => {
   await gcImages([])
+})
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('putImage id 降级（crypto.randomUUID 不可用）', () => {
+  it('randomUUID 缺失时退回 getRandomValues，仍能存取且唯一', async () => {
+    const real = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: real.getRandomValues.bind(real) }) // 无 randomUUID
+    const a = await putImage(DATA_A)
+    const b = await putImage(DATA_B)
+    expect(isImageRef(a)).toBe(true)
+    expect(a).not.toBe(b)
+    expect(await getImage(a)).toBe(DATA_A)
+    expect(await getImage(b)).toBe(DATA_B)
+  })
 })
 
 describe('isImageRef', () => {

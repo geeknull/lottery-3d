@@ -25,6 +25,11 @@ export interface Channel {
   close(): void
 }
 
+// 双屏依赖 BroadcastChannel（Safari 15.4+）。不支持时双屏按钮置灰、不创建频道。
+export function isDualScreenSupported(): boolean {
+  return typeof BroadcastChannel !== 'undefined'
+}
+
 export function broadcastChannel(name = SYNC_CHANNEL): Channel {
   const bc = new BroadcastChannel(name)
   return {

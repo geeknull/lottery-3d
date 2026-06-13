@@ -1,5 +1,23 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createRng, rngFromState, randomSeed, hashSeed, replaySequence } from './lottery-rng'
+
+describe('hashSeed 降级（secure context 不可用）', () => {
+  it('secure context 下用 SHA-256，输出 64 位 hex', async () => {
+    expect(await hashSeed(123)).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('crypto.subtle 不可用（file:// / 内网 HTTP）时降级为确定性非加密 hash，不抛', async () => {
+    const real = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: real.getRandomValues.bind(real), subtle: undefined })
+    const a = await hashSeed(123)
+    const b = await hashSeed(123)
+    const other = await hashSeed(456)
+    vi.unstubAllGlobals()
+    expect(a).toBe(b) // 确定性
+    expect(a).not.toBe(other) // 不同种子不同 hash
+    expect(a).toMatch(/^[0-9a-f]{8}$/) // FNV-1a，区别于 64 位 SHA-256
+  })
+})
 
 describe('createRng', () => {
   it('同种子产生完全相同的序列（可复现）', () => {

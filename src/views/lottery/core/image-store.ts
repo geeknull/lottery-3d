@@ -35,9 +35,24 @@ export function isImageRef(s: string | undefined | null): s is string {
   return typeof s === 'string' && s.startsWith(REF_PREFIX)
 }
 
+// 生成唯一图片 id。crypto.randomUUID 仅在 secure context（HTTPS/localhost）+ 较新浏览器可用，
+// file:// 或老浏览器下降级（图片 id 只需唯一，不需要密码学强度）。
+function genImageId(): string {
+  const c = globalThis.crypto
+  if (c?.randomUUID) {
+    return c.randomUUID()
+  }
+  if (c?.getRandomValues) {
+    const a = new Uint8Array(16)
+    c.getRandomValues(a)
+    return Array.from(a, b => b.toString(16).padStart(2, '0')).join('')
+  }
+  return `${Date.now().toString(16)}-${Math.floor(Math.random() * 0xffffffff).toString(16)}`
+}
+
 // 存入一张图片，返回它的 `idb:<id>` 引用
 export async function putImage(dataUrl: string): Promise<string> {
-  const ref = REF_PREFIX + crypto.randomUUID()
+  const ref = REF_PREFIX + genImageId()
   await withStore('readwrite', store => store.put(dataUrl, ref))
   return ref
 }
