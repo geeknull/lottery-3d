@@ -91,6 +91,10 @@
 .history-btn {
   right: 236px;
 }
+.github-btn {
+  right: 292px;
+  text-decoration: none; // a 标签复用 hud-btn 样式，去掉默认下划线
+}
 // 中奖揭晓彩带画布：盖在 3D 场景上方、面板下方，不挡交互
 .lottery-confetti {
   position: fixed;
