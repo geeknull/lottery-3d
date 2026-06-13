@@ -4,6 +4,7 @@ import { useLotteryVersion } from '../core/lottery-store'
 import { toggleDraw, isSpinning, tableShow } from '../core/lottery-controller'
 import { startShowcase, stopShowcase, returnToTable, isShowcaseActive } from '../core/lottery-showcase'
 import { voidWinner, undoLastDraw } from '../core/lottery-algorithm'
+import { exportWinnersPoster } from '../core/poster'
 import { setCardPrizeMark } from '../3d/3d-card-element'
 import STATUS from '../3d/3d-status'
 import { toast, appConfirm } from './feedback'
@@ -66,8 +67,15 @@ export default function LotteryAction() {
   const showBtn = false
   const [showAllWinUserPanel, setShowAllWinUserPanel] = useState(false)
   const [voidTarget, setVoidTarget] = useState<VoidTarget | null>(null)
+  const [winSearch, setWinSearch] = useState('')
   useLotteryVersion() // 中奖名单面板打开期间数据变化也能刷新
   const prizeList = lotteryConfig.prizeList
+
+  // 中奖名单按姓名搜索（大名单现场作废时快速定位），不碰抽奖逻辑
+  const winTerm = winSearch.trim()
+  const filteredWinPrizes = prizeList
+    .map(item => ({ item, matched: winTerm ? item.cardListWin.filter(u => u.name.includes(winTerm)) : item.cardListWin }))
+    .filter(g => !winTerm || g.matched.length > 0)
 
   function handleVoid(returnToPool: boolean) {
     if (!voidTarget) return
@@ -146,13 +154,29 @@ export default function LotteryAction() {
       </div>
       {showAllWinUserPanel && (
         <div className="show-all-win-user">
-          <span className="close-btn" onClick={() => { setShowAllWinUserPanel(false); setVoidTarget(null) }}>✖</span>
-          {prizeList.map((item, index) => (
+          <span className="close-btn" onClick={() => { setShowAllWinUserPanel(false); setVoidTarget(null); setWinSearch('') }}>✖</span>
+          <div className="win-panel-tools">
+            <input
+              className="win-search"
+              type="search"
+              placeholder="搜索中奖人姓名…"
+              value={winSearch}
+              onChange={e => setWinSearch(e.target.value)}
+            />
+            <button
+              className="export-poster-btn"
+              onClick={() => { if (!exportWinnersPoster()) toast('还没有中奖记录') }}
+            >导出喜报图</button>
+          </div>
+          {winTerm && filteredWinPrizes.length === 0 && (
+            <div className="win-empty">没有匹配「{winTerm}」的中奖人</div>
+          )}
+          {filteredWinPrizes.map(({ item, matched }, index) => (
             <div className="prize-win-item" key={index}>
               <div className="prize-name">{item.name}</div>
               <div className="prize-win-user">
                 {/* 每十个换行 */}
-                {getRenderArr(item.cardListWin).map((arr, arrIndex) => (
+                {getRenderArr(matched).map((arr, arrIndex) => (
                   <div className="prize-win-user-name-wrap" key={arrIndex}>
                     {arr.map((user, userIndex) => (
                       <span className="prize-win-user-name" key={userIndex}>
