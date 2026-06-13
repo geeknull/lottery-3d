@@ -12,18 +12,6 @@ import { bus } from '../core/event-bus'
 import type { Card } from '../core/lottery-types'
 import './lottery-action.scss'
 
-function getRenderArr(arr: Card[]) {
-  const arrRes: Card[][] = []
-  const n = 10
-  const len = arr.length
-  const lineNum = len % n === 0 ? len / n : Math.floor((len / n) + 1)
-  for (let i = 0; i < lineNum; i++) {
-    const temp = arr.slice(i * n, i * n + n)
-    arrRes.push(JSON.parse(JSON.stringify(temp)))
-  }
-  return arrRes
-}
-
 async function handleUndo() {
   if (STATUS.getStatus() !== STATUS.WAIT_LOTTERY) {
     toast('请等当前动画结束再撤销')
@@ -75,7 +63,7 @@ export default function LotteryAction() {
   const winTerm = winSearch.trim()
   const filteredWinPrizes = prizeList
     .map(item => ({ item, matched: winTerm ? item.cardListWin.filter(u => u.name.includes(winTerm)) : item.cardListWin }))
-    .filter(g => !winTerm || g.matched.length > 0)
+    .filter(g => g.matched.length > 0) // 只展示有中奖人的奖项，空奖项不占空间
 
   function handleVoid(returnToPool: boolean) {
     if (!voidTarget) return
@@ -168,32 +156,31 @@ export default function LotteryAction() {
               onClick={() => { if (!exportWinnersPoster()) toast('还没有中奖记录') }}
             >导出喜报图</button>
           </div>
-          {winTerm && filteredWinPrizes.length === 0 && (
-            <div className="win-empty">没有匹配「{winTerm}」的中奖人</div>
-          )}
-          {filteredWinPrizes.map(({ item, matched }, index) => (
-            <div className="prize-win-item" key={index}>
-              <div className="prize-name">{item.name}</div>
-              <div className="prize-win-user">
-                {/* 每十个换行 */}
-                {getRenderArr(matched).map((arr, arrIndex) => (
-                  <div className="prize-win-user-name-wrap" key={arrIndex}>
-                    {arr.map((user, userIndex) => (
-                      <span className="prize-win-user-name" key={userIndex}>
-                        {user.name}
-                        <i
-                          className="void-btn"
-                          title="作废此中奖（名额退回，可补抽）"
-                          onClick={() => setVoidTarget({ prizeId: item.id, prizeName: item.name, card: user })}
-                        >✖</i>
-                      </span>
-                    ))}
-                    <br />
-                  </div>
-                ))}
+          <div className="win-panel-body">
+            {filteredWinPrizes.length === 0 && (
+              <div className="win-empty">{winTerm ? `没有匹配「${winTerm}」的中奖人` : '还没有中奖记录'}</div>
+            )}
+            {filteredWinPrizes.map(({ item, matched }, index) => (
+              <div className="prize-win-item" key={index}>
+                <div className="prize-win-header">
+                  <span className="prize-name">{item.name}</span>
+                  <span className="prize-count-badge">{matched.length} 人</span>
+                </div>
+                <div className="prize-win-user">
+                  {matched.map((user, userIndex) => (
+                    <span className="prize-win-user-name" key={userIndex}>
+                      {user.name}
+                      <i
+                        className="void-btn"
+                        title="作废此中奖（名额退回，可补抽）"
+                        onClick={() => setVoidTarget({ prizeId: item.id, prizeName: item.name, card: user })}
+                      >✖</i>
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
           {voidTarget && (
             <div className="void-confirm">
               <p>
