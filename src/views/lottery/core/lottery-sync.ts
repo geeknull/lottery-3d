@@ -30,6 +30,28 @@ export function isDualScreenSupported(): boolean {
   return typeof BroadcastChannel !== 'undefined'
 }
 
+// 持有展示窗打开的控制窗引用，供主屏「退出双屏」一键关闭副屏
+let controlWindow: Window | null = null
+
+// 打开控制窗（副屏）。返回 false 表示当前浏览器不支持双屏。
+export function openControlWindow(): boolean {
+  if (!isDualScreenSupported()) {
+    return false
+  }
+  controlWindow = window.open(window.location.pathname + '?mode=control', 'lottery-control', 'width=460,height=760')
+  return true
+}
+
+// 主屏一键关闭副屏（控制窗）
+export function closeControlWindow(): void {
+  try {
+    controlWindow?.close()
+  } catch {
+    /* 已关闭/不可访问，忽略 */
+  }
+  controlWindow = null
+}
+
 export function broadcastChannel(name = SYNC_CHANNEL): Channel {
   const bc = new BroadcastChannel(name)
   return {

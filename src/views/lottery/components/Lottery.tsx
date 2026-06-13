@@ -17,22 +17,20 @@ import { useDisplaySync } from './useDisplaySync'
 import lotteryConfig from '../core/lottery-config'
 import { bus } from '../core/event-bus'
 import { toast } from './feedback'
-import { isDualScreenSupported } from '../core/lottery-sync'
+import { isDualScreenSupported, openControlWindow } from '../core/lottery-sync'
 import './lottery.scss'
 
-function openControlWindow() {
-  if (!isDualScreenSupported()) {
+function handleOpenControl() {
+  if (!openControlWindow()) {
     toast('当前浏览器不支持双屏遥控（需 Chrome / Edge / Firefox，或 Safari 15.4+）')
-    return void 0
   }
-  window.open(window.location.pathname + '?mode=control', 'lottery-control', 'width=460,height=760')
 }
 
 export default function Lottery() {
   const [showConfig, setShowConfig] = useState(false)
   const [showFairness, setShowFairness] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const controlConnected = useDisplaySync() // 控制窗连上后自动隐藏操作 UI
+  const { connected: controlConnected, exit: exitDualScreen } = useDisplaySync() // 控制窗连上后自动隐藏操作 UI
   const dualSupported = isDualScreenSupported() // 老浏览器无 BroadcastChannel 时置灰双屏按钮
   useLotteryShortcuts() // 空格=开始/停止，F=全屏
 
@@ -53,6 +51,11 @@ export default function Lottery() {
       <FeedbackHost />
       <LotteryUpdateBanner />
       <LotteryCompatNotice />
+      {controlConnected && (
+        <button className="exit-dual-btn" onClick={exitDualScreen} title="关闭控制窗并恢复主屏操作">
+          ✕ 退出双屏控制
+        </button>
+      )}
       <div className="hud-btn fullscreen-btn" data-label="全屏" title="全屏（快捷键 F）" onClick={toggleFullscreen}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M8 3H5a2 2 0 0 0-2 2v3" />
@@ -67,7 +70,7 @@ export default function Lottery() {
           <path d="M12 7v5l3 2" />
         </svg>
       </div>
-      <div className={'hud-btn dual-screen-btn' + (dualSupported ? '' : ' hud-disabled')} data-label={dualSupported ? '双屏控制' : '双屏不可用'} title={dualSupported ? '打开控制窗（双屏遥控）' : '当前浏览器不支持双屏（需 Safari 15.4+）'} onClick={openControlWindow}>
+      <div className={'hud-btn dual-screen-btn' + (dualSupported ? '' : ' hud-disabled')} data-label={dualSupported ? '双屏控制' : '双屏不可用'} title={dualSupported ? '打开控制窗（双屏遥控）' : '当前浏览器不支持双屏（需 Safari 15.4+）'} onClick={handleOpenControl}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="5" width="12" height="9" rx="1.5" />
           <path d="M7 18h5M9.5 14v3" />

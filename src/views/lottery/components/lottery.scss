@@ -140,6 +140,30 @@
     transition: opacity 0.4s ease;
   }
 }
+// 主屏「退出双屏」逃生按钮：双屏控制期间常驻顶部中央，一键关副屏 + 恢复主屏操作
+.exit-dual-btn {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 8px 22px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-bright);
+  background: rgba(var(--hud-bg-rgb), 0.92);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.6);
+  border-radius: 20px;
+  box-shadow: 0 0 16px rgba(var(--accent-glow-rgb), 0.3);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: banner-in 0.35s ease;
+
+  &:hover {
+    background: rgba(var(--accent-light-rgb), 0.25);
+    border-color: rgba(var(--accent-light-rgb), 0.85);
+  }
+}
 // 中奖揭晓彩带画布：盖在 3D 场景上方、面板下方，不挡交互
 .lottery-confetti {
   position: fixed;
