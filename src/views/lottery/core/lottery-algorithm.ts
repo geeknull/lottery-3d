@@ -15,7 +15,10 @@ const recomputeRemain = function() {
 const getRandomCard = function(currentPrize: Prize): Card[] {
   const cardListRemainAllCopy: Card[] = JSON.parse(JSON.stringify(lotteryConfig.cardListRemainAll));
   const poolIds = cardListRemainAllCopy.map(c => c.id); // 抽取前的奖池快照（复算用）
-  const selectCount = currentPrize.countRemain < currentPrize.everyTimeGet ? currentPrize.countRemain : currentPrize.everyTimeGet;
+  // 抽取数不仅受奖项剩余名额限制，还不能超过奖池实际剩余人数。
+  // 否则（如弃奖不退回反复用导致奖池见底）splice 空数组会得到 undefined 推进中奖名单，
+  // 引发 map 崩溃并落盘卡死。replaySequence 早有此守卫，此处补齐。
+  const selectCount = Math.min(currentPrize.countRemain, currentPrize.everyTimeGet, cardListRemainAllCopy.length);
 
   // 种子化抽取：从持久化的 rng 状态续接，保证整场可复算
   const rngStateBefore = lotteryConfig.rngState;

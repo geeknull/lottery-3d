@@ -41,6 +41,29 @@ describe('getRandomCard', () => {
     expect(selected).toHaveLength(2)
   })
 
+  it('奖池剩余人数少于奖项名额时，只抽出奖池实际剩余的人，不产生 undefined', () => {
+    // 现场可达：弃奖不退回反复用，奖池见底但名额还在
+    const prize = lotteryConfig.prizeList[0]
+    lotteryConfig.cardListRemainAll = lotteryConfig.cardList.slice(0, 2) // 奖池只剩 2 人
+    prize.countRemain = 5
+    prize.everyTimeGet = 5
+    const selected = getRandomCard(prize)
+    expect(selected).toHaveLength(2)
+    expect(selected.every(c => c && typeof c.name === 'string')).toBe(true) // 无 undefined
+    expect(prize.countRemain).toBe(3) // 5 - 2
+    expect(lotteryConfig.cardListWinAll.every(c => c && c.id)).toBe(true) // 未污染中奖名单
+  })
+
+  it('奖池为空时抽出空数组，不崩溃', () => {
+    const prize = lotteryConfig.prizeList[0]
+    lotteryConfig.cardListRemainAll = []
+    prize.countRemain = 3
+    prize.everyTimeGet = 3
+    let result: Card[] = []
+    expect(() => { result = getRandomCard(prize) }).not.toThrow()
+    expect(result).toHaveLength(0)
+  })
+
   it('中奖人从未中奖池移除，连续抽取不会重复中奖', () => {
     const prize = lotteryConfig.prizeList.find(p => p.everyTimeGet === 10)!
     const first = getRandomCard(prize)
