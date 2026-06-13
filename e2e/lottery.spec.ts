@@ -130,3 +130,37 @@ test.describe('快捷键与主题', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'festive')
   })
 })
+
+test.describe('双屏控制', () => {
+  test('控制窗遥控展示窗完成一轮抽奖', async ({ page, context }) => {
+    await gotoFresh(page)
+
+    // 开控制窗（同 context 同源，BroadcastChannel 互通）
+    const control = await context.newPage()
+    await control.goto('/?mode=control')
+    await control.waitForTimeout(2500)
+
+    // 连上：已连接 + 奖项列表 + 展示窗自动隐藏操作 UI
+    await expect(control.locator('.control-conn')).toHaveText('● 已连接')
+    await expect(control.locator('.control-prize')).toHaveCount(4)
+    await expect(page.locator('.lottery-wrap')).toHaveClass(/control-active/)
+
+    // 控制窗选三等奖 → 开始（按钮镜像 spinning）→ 停
+    await control.locator('.control-prize').nth(3).click()
+    await control.waitForTimeout(3000)
+    await control.locator('.control-cta').click()
+    await control.waitForFunction(
+      () => document.querySelector('.control-cta')?.textContent?.includes('停'),
+      { timeout: 8000 },
+    )
+    await control.locator('.control-cta').click()
+
+    // 中奖名单回传控制窗 + 剩余数同步
+    await expect(control.locator('.control-reveal .cr-title')).toHaveText('最近中奖 · 三等奖', { timeout: 12000 })
+    await expect(control.locator('.control-prize').nth(3).locator('.cp-remain')).toHaveText('10/20')
+
+    // 关闭控制窗 → 展示窗恢复操作 UI
+    await control.close()
+    await expect(page.locator('.lottery-wrap')).not.toHaveClass(/control-active/, { timeout: 12000 })
+  })
+})

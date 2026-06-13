@@ -12,15 +12,21 @@ import LotteryHistory from './LotteryHistory'
 import LotteryUpdateBanner from './LotteryUpdateBanner'
 import { FeedbackHost } from './feedback'
 import { useLotteryShortcuts, toggleFullscreen } from '../core/lottery-shortcuts'
+import { useDisplaySync } from './useDisplaySync'
 import lotteryConfig from '../core/lottery-config'
 import { bus } from '../core/event-bus'
 import { toast } from './feedback'
 import './lottery.scss'
 
+function openControlWindow() {
+  window.open(window.location.pathname + '?mode=control', 'lottery-control', 'width=460,height=760')
+}
+
 export default function Lottery() {
   const [showConfig, setShowConfig] = useState(false)
   const [showFairness, setShowFairness] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const controlConnected = useDisplaySync() // 控制窗连上后自动隐藏操作 UI
   useLotteryShortcuts() // 空格=开始/停止，F=全屏
 
   // 抽奖进度写入失败（配额超限/隐私模式）时提醒主持人及时导出中奖名单
@@ -31,7 +37,7 @@ export default function Lottery() {
   }, [])
 
   return (
-    <div className="lottery-wrap">
+    <div className={'lottery-wrap' + (controlConnected ? ' control-active' : '')}>
       <LotteryStarfield />
       <LotteryConfetti />
       <LotteryCountdown />
@@ -51,6 +57,13 @@ export default function Lottery() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3 2" />
+        </svg>
+      </div>
+      <div className="hud-btn dual-screen-btn" data-label="双屏控制" title="打开控制窗（双屏遥控）" onClick={openControlWindow}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="12" height="9" rx="1.5" />
+          <path d="M7 18h5M9.5 14v3" />
+          <rect x="13.5" y="10" width="7.5" height="9" rx="1.5" />
         </svg>
       </div>
       <a className="hud-btn github-btn" data-label="GitHub 源码" title="在 GitHub 查看源码" href="https://github.com/geeknull/lottery-3d" target="_blank" rel="noopener noreferrer">

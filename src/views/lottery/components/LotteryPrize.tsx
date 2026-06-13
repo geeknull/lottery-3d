@@ -2,25 +2,8 @@ import { useEffect } from 'react'
 import LotteryAction from './LotteryAction'
 import lotteryConfig from '../core/lottery-config'
 import { useLotteryVersion, notifyLotteryChange } from '../core/lottery-store'
-import { transform } from '../3d/3d-animate'
-import STATUS from '../3d/3d-status'
-import { toast } from './feedback'
-import { stopShowcase } from '../core/lottery-showcase'
-import type { Prize } from '../core/lottery-types'
+import { selectPrize } from '../core/lottery-controller'
 import './lottery-prize.scss'
-
-async function selectPrize(prize: Prize) {
-  stopShowcase()
-  if (STATUS.isRun()) {
-    toast('正在抽奖中，不能切换奖项！')
-    return void 0
-  }
-  STATUS.setStatusRun()
-  lotteryConfig.currentPrize = prize.id
-  notifyLotteryChange()
-  await transform('table', 1000) // TODO重复点击处理
-  STATUS.setStatusWait()
-}
 
 export default function LotteryPrize() {
   useLotteryVersion() // 抽奖/切换奖项后剩余数量、进度条、选中态自动刷新
@@ -46,7 +29,7 @@ export default function LotteryPrize() {
           <li
             key={index}
             className={'prize-item' + (index === currentPrizeIndex ? ' shine' : '')}
-            onClick={() => selectPrize(item)}
+            onClick={() => selectPrize(item.id)}
           >
             {item.img && (
               <div className="prize-item-left">

@@ -95,6 +95,18 @@
   right: 292px;
   text-decoration: none; // a 标签复用 hud-btn 样式，去掉默认下划线
 }
+.dual-screen-btn {
+  right: 348px;
+}
+// 控制窗连上后，展示窗自动隐藏操作 UI，投影画面只剩 3D 球 + 标题 + 揭晓 + 奖项进度
+.lottery-wrap.control-active {
+  .lottery-action,
+  .hud-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+}
 // 中奖揭晓彩带画布：盖在 3D 场景上方、面板下方，不挡交互
 .lottery-confetti {
   position: fixed;

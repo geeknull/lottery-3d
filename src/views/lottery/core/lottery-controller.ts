@@ -10,6 +10,7 @@ import { stopShowcase } from './lottery-showcase'
 import { ensureSeedCommit } from './lottery-fairness'
 import { startSpinTicks, stopSpinTicks, playReveal } from './lottery-sound'
 import { isCountdownEnabled, playCountdown } from './lottery-countdown'
+import { notifyLotteryChange } from './lottery-store'
 
 // 抽奖的开始/停止流程。从 LotteryAction 组件抽出来，
 // 按钮和键盘快捷键共用同一套入口。
@@ -91,6 +92,20 @@ export function toggleDraw() {
   } else {
     lotteryStart()
   }
+}
+
+// 选择奖项（按 id）。从 LotteryPrize 抽出，供卡片点击与控制窗命令共用。
+export async function selectPrize(prizeId: string) {
+  stopShowcase()
+  if (STATUS.isRun()) {
+    toast('正在抽奖中，不能切换奖项！')
+    return void 0
+  }
+  STATUS.setStatusRun()
+  lotteryConfig.currentPrize = prizeId
+  notifyLotteryChange()
+  await transform('table', 1000)
+  STATUS.setStatusWait()
 }
 
 export async function tableShow() {
