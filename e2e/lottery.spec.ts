@@ -164,3 +164,33 @@ test.describe('双屏控制', () => {
     await expect(page.locator('.lottery-wrap')).not.toHaveClass(/control-active/, { timeout: 12000 })
   })
 })
+
+test.describe('浏览器兼容性降级', () => {
+  test('无 BroadcastChannel 时提示且不崩，核心抽奖仍可用', async ({ page }) => {
+    // 模拟老浏览器（如 Safari < 15.4）：移除 BroadcastChannel
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'BroadcastChannel', { value: undefined, configurable: true, writable: true })
+    })
+    await page.goto('/')
+    await page.evaluate(() => {
+      localStorage.removeItem('___lottery___')
+      localStorage.removeItem('___lottery_compat_dismissed___')
+      localStorage.setItem('___lottery_countdown___', 'off')
+    })
+    await page.reload()
+    await page.waitForTimeout(3500)
+
+    // 兼容性提示出现、内容正确，双屏按钮置灰
+    await expect(page.locator('.lottery-compat-notice')).toBeVisible()
+    await expect(page.locator('.compat-issues li')).toContainText('双屏遥控')
+    await expect(page.locator('.dual-screen-btn')).toHaveClass(/hud-disabled/)
+
+    // 关闭提示后核心抽奖仍可用（展示窗没被 new BroadcastChannel 拖垮）
+    await page.locator('.compat-dismiss').click()
+    await expect(page.locator('.lottery-compat-notice')).toHaveCount(0)
+    await page.locator('.prize-item').nth(3).click()
+    await page.waitForTimeout(2600)
+    await drawOneRound(page)
+    await expect(page.locator('.lottery-win-banner')).toBeVisible()
+  })
+})

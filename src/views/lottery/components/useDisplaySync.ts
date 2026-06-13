@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { broadcastChannel, createDisplaySync } from '../core/lottery-sync'
+import { broadcastChannel, createDisplaySync, isDualScreenSupported } from '../core/lottery-sync'
 import type { DisplaySync } from '../core/lottery-sync'
 import { buildSnapshot } from '../core/lottery-snapshot'
 import lotteryConfig from '../core/lottery-config'
@@ -14,6 +14,11 @@ export function useDisplaySync(): boolean {
   const syncRef = useRef<DisplaySync | null>(null)
 
   useEffect(() => {
+    // 老浏览器无 BroadcastChannel：不挂双屏接线（否则 new BroadcastChannel 抛错会拖垮整个展示窗）
+    if (!isDualScreenSupported()) {
+      return void 0
+    }
+
     const pushState = () =>
       syncRef.current?.postState(buildSnapshot(lotteryConfig, isSpinning()))
 

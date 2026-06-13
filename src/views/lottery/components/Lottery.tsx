@@ -10,6 +10,7 @@ import LotteryConfigPanel from './LotteryConfigPanel'
 import LotteryFairness from './LotteryFairness'
 import LotteryHistory from './LotteryHistory'
 import LotteryUpdateBanner from './LotteryUpdateBanner'
+import LotteryCompatNotice from './LotteryCompatNotice'
 import { FeedbackHost } from './feedback'
 import { useLotteryShortcuts, toggleFullscreen } from '../core/lottery-shortcuts'
 import { useDisplaySync } from './useDisplaySync'
@@ -51,6 +52,7 @@ export default function Lottery() {
       <LotteryMusic />
       <FeedbackHost />
       <LotteryUpdateBanner />
+      <LotteryCompatNotice />
       <div className="hud-btn fullscreen-btn" data-label="全屏" title="全屏（快捷键 F）" onClick={toggleFullscreen}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M8 3H5a2 2 0 0 0-2 2v3" />
