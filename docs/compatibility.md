@@ -37,6 +37,20 @@
 | Web Audio (`AudioContext`) | 抽奖音效 | 广泛支持（需用户手势） | try/catch 静默，无音效 |
 | `backdrop-filter` | 面板/横幅毛玻璃 | Safari 需 `-webkit-` 前缀 | 已补前缀；再不支持只是无模糊，不影响功能 |
 
+## 版本门槛从何而来（为什么是这几个数字）
+
+文档里的「Safari 15.4+」「Chrome 92+」**不是我们随意设的门槛**，而是由「项目用到的 API 中、被各浏览器支持得最晚的那一个」倒推出来的 —— 木桶效应：全功能可用 = 所有依赖的 API 都可用，所以门槛取决于最短的那块板。
+
+- **Safari 15.4（2022 年 3 月）**：`BroadcastChannel`（双屏）和 `crypto.randomUUID`（图片 id）都是 Safari 直到 15.4 才支持的。它俩是本项目用到的 API 里在 Safari 上**支持最晚的**，于是 Safari 的全功能门槛就落在了 15.4。
+- **Chrome 92 / Firefox 95**：来自 `crypto.randomUUID` 的支持起点（2021 年下半年）。
+- 其余 API（Service Worker、Web Audio、CSS3D、`localStorage`、`getRandomValues` 等）各浏览器支持得都更早，不构成门槛。
+
+换句话说，这些版本号是**浏览器厂商实现这些 Web 标准的时间点**，不是我们的偏好；数据以 [caniuse.com](https://caniuse.com) 为准（`crypto.randomUUID`、`BroadcastChannel` 均自 2022 年 3 月起在四大浏览器全部可用）。
+
+> **更重要的是：代码实际检测的是「能力是否存在」而非版本号。**
+> 例如 `typeof BroadcastChannel !== 'undefined'`、`globalThis.isSecureContext === true`（见 [`capability-check.ts`](../src/views/lottery/core/capability-check.ts)、[`lottery-sync.ts`](../src/views/lottery/core/lottery-sync.ts)），而不是去比对 UA 里的版本号。
+> 所以哪怕是某个魔改内核或小众浏览器，只要它实现了这些 API 就能用全功能；上面的版本号只是给人看的「大致从哪个版本起满足」的参考值。
+
 ## 各功能的最低要求
 
 | 功能 | 最低要求 |
