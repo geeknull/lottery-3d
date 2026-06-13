@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import LotteryStarfield from './LotteryStarfield'
 import LotteryConfetti from './LotteryConfetti'
 import LotteryCountdown from './LotteryCountdown'
@@ -13,6 +13,8 @@ import LotteryUpdateBanner from './LotteryUpdateBanner'
 import { FeedbackHost } from './feedback'
 import { useLotteryShortcuts, toggleFullscreen } from '../core/lottery-shortcuts'
 import lotteryConfig from '../core/lottery-config'
+import { bus } from '../core/event-bus'
+import { toast } from './feedback'
 import './lottery.scss'
 
 export default function Lottery() {
@@ -20,6 +22,13 @@ export default function Lottery() {
   const [showFairness, setShowFairness] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   useLotteryShortcuts() // 空格=开始/停止，F=全屏
+
+  // 抽奖进度写入失败（配额超限/隐私模式）时提醒主持人及时导出中奖名单
+  useEffect(() => {
+    const onStorageError = () => toast('⚠ 抽奖进度保存失败，本地存储可能已满，请尽快到配置面板导出中奖名单', 8000)
+    bus.on('storage-error', onStorageError)
+    return () => bus.off('storage-error', onStorageError)
+  }, [])
 
   return (
     <div className="lottery-wrap">

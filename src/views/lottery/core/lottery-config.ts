@@ -1,6 +1,8 @@
 import { buildCards, defaultPeople } from './lottery-config-users';
 import { loadUserConfig, configHash, normalizeRoster } from './config-store';
 import { randomSeed } from './lottery-rng';
+import { isSavedRestorable } from './config-restore';
+import { bus } from './event-bus';
 import type { PrizeConfig } from './config-store';
 import type { Card, Prize, DrawLogEntry } from './lottery-types';
 
@@ -65,6 +67,7 @@ const currentHash = configHash(headerTitle, prizeConfigs, cardList.map(c => c.na
 const initialSeed = randomSeed();
 
 let isInit = false;
+let storageHealthy = true; // localStorage 写入是否正常（失败只提醒一次的去重标志）
 const localStorageKey = '___lottery___';
 
 const lotteryConfig: LotteryConfig = {
@@ -90,18 +93,30 @@ const lotteryConfig: LotteryConfig = {
     return cardList.find(_ => _.id === id);
   },
   setLocalStorage() {
-    localStorage.setItem(localStorageKey, JSON.stringify({
-      hash: currentHash,
-      currentPrize: lotteryConfig.currentPrize,
-      prizeList: lotteryConfig.prizeList,
-      cardListWinAll: lotteryConfig.cardListWinAll,
-      cardListRemainAll: lotteryConfig.cardListRemainAll,
-      cardListExcluded: lotteryConfig.cardListExcluded,
-      seed: lotteryConfig.seed,
-      rngState: lotteryConfig.rngState,
-      seedCommit: lotteryConfig.seedCommit,
-      drawLog: lotteryConfig.drawLog,
-    }));
+    // 写入是抽奖热路径（每轮 getRandomCard 都调）。配额超限/隐私模式下 setItem 会抛
+    // QuotaExceededError，不能让它冒泡打断 lotteryStop 的揭晓动画/彩带，更不能静默丢结果——
+    // 捕获后发事件提示主持人及时导出。从健康转失败只提醒一次，避免每轮刷屏。
+    try {
+      localStorage.setItem(localStorageKey, JSON.stringify({
+        hash: currentHash,
+        currentPrize: lotteryConfig.currentPrize,
+        prizeList: lotteryConfig.prizeList,
+        cardListWinAll: lotteryConfig.cardListWinAll,
+        cardListRemainAll: lotteryConfig.cardListRemainAll,
+        cardListExcluded: lotteryConfig.cardListExcluded,
+        seed: lotteryConfig.seed,
+        rngState: lotteryConfig.rngState,
+        seedCommit: lotteryConfig.seedCommit,
+        drawLog: lotteryConfig.drawLog,
+      }));
+      storageHealthy = true;
+    } catch (e) {
+      if (storageHealthy) {
+        console.warn('抽奖进度保存失败（可能超出本地存储配额）', e);
+        bus.emit('storage-error');
+        storageHealthy = false;
+      }
+    }
   },
   getLocalStorage() {
     if (isInit !== false) {
@@ -121,6 +136,11 @@ const lotteryConfig: LotteryConfig = {
     }
     // 配置变过（或老版本存档没有指纹）就不恢复，避免名单/奖项对不上
     if (!saved || saved.hash !== currentHash) {
+      return void 0;
+    }
+    // 完整性校验：数组字段类型 + 中奖 id 都在当前名单内。不通过就当新局，
+    // 挡住被篡改的非数组（否则下方赋值后 .map/.some 抛错→白屏）、哈希碰撞、id 错配。
+    if (!isSavedRestorable(saved, cardList)) {
       return void 0;
     }
     lotteryConfig.currentPrize = saved.currentPrize;

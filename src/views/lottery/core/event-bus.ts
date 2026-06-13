@@ -8,4 +8,5 @@ export const bus = mitt<{
   'showcase-change': undefined // 轮播展示启停（按钮高亮态同步）
   'spin-change': boolean // 球体旋转抽奖启停（主操作按钮「开始抽奖 ↔ 停！」文案同步）
   'countdown': number // 倒计时当前数字（n>0 数字，0=GO，-1=隐藏）
+  'storage-error': undefined // 抽奖进度写入 localStorage 失败（配额超限/隐私模式），提示主持人导出
 }>()
