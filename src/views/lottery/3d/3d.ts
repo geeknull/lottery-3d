@@ -1,13 +1,13 @@
 import {
   camera, scene, renderer, controls, // 3d 三大组件
   initCamera, initRenderer, initScene, initControls, // 初始化3d
-  render, global3D, // 3d 其他
+  render, // 3d 其他
   objects, targets, cardSize, // 3d 变量
 } from './3d-core';
 export {
   camera, scene, renderer, controls, // 3d 三大组件
   initCamera, initRenderer, initScene, initControls, // 初始化3d
-  render, global3D, // 3d 其他
+  render, // 3d 其他
   objects, targets, cardSize, // 3d 变量
 }
 
