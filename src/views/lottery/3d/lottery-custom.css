@@ -5,6 +5,7 @@
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  overflow: hidden; /* 超长名字/id 不溢出卡片、不糊到隔壁 */
 }
 .element.prize.prize {
   transition: background-color 1.5s ease-in 0.3s;
@@ -24,11 +25,19 @@
   position: relative;
   font-size: 30px;
   top: 0;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .element .details {
   position: relative;
   top: 0;
   font-size: 16px;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .card-avatar {
   height: 100px;
