@@ -47,6 +47,31 @@
       color: var(--text-bright);
     }
   }
+
+  // 抽奖进行中的警告版：橙色边框 + 限宽多行，劝主持人抽完再更新
+  &.warn {
+    max-width: 360px;
+    align-items: flex-start;
+    border-color: rgba(255, 176, 80, 0.7);
+    box-shadow: 0 0 18px rgba(255, 176, 80, 0.25);
+
+    .update-text {
+      line-height: 1.5;
+    }
+    .update-apply {
+      flex: none;
+      border-color: rgba(255, 176, 80, 0.7);
+      background: rgba(180, 110, 40, 0.4);
+
+      &:hover {
+        background: rgba(255, 176, 80, 0.3);
+      }
+    }
+    .update-dismiss {
+      flex: none;
+      align-self: center;
+    }
+  }
 }
 
 @keyframes update-banner-in {
