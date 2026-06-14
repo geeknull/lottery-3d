@@ -1,9 +1,27 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// 构建时把 release-notes.json 的 version 烤进包里，作为「本次发布所附说明的版本」。
+// 运行时与线上 release-notes.json.version 比对，识别「发了新版却忘了更新说明」的情况。
+function readNotesVersion(): string {
+  try {
+    const p = fileURLToPath(new URL('./public/release-notes.json', import.meta.url))
+    const json: unknown = JSON.parse(readFileSync(p, 'utf8'))
+    const v = (json as { version?: unknown }).version
+    return typeof v === 'string' ? v : ''
+  } catch {
+    return ''
+  }
+}
+
 export default defineConfig({
   base: './', // 线上构建出来是相对路径在demo页才好展示
+  define: {
+    __NOTES_VERSION__: JSON.stringify(readNotesVersion()),
+  },
   plugins: [
     react(),
     // PWA：年会现场断网也能打开（资源全量预缓存）。
