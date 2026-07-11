@@ -36,5 +36,4 @@ const status = {
   RUNNING_LOTTERY,
   INIT
 }
-export { lotteryStatus }
 export default status;

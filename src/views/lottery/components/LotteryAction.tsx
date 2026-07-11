@@ -6,7 +6,7 @@ import { startShowcase, stopShowcase, returnToTable, isShowcaseActive } from '..
 import { voidWinner, undoLastDraw } from '../core/lottery-algorithm'
 import { exportWinnersPoster } from '../core/poster'
 import { setCardPrizeMark } from '../3d/3d-card-element'
-import STATUS from '../3d/3d-status'
+import STATUS from '../core/lottery-status'
 import { toast, appConfirm } from './feedback'
 import { bus } from '../core/event-bus'
 import type { Card } from '../core/lottery-types'
