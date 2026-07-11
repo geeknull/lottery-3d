@@ -73,40 +73,42 @@ function cardFlyAnimation(cardIndexList: number[]) {
   });
 }
 
+// 持有当前旋转 tween，停止时只停它自己，不用 removeAll 一刀切
+let spinTween: Tween<{ a: number }> | null = null;
+
 // 旋转3D球：相机绕 Y 轴公转，而非旋转 scene/卡片对象。
 // CSS3DRenderer 把相机变换作用在单个父容器元素上，每张卡片的 matrix3d 只依赖它
 // 自身的世界矩阵；相机公转时卡片世界矩阵不变 → 渲染器命中缓存、跳过全部卡片的
 // DOM transform 写入，每帧只改 1 个元素。相比旋转 scene.rotation 每帧重写 N 个
 // 卡片 transform，大名单旋转帧率大幅提升（瓶颈是合成层/DOM 写入随卡片数线性增长）。
+// 旋转是无限循环、由停止操作打断，不返回 Promise（原来 onComplete 永不触发、是死代码）。
 function rotateBall() {
   const circleCount = 10000; // 1万圈
   const durationTime = 1000 * circleCount / 4;
-  return new Promise<void>((resolve) => {
-    // 保持当前相机的半径与高度（用户可能已缩放/拖拽），只让它绕中心公转
-    const radius = Math.hypot(camera.position.x, camera.position.z) || camera.position.z;
-    const startAngle = Math.atan2(camera.position.x, camera.position.z);
-    const height = camera.position.y;
-    controls.enabled = false; // 公转期间不让 TrackballControls 抢相机
-    const spin = { a: 0 };
-    new Tween(spin, tweenGroup)
-      .to({ a: Math.PI * 2 * circleCount }, durationTime)
-      .onUpdate(() => {
-        const angle = startAngle + spin.a;
-        camera.position.set(radius * Math.sin(angle), height, radius * Math.cos(angle));
-        camera.lookAt(scene.position); // 始终看向球心
-        render();
-      })
-      .easing(Easing.Linear.None)
-      .start()
-      .onComplete(() => {
-        resolve();
-      });
-  });
+  // 保持当前相机的半径与高度（用户可能已缩放/拖拽），只让它绕中心公转
+  const radius = Math.hypot(camera.position.x, camera.position.z) || camera.position.z;
+  const startAngle = Math.atan2(camera.position.x, camera.position.z);
+  const height = camera.position.y;
+  controls.enabled = false; // 公转期间不让 TrackballControls 抢相机
+  const spin = { a: 0 };
+  spinTween = new Tween(spin, tweenGroup)
+    .to({ a: Math.PI * 2 * circleCount }, durationTime)
+    .onUpdate(() => {
+      const angle = startAngle + spin.a;
+      camera.position.set(radius * Math.sin(angle), height, radius * Math.cos(angle));
+      camera.lookAt(scene.position); // 始终看向球心
+      render();
+    })
+    .easing(Easing.Linear.None)
+    .start();
 }
 
-// 停止旋转：相机复位到正前方看向中心，让中奖卡片朝观众飞出
+// 停止旋转：只停旋转 tween 本身（不用 tweenGroup.removeAll——那会连带杀掉别处
+// 正在跑的 tween 且不触发其 onComplete，逼出 zAnimate 里的 5 秒兜底）。
+// 相机复位到正前方看向中心，让中奖卡片朝观众飞出。
 function rotateBallStop() {
-  tweenGroup.removeAll();
+  spinTween?.stop();
+  spinTween = null;
   setTimeout(() => {
     const radius = Math.hypot(camera.position.x, camera.position.z) || camera.position.z || 3000;
     camera.position.set(0, camera.position.y, radius);

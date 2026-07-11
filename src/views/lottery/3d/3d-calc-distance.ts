@@ -41,22 +41,13 @@ export const getFitSphereZ = (radius: number) => {
 
 export const zAnimate = async (z: number, duration: number) => {
   return new Promise<void>((resolve) => {
-    let isDone = false;
+    // 没有任何地方再 removeAll，tween 必然正常跑完并触发 onComplete，
+    // 不再需要原来的 5 秒 setTimeout 兜底
     new Tween( camera.position, tweenGroup )
       .to( { z: z }, duration )
       .easing( Easing.Exponential.InOut )
       .start()
-      .onComplete(() => {
-        resolve();
-        isDone = true;
-      });
-
-    // 防止动画意外停止
-    setTimeout(() => {
-      if (isDone === false) {
-        resolve();
-      }
-    }, 5000)
+      .onComplete(() => resolve());
   });
 }
 
