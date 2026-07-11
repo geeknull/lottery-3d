@@ -52,11 +52,54 @@ export function closeControlWindow(): void {
   controlWindow = null
 }
 
+function isValidCommand(c: unknown): c is SyncCommand {
+  if (typeof c !== 'object' || c === null) return false
+  const cmd = c as Record<string, unknown>
+  switch (cmd.action) {
+    case 'start':
+    case 'stop':
+    case 'requestState':
+      return true
+    case 'selectPrize':
+      return typeof cmd.prizeId === 'string'
+    default:
+      return false
+  }
+}
+
+function isValidSnapshot(s: unknown): s is StateSnapshot {
+  if (typeof s !== 'object' || s === null) return false
+  const snap = s as Record<string, unknown>
+  return (
+    typeof snap.headerTitle === 'string' &&
+    Array.isArray(snap.prizes) && // 控制窗会 prizes.map，非数组会白屏，这是最关键的一道
+    (snap.currentPrizeId === null || typeof snap.currentPrizeId === 'string') &&
+    typeof snap.spinning === 'boolean'
+  )
+}
+
+// 校验入站消息结构。BroadcastChannel 同源无跨源风险，但两端可能跑不同版本代码
+// （线上重部署期间），字段不兼容的消息若直接下发会让镜像 UI 渲染时抛错白屏，非法即丢弃。
+export function isValidSyncMessage(data: unknown): data is SyncMessage {
+  if (typeof data !== 'object' || data === null) return false
+  const msg = data as Record<string, unknown>
+  switch (msg.kind) {
+    case 'heartbeat':
+      return true
+    case 'command':
+      return isValidCommand(msg.command)
+    case 'state':
+      return isValidSnapshot(msg.snapshot)
+    default:
+      return false
+  }
+}
+
 export function broadcastChannel(name = SYNC_CHANNEL): Channel {
   const bc = new BroadcastChannel(name)
   return {
     post: msg => bc.postMessage(msg),
-    setHandler: cb => { bc.onmessage = e => cb(e.data as SyncMessage) },
+    setHandler: cb => { bc.onmessage = e => { if (isValidSyncMessage(e.data)) cb(e.data) } },
     close: () => bc.close(),
   }
 }

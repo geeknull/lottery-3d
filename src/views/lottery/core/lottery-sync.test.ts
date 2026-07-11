@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createDisplaySync, createControlSync, isDualScreenSupported } from './lottery-sync'
+import { createDisplaySync, createControlSync, isDualScreenSupported, isValidSyncMessage } from './lottery-sync'
 import type { Channel, SyncMessage } from './lottery-sync'
 import type { StateSnapshot } from './lottery-snapshot'
 
@@ -11,6 +11,40 @@ describe('isDualScreenSupported', () => {
   it('BroadcastChannel 不存在（老 Safari）时为 false', () => {
     vi.stubGlobal('BroadcastChannel', undefined)
     expect(isDualScreenSupported()).toBe(false)
+  })
+})
+
+describe('isValidSyncMessage', () => {
+  const validSnapshot: StateSnapshot = {
+    headerTitle: '幸运大抽奖', prizes: [], currentPrizeId: null, spinning: false, lastReveal: null,
+  }
+
+  it('合法的心跳/命令/状态消息通过', () => {
+    expect(isValidSyncMessage({ kind: 'heartbeat' })).toBe(true)
+    expect(isValidSyncMessage({ kind: 'command', command: { action: 'start' } })).toBe(true)
+    expect(isValidSyncMessage({ kind: 'command', command: { action: 'selectPrize', prizeId: 'p1' } })).toBe(true)
+    expect(isValidSyncMessage({ kind: 'state', snapshot: validSnapshot })).toBe(true)
+  })
+
+  it('非对象/空值/未知 kind 一律拒绝', () => {
+    expect(isValidSyncMessage(null)).toBe(false)
+    expect(isValidSyncMessage(undefined)).toBe(false)
+    expect(isValidSyncMessage('heartbeat')).toBe(false)
+    expect(isValidSyncMessage({})).toBe(false)
+    expect(isValidSyncMessage({ kind: 'nope' })).toBe(false)
+  })
+
+  it('命令 action 非法或 selectPrize 缺 prizeId 时拒绝', () => {
+    expect(isValidSyncMessage({ kind: 'command', command: { action: 'boom' } })).toBe(false)
+    expect(isValidSyncMessage({ kind: 'command', command: { action: 'selectPrize' } })).toBe(false)
+    expect(isValidSyncMessage({ kind: 'command' })).toBe(false)
+  })
+
+  it('状态快照缺字段或 prizes 非数组时拒绝（挡住控制窗 prizes.map 白屏）', () => {
+    expect(isValidSyncMessage({ kind: 'state' })).toBe(false)
+    expect(isValidSyncMessage({ kind: 'state', snapshot: { ...validSnapshot, prizes: 'x' } })).toBe(false)
+    const { headerTitle: _omit, ...noTitle } = validSnapshot
+    expect(isValidSyncMessage({ kind: 'state', snapshot: noTitle })).toBe(false)
   })
 })
 
