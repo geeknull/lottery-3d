@@ -1,13 +1,25 @@
-name: CI
+name: CI & Deploy
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  # 支持在 Actions 页面手动触发部署
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# PR 连续 push 时取消上一次未跑完的 run；main 推送不取消，避免打断部署链路
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -19,8 +31,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm test
-      - run: pnpm type-check
-      # E2E：装浏览器后跑 Playwright（dev 服务器由 playwright.config 自动拉起）
+      # build 内含 tsc --noEmit，顺带类型检查；放在 E2E 前先拦类型/构建错误
+      - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
       - uses: actions/upload-artifact@v4
@@ -29,3 +41,24 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+      # 仅 main 推送 / 手动触发时上传部署产物；PR 不部署
+      - uses: actions/upload-pages-artifact@v5
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          path: dist
+
+  deploy:
+    # 只有非 PR（main 推送或手动触发）且 verify 全绿才部署
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: verify
+    runs-on: ubuntu-latest
+    # 部署串行化，避免并发部署互相打断
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
