@@ -77,14 +77,14 @@ export default function LotteryAction() {
   const [spinning, setSpinning] = useState(isSpinning())
 
   useEffect(() => {
-    bus.on('lottery-3d-init', () => {
-      STATUS.setStatusWait()
-    })
+    const onInit = () => STATUS.setStatusWait()
+    bus.on('lottery-3d-init', onInit)
     const syncShowcase = () => setShowcaseOn(isShowcaseActive())
     bus.on('showcase-change', syncShowcase)
     const syncSpin = (v: boolean) => setSpinning(v)
     bus.on('spin-change', syncSpin)
     return () => {
+      bus.off('lottery-3d-init', onInit)
       bus.off('showcase-change', syncShowcase)
       bus.off('spin-change', syncSpin)
     }

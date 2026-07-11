@@ -13,7 +13,9 @@ const recomputeRemain = function() {
 }
 
 const getRandomCard = function(currentPrize: Prize): Card[] {
-  const cardListRemainAllCopy: Card[] = JSON.parse(JSON.stringify(lotteryConfig.cardListRemainAll));
+  // 浅拷贝即可：只 splice 这个副本（不动原数组），卡片对象自身不被修改。
+  // 原来 JSON 深拷贝会把上千张卡片连头像串一起序列化，抽奖热路径白耗。
+  const cardListRemainAllCopy: Card[] = [...lotteryConfig.cardListRemainAll];
   const poolIds = cardListRemainAllCopy.map(c => c.id); // 抽取前的奖池快照（复算用）
   // 抽取数不仅受奖项剩余名额限制，还不能超过奖池实际剩余人数。
   // 否则（如弃奖不退回反复用导致奖池见底）splice 空数组会得到 undefined 推进中奖名单，
