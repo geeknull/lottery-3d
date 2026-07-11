@@ -33,3 +33,15 @@ button:disabled {
   border: none;
   color: inherit;
 }
+
+// 尊重系统「减少动效」：中和所有 CSS 动画/过渡（横幅、脉冲、旋转装饰等）。
+// 抽奖旋转由 TWEEN 驱动 CSS3D transform（非 CSS 动画/过渡），不受影响，功能照常。
+// 彩带、星空是 canvas，另在各自组件里按 prefersReducedMotion 降级。
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

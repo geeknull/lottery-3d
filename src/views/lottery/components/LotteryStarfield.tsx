@@ -1,5 +1,6 @@
 // https://github.com/moshang-xc/lottery
 import { useEffect } from 'react'
+import { prefersReducedMotion } from '../core/reduced-motion'
 
 interface Star {
   x: number;
@@ -25,13 +26,15 @@ function initStarfield() {
   let stars: Star[] = [], star: Star
   let i: number
 
-  const animate = true
-
   initializeStars()
 
   function executeFrame() {
-    if (animate)
-      requestAnimationFrame(executeFrame)
+    // 尊重减少动效：只画一帧静态星空，不做连续「穿越」动画
+    if (prefersReducedMotion()) {
+      drawStars()
+      return
+    }
+    requestAnimationFrame(executeFrame)
     moveStars()
     drawStars()
   }

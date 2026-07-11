@@ -260,6 +260,15 @@ test.describe('对话框键盘可达', () => {
   })
 })
 
+test.describe('减少动效', () => {
+  test('偏好减少动效时抽奖仍正常完成（彩带/星空降级不影响功能）', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await gotoFresh(page)
+    await drawOneRound(page)
+    await expect(page.locator('.lottery-win-banner')).toBeVisible()
+  })
+})
+
 test.describe('背景音乐', () => {
   test('点击音乐按钮切换播放状态，且不再请求已失效的外链', async ({ page }) => {
     const badRequests: string[] = []

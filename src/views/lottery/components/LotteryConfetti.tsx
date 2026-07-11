@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { bus } from '../core/event-bus'
 import { createBurst, stepParticles } from '../core/lottery-confetti'
 import type { ConfettiParticle } from '../core/lottery-confetti'
+import { prefersReducedMotion } from '../core/reduced-motion'
 
 // 中奖揭晓时的全屏彩带庆祝（canvas 自绘，与 LotteryStarfield 同模式）
 export default function LotteryConfetti() {
@@ -45,6 +46,7 @@ export default function LotteryConfetti() {
     }
 
     const onReveal = () => {
+      if (prefersReducedMotion()) return // 尊重减少动效：不放全屏彩带
       // 粒子数量随屏宽适配，避免小屏过密
       const count = Math.min(180, Math.max(80, Math.round(window.innerWidth / 10)))
       particles.push(...createBurst(canvas.width, canvas.height, count))
