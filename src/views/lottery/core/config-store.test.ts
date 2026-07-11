@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { parseRosterText, parseRosterEntries, normalizeRoster, parseConfigJson, configHash } from './config-store'
+import { parseRosterText, parseRosterEntries, normalizeRoster, parseConfigJson, configHash, escapeCsvCell, buildWinnersCsv } from './config-store'
 import type { UserLotteryConfig } from './config-store'
+import type { Card, Prize } from './lottery-types'
 
 const validConfig: UserLotteryConfig = {
   version: 1,
@@ -111,6 +112,47 @@ describe('parseConfigJson', () => {
       prizes: [{ name: '一等奖', count: 2, everyTimeGet: 1, img: 123 }],
     }
     expect(parseConfigJson(JSON.stringify(badImg))).toBeNull()
+  })
+})
+
+describe('escapeCsvCell', () => {
+  it('普通值原样返回', () => {
+    expect(escapeCsvCell('张三')).toBe('张三')
+  })
+
+  it('= + - @ 开头的值前置单引号，阻断电子表格公式注入', () => {
+    expect(escapeCsvCell('=1+1')).toBe("'=1+1")
+    expect(escapeCsvCell('+8613800138000')).toBe("'+8613800138000")
+    expect(escapeCsvCell('-1')).toBe("'-1")
+    expect(escapeCsvCell('@somebody')).toBe("'@somebody")
+  })
+
+  it('含逗号/引号/换行时用双引号包裹并翻倍内部引号', () => {
+    expect(escapeCsvCell('张三,组长')).toBe('"张三,组长"')
+    expect(escapeCsvCell('a"b')).toBe('"a""b"')
+    expect(escapeCsvCell('多\n行')).toBe('"多\n行"')
+  })
+
+  it('公式注入与分隔符同时存在时两种防护叠加', () => {
+    expect(escapeCsvCell('=cmd(),x')).toBe('"\'=cmd(),x"')
+  })
+})
+
+describe('buildWinnersCsv', () => {
+  const makeCard = (name: string): Card => ({ name, id: name, avatar: '', index: 0, row: 1, col: 1 })
+  const makePrize = (name: string, winners: string[]): Prize => ({
+    count: winners.length, countRemain: 0, everyTimeGet: 1, name, id: name, round: 1,
+    cardListWin: winners.map(makeCard),
+  })
+
+  it('输出带 BOM 的表头 + 每个中奖人一行', () => {
+    const csv = buildWinnersCsv([makePrize('一等奖', ['张三', '李四'])])
+    expect(csv).toBe('﻿奖项,姓名\n一等奖,张三\n一等奖,李四')
+  })
+
+  it('对奖项名与姓名逐格转义，防注入与撑格', () => {
+    const csv = buildWinnersCsv([makePrize('=坑', ['张三,组长'])])
+    expect(csv).toBe('﻿奖项,姓名\n\'=坑,"张三,组长"')
   })
 })
 

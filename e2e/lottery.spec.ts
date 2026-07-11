@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { gotoFresh, drawOneRound, closeBanner } from './helpers'
 
@@ -162,6 +163,44 @@ test.describe('双屏控制', () => {
     // 关闭控制窗 → 展示窗恢复操作 UI
     await control.close()
     await expect(page.locator('.lottery-wrap')).not.toHaveClass(/control-active/, { timeout: 12000 })
+  })
+})
+
+test.describe('中奖名单 CSV 导出', () => {
+  test('导出内容带 BOM，且对含公式前缀/逗号的名字做转义', async ({ page }) => {
+    // 名字同时含公式前缀(=)与逗号，确保导出走到转义分支；
+    // 每轮抽满全部 3 人，保证这个名字必进中奖名单（不受随机影响）
+    const evilName = '=坑,组长'
+    await page.goto('/')
+    await page.evaluate((name) => {
+      localStorage.removeItem('___lottery___')
+      localStorage.setItem('___lottery_countdown___', 'off')
+      localStorage.setItem('___lottery_config___', JSON.stringify({
+        version: 1,
+        headerTitle: '测试抽奖',
+        prizes: [{ name: '一等奖', count: 3, everyTimeGet: 3 }],
+        roster: [name, '张三', '李四'],
+      }))
+    }, evilName)
+    await page.reload()
+    await page.waitForTimeout(3500)
+
+    // 抽一轮，3 人全中
+    await drawOneRound(page)
+    await closeBanner(page)
+
+    // 配置面板导出 CSV，捕获下载文件
+    await page.locator('.config-btn').click()
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('button:has-text("导出中奖名单 CSV")').click(),
+    ])
+    const content = readFileSync(await download.path(), 'utf-8')
+
+    // 带 BOM、表头正确；名字被双引号包裹、= 前缀被单引号中和，Excel 打开不会当公式执行
+    expect(content.startsWith('﻿')).toBe(true)
+    expect(content).toContain('奖项,姓名')
+    expect(content).toContain('一等奖,"\'=坑,组长"')
   })
 })
 

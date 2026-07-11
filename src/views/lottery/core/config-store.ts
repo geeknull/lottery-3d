@@ -144,13 +144,25 @@ export function exportConfigFile(cfg: UserLotteryConfig): void {
   downloadFile('抽奖配置.json', JSON.stringify(cfg, null, 2), 'application/json');
 }
 
-export function exportWinnersCsv(prizeList: Prize[]): void {
+// CSV 单元格转义：
+// 1) = + - @ 开头会被 Excel/WPS 当公式执行（CSV 注入 CWE-1236），前置单引号中和；
+// 2) 含逗号/引号/换行时按 RFC 4180 用双引号包裹、内部引号翻倍，避免撑破列。
+export function escapeCsvCell(value: string): string {
+  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
+}
+
+// 中奖名单 CSV 文本（纯函数，便于测试）；带 BOM，Excel 打开中文不乱码
+export function buildWinnersCsv(prizeList: Prize[]): string {
   const rows: string[] = ['奖项,姓名'];
   prizeList.forEach(prize => {
     prize.cardListWin.forEach(card => {
-      rows.push(`${prize.name},${card.name}`);
+      rows.push(`${escapeCsvCell(prize.name)},${escapeCsvCell(card.name)}`);
     });
   });
-  // 带 BOM，Excel 打开中文不乱码
-  downloadFile('中奖名单.csv', '﻿' + rows.join('\n'), 'text/csv;charset=utf-8');
+  return '﻿' + rows.join('\n');
+}
+
+export function exportWinnersCsv(prizeList: Prize[]): void {
+  downloadFile('中奖名单.csv', buildWinnersCsv(prizeList), 'text/csv;charset=utf-8');
 }
