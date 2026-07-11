@@ -8,57 +8,47 @@ interface Star {
   z: number;
 }
 
-function init() {
-  initElement()
-  initStarfield()
-}
+// 创建星空画布并启动动画，返回清理函数（停止 rAF + 移除画布）。
+// 供 useEffect 卸载 / StrictMode 双调用时干净拆除，避免多个画布与 rAF 循环叠加泄漏。
+function startStarfield(): () => void {
+  const canvasBox = document.createElement('div')
+  canvasBox.style.position = 'fixed'
+  canvasBox.style.top = '0'
+  canvasBox.style.left = '0'
+  canvasBox.style.zIndex = '-1'
+  const canvas = document.createElement('canvas')
+  canvasBox.appendChild(canvas)
+  document.body.appendChild(canvasBox)
 
-function initStarfield() {
-  const canvas = document.getElementById('canvas') as HTMLCanvasElement
   const c = canvas.getContext('2d')!
-
   const numStars = 1000
   const radius = 1
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
   const focalLength = canvas.width
-
-  let centerX: number, centerY: number
-
-  let stars: Star[] = [], star: Star
-  let i: number
-
-  initializeStars()
-
-  function executeFrame() {
-    // 尊重减少动效：只画一帧静态星空，不做连续「穿越」动画
-    if (prefersReducedMotion()) {
-      drawStars()
-      return
-    }
-    requestAnimationFrame(executeFrame)
-    moveStars()
-    drawStars()
-  }
+  let centerX = canvas.width / 2
+  let centerY = canvas.height / 2
+  let stars: Star[] = []
+  let rafId = 0
+  let stopped = false
 
   function initializeStars() {
     centerX = canvas.width / 2
     centerY = canvas.height / 2
-
     stars = []
-    for (i = 0; i < numStars; i++) {
-      star = {
+    for (let i = 0; i < numStars; i++) {
+      stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        z: Math.random() * canvas.width
-      }
-      stars.push(star)
+        z: Math.random() * canvas.width,
+      })
     }
   }
 
   function moveStars() {
-    for (i = 0; i < numStars; i++) {
-      star = stars[i]
+    for (let i = 0; i < numStars; i++) {
+      const star = stars[i]
       star.z--
-
       if (star.z <= 0) {
         star.z = canvas.width
       }
@@ -66,10 +56,8 @@ function initStarfield() {
   }
 
   function drawStars() {
-    let pixelX: number, pixelY: number, pixelRadius: number
-
     // Resize to the screen
-    if (canvas.width != window.innerWidth || canvas.height != window.innerHeight) {
+    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
       initializeStars()
@@ -78,41 +66,42 @@ function initStarfield() {
     c.fillStyle = 'rgba(0,10,20,1)'
     c.fillRect(0, 0, canvas.width, canvas.height)
     c.fillStyle = 'rgba(209, 255, 255, ' + radius + ')'
-    for (i = 0; i < numStars; i++) {
-      star = stars[i]
-
-      pixelX = (star.x - centerX) * (focalLength / star.z)
-      pixelX += centerX
-      pixelY = (star.y - centerY) * (focalLength / star.z)
-      pixelY += centerY
-      pixelRadius = radius * (focalLength / star.z)
-
+    for (let i = 0; i < numStars; i++) {
+      const star = stars[i]
+      const pixelX = (star.x - centerX) * (focalLength / star.z) + centerX
+      const pixelY = (star.y - centerY) * (focalLength / star.z) + centerY
+      const pixelRadius = radius * (focalLength / star.z)
       c.beginPath()
       c.arc(pixelX, pixelY, pixelRadius, 0, 2 * Math.PI)
       c.fill()
     }
   }
 
-  // Draw the first frame to start animation
-  executeFrame()
-}
+  function executeFrame() {
+    if (stopped) {
+      return
+    }
+    // 尊重减少动效：只画一帧静态星空，不做连续「穿越」动画
+    if (prefersReducedMotion()) {
+      drawStars()
+      return
+    }
+    rafId = requestAnimationFrame(executeFrame)
+    moveStars()
+    drawStars()
+  }
 
-function initElement() {
-  const canvasBox = document.createElement('div')
-  canvasBox.style.position = 'fixed'
-  canvasBox.style.top = '0'
-  canvasBox.style.left = '0'
-  canvasBox.style.zIndex = '-1'
-  const canvas = document.createElement('canvas')
-  canvas.id = 'canvas'
-  canvasBox.appendChild(canvas)
-  document.body.appendChild(canvasBox)
+  initializeStars()
+  executeFrame()
+
+  return () => {
+    stopped = true
+    cancelAnimationFrame(rafId)
+    canvasBox.remove()
+  }
 }
 
 export default function LotteryStarfield() {
-  useEffect(() => {
-    init()
-  }, [])
-
+  useEffect(() => startStarfield(), [])
   return <div className="empty"></div>
 }

@@ -4,8 +4,17 @@ import { controls, render, objects, targets } from "./3d-core";
 import { setTableDist, setSphereDist } from './3d-calc-distance';
 import { tweenGroup } from './tween-group';
 
+let animating = false;
+
+// 幂等入口：StrictMode 双调用只启动一个 rAF 循环
 function animate() {
-  requestAnimationFrame( animate );
+  if ( animating ) return;
+  animating = true;
+  loop();
+}
+
+function loop() {
+  requestAnimationFrame( loop );
   tweenGroup.update();
   controls.update();
 }

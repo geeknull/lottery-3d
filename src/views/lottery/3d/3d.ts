@@ -26,7 +26,12 @@ function onWindowResize() {
   render();
 }
 
+let initialized = false;
+
 function init() {
+  if (initialized) return; // 幂等：StrictMode 开发态双调用 effect 时不重复建场景
+  initialized = true;
+
   initCamera(); // 相机
   initScene(); // 场景
 

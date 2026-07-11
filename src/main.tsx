@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { initTheme } from './views/lottery/core/lottery-theme'
@@ -16,6 +17,10 @@ void initPwaUpdate()
 // 避免组件首帧渲染到无效的 idb: src。无图用户立即返回，无感知。
 await hydrateLotteryImages()
 
-// 不开 StrictMode：3D 核心是模块级单例（scene/objects 都是模块状态），
-// StrictMode 开发态双调用 effect 会初始化两套 3D 场景
-createRoot(document.getElementById('app')!).render(<App />)
+// 3D 核心 init()/animate() 已做幂等守卫、星空/各组件 effect 都能干净卸载，
+// 可安全开启 StrictMode（开发态双调用 effect 帮助暴露副作用/清理缺陷）
+createRoot(document.getElementById('app')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
