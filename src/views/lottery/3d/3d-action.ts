@@ -1,6 +1,6 @@
 import { Tween, Easing } from '@tweenjs/tween.js';
 import type { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
-import { cardSize, objects, scene, render } from './3d-core';
+import { cardSize, objects, scene, camera, controls, render } from './3d-core';
 import { setCardDist } from './3d-calc-distance';
 import { tweenGroup } from './tween-group';
 
@@ -73,20 +73,29 @@ function cardFlyAnimation(cardIndexList: number[]) {
   });
 }
 
-// 旋转3D场景
+// 旋转3D球：相机绕 Y 轴公转，而非旋转 scene/卡片对象。
+// CSS3DRenderer 把相机变换作用在单个父容器元素上，每张卡片的 matrix3d 只依赖它
+// 自身的世界矩阵；相机公转时卡片世界矩阵不变 → 渲染器命中缓存、跳过全部卡片的
+// DOM transform 写入，每帧只改 1 个元素。相比旋转 scene.rotation 每帧重写 N 个
+// 卡片 transform，大名单旋转帧率大幅提升（瓶颈是合成层/DOM 写入随卡片数线性增长）。
 function rotateBall() {
   const circleCount = 10000; // 1万圈
   const durationTime = 1000 * circleCount / 4;
   return new Promise<void>((resolve) => {
-    scene.rotation.y = 0;
-    new Tween(scene.rotation, tweenGroup)
-      .to(
-        {
-          y: Math.PI * circleCount,
-        },
-        durationTime
-      )
-      .onUpdate(render)
+    // 保持当前相机的半径与高度（用户可能已缩放/拖拽），只让它绕中心公转
+    const radius = Math.hypot(camera.position.x, camera.position.z) || camera.position.z;
+    const startAngle = Math.atan2(camera.position.x, camera.position.z);
+    const height = camera.position.y;
+    controls.enabled = false; // 公转期间不让 TrackballControls 抢相机
+    const spin = { a: 0 };
+    new Tween(spin, tweenGroup)
+      .to({ a: Math.PI * 2 * circleCount }, durationTime)
+      .onUpdate(() => {
+        const angle = startAngle + spin.a;
+        camera.position.set(radius * Math.sin(angle), height, radius * Math.cos(angle));
+        camera.lookAt(scene.position); // 始终看向球心
+        render();
+      })
       .easing(Easing.Linear.None)
       .start()
       .onComplete(() => {
@@ -95,13 +104,14 @@ function rotateBall() {
   });
 }
 
-// 停止旋转
+// 停止旋转：相机复位到正前方看向中心，让中奖卡片朝观众飞出
 function rotateBallStop() {
   tweenGroup.removeAll();
   setTimeout(() => {
-    scene.rotation.x = 0;
-    scene.rotation.y = 0;
-    scene.rotation.z = 0;
+    const radius = Math.hypot(camera.position.x, camera.position.z) || camera.position.z || 3000;
+    camera.position.set(0, camera.position.y, radius);
+    camera.lookAt(scene.position);
+    controls.enabled = true; // 恢复用户可拖拽/缩放
     render();
   }, 0);
 }
