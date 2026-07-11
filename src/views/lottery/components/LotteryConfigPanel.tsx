@@ -111,7 +111,10 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     }
     // 奖品图的 dataURL 移入 IndexedDB，配置只存 idb: 引用（避免撑爆 localStorage）
     const persisted = await persistConfigImages(cfg)
-    saveUserConfig(persisted)
+    if (!saveUserConfig(persisted)) {
+      toast('配置保存失败：本地存储空间可能已满（名单头像/奖品图过大），请精简后重试', 8000)
+      return
+    }
     // 清理换图后不再引用的旧图片
     await gcImages(persisted.prizes.map(p => p.img).filter(isImageRef))
     location.reload()

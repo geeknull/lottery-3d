@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRosterText, parseRosterEntries, normalizeRoster, parseConfigJson, configHash, escapeCsvCell, buildWinnersCsv } from './config-store'
+import { parseRosterText, parseRosterEntries, normalizeRoster, parseConfigJson, configHash, escapeCsvCell, buildWinnersCsv, saveUserConfig } from './config-store'
 import type { UserLotteryConfig } from './config-store'
 import type { Card, Prize } from './lottery-types'
 
@@ -112,6 +112,22 @@ describe('parseConfigJson', () => {
       prizes: [{ name: '一等奖', count: 2, everyTimeGet: 1, img: 123 }],
     }
     expect(parseConfigJson(JSON.stringify(badImg))).toBeNull()
+  })
+})
+
+describe('saveUserConfig', () => {
+  it('写入成功返回 true', () => {
+    expect(saveUserConfig(validConfig)).toBe(true)
+  })
+
+  it('localStorage 写入抛错（配额超限/隐私模式）时返回 false 而非抛出', () => {
+    const orig = Storage.prototype.setItem
+    Storage.prototype.setItem = () => { throw new DOMException('exceeded', 'QuotaExceededError') }
+    try {
+      expect(saveUserConfig(validConfig)).toBe(false)
+    } finally {
+      Storage.prototype.setItem = orig
+    }
   })
 })
 

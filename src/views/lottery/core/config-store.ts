@@ -71,8 +71,15 @@ export function loadUserConfig(): UserLotteryConfig | null {
   return parseConfigJson(raw);
 }
 
-export function saveUserConfig(cfg: UserLotteryConfig): void {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+// 返回 false 表示写入失败（多为 localStorage 配额超限或隐私模式禁用），
+// 由调用方提示用户，避免配置被静默丢弃。
+export function saveUserConfig(cfg: UserLotteryConfig): boolean {
+  try {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function clearUserConfig(): void {

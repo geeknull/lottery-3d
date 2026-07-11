@@ -204,6 +204,30 @@ test.describe('中奖名单 CSV 导出', () => {
   })
 })
 
+test.describe('配置保存容错', () => {
+  test('localStorage 写入失败时提示且不静默丢配置', async ({ page }) => {
+    // 模拟配额超限：只让写配置键抛 QuotaExceededError，其余键正常
+    await page.addInitScript(() => {
+      const orig = Storage.prototype.setItem
+      Storage.prototype.setItem = function (k: string, v: string) {
+        if (k === '___lottery_config___') throw new DOMException('exceeded', 'QuotaExceededError')
+        return orig.call(this, k, v)
+      }
+    })
+    await gotoFresh(page)
+
+    await page.locator('.config-btn').click()
+    // 改标题 → 配置哈希变化，触发「保存会清空进度」确认
+    await page.locator('.title-input').fill('容错测试标题')
+    await page.locator('.panel-actions .primary').click()
+    await page.locator('.confirm-dialog .confirm-btns button.primary').click()
+
+    // 出现失败提示，且页面没有因「保存成功」而刷新（配置面板仍在）
+    await expect(page.locator('.toast-item:has-text("配置保存失败")')).toBeVisible()
+    await expect(page.locator('.lottery-config-panel')).toBeVisible()
+  })
+})
+
 test.describe('浏览器兼容性降级', () => {
   test('无 BroadcastChannel 时提示且不崩，核心抽奖仍可用', async ({ page }) => {
     // 模拟老浏览器（如 Safari < 15.4）：移除 BroadcastChannel
