@@ -32,5 +32,6 @@ export function buildCards(people: Person[]): { cardList: Card[]; colCount: numb
   return { cardList, colCount, rowCount: Math.max(1, Math.ceil(people.length / colCount)) };
 }
 
-// 内置默认名单（未配置时使用），沿用原数据自带的像素头像
-export const defaultPeople: Person[] = lotteryConfigUsersRawJson.map(({ name, avatar }) => ({ name, avatar }));
+// 内置默认名单（未配置时使用）。只存名字，头像由 generateAvatar 现场生成，
+// 避免把 ~468KB base64 头像打进主包（原数据自带的像素头像已移除）。
+export const defaultPeople: Person[] = lotteryConfigUsersRawJson.map(name => ({ name }));
