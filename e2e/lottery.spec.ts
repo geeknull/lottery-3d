@@ -228,6 +228,38 @@ test.describe('配置保存容错', () => {
   })
 })
 
+test.describe('对话框键盘可达', () => {
+  test('Escape 关闭配置/公平/历史面板', async ({ page }) => {
+    await gotoFresh(page)
+
+    await page.locator('.config-btn').click()
+    await expect(page.locator('.lottery-config-panel')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.lottery-config-panel')).toHaveCount(0)
+
+    await page.locator('.fairness-btn').click()
+    await expect(page.locator('.lottery-fairness')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.lottery-fairness')).toHaveCount(0)
+
+    await page.locator('.history-btn').click()
+    await expect(page.locator('.lottery-history')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('.lottery-history')).toHaveCount(0)
+  })
+
+  test('确认框叠加时 Escape 不穿透关掉底层配置面板', async ({ page }) => {
+    await gotoFresh(page)
+    await page.locator('.config-btn').click()
+    await page.locator('.title-input').fill('改个标题触发确认')
+    await page.locator('.panel-actions .primary').click()
+    await expect(page.locator('.confirm-dialog')).toBeVisible()
+    await page.keyboard.press('Escape')
+    // Escape 被确认框守卫拦下：底层配置面板仍在
+    await expect(page.locator('.lottery-config-panel')).toBeVisible()
+  })
+})
+
 test.describe('背景音乐', () => {
   test('点击音乐按钮切换播放状态，且不再请求已失效的外链', async ({ page }) => {
     const badRequests: string[] = []

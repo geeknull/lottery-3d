@@ -4,6 +4,7 @@ import { useLotteryVersion } from '../core/lottery-store'
 import { ensureSeedCommit, verifyCurrent } from '../core/lottery-fairness'
 import type { VerifyResult } from '../core/lottery-fairness'
 import { toast } from './feedback'
+import { useOnEscape } from './useOnEscape'
 import './lottery-fairness.scss'
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 // 抽奖公平性面板：展示种子承诺/揭示，一键离线自验证
 export default function LotteryFairness({ onClose }: Props) {
   useLotteryVersion()
+  useOnEscape(onClose)
   const [result, setResult] = useState<VerifyResult | null>(null)
 
   // 打开即锁定承诺哈希（种子已在加载时确定，提前公布也无妨）

@@ -1,6 +1,7 @@
 import lotteryConfig from '../core/lottery-config'
 import { useLotteryVersion } from '../core/lottery-store'
 import { toHistoryRows, exportHistoryCsv } from '../core/lottery-history'
+import { useOnEscape } from './useOnEscape'
 import './lottery-history.scss'
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 // 抽奖历史时间线：按时间倒序展示抽奖/作废/撤销，可导出带时间戳的完整流水
 export default function LotteryHistory({ onClose }: Props) {
   useLotteryVersion()
+  useOnEscape(onClose)
   const rows = toHistoryRows(lotteryConfig.drawLog)
 
   return (

@@ -15,6 +15,7 @@ import { isImageRef, gcImages } from '../core/image-store'
 import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
 import { isCountdownEnabled, setCountdownEnabled } from '../core/lottery-countdown'
 import { hasCustomMusic, putMusic, clearMusic } from '../core/lottery-music-store'
+import { useOnEscape } from './useOnEscape'
 import './lottery-config-panel.scss'
 
 interface Props {
@@ -31,6 +32,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 export default function LotteryConfigPanel({ onClose }: Props) {
+  useOnEscape(onClose)
   // 初始值取当前生效的配置（用户配置或内置默认）
   const [title, setTitle] = useState(lotteryConfig.headerTitle)
   const [prizes, setPrizes] = useState<PrizeConfig[]>(() =>
