@@ -228,6 +228,23 @@ test.describe('配置保存容错', () => {
   })
 })
 
+test.describe('背景音乐', () => {
+  test('点击音乐按钮切换播放状态，且不再请求已失效的外链', async ({ page }) => {
+    const badRequests: string[] = []
+    page.on('request', r => { if (r.url().includes('music.163.com')) badRequests.push(r.url()) })
+    await gotoFresh(page)
+
+    const btn = page.locator('.music-box')
+    await expect(btn).toHaveAttribute('aria-pressed', 'false')
+    await btn.click()
+    await expect(btn).toHaveAttribute('aria-pressed', 'true') // 无自定义音乐时启动内置合成音
+    await btn.click()
+    await expect(btn).toHaveAttribute('aria-pressed', 'false')
+
+    expect(badRequests, '不应再请求已失效的网易云外链').toHaveLength(0)
+  })
+})
+
 test.describe('浏览器兼容性降级', () => {
   test('无 BroadcastChannel 时提示且不崩，核心抽奖仍可用', async ({ page }) => {
     // 模拟老浏览器（如 Safari < 15.4）：移除 BroadcastChannel

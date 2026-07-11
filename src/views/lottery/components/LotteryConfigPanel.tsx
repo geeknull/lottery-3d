@@ -14,10 +14,20 @@ import { persistConfigImages, inlineConfigImages } from '../core/config-images'
 import { isImageRef, gcImages } from '../core/image-store'
 import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
 import { isCountdownEnabled, setCountdownEnabled } from '../core/lottery-countdown'
+import { hasCustomMusic, putMusic, clearMusic } from '../core/lottery-music-store'
 import './lottery-config-panel.scss'
 
 interface Props {
   onClose: () => void
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
 }
 
 export default function LotteryConfigPanel({ onClose }: Props) {
@@ -36,8 +46,10 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
   const [soundOn, setSoundOn] = useState(isSoundEnabled)
   const [countdownOn, setCountdownOn] = useState(isCountdownEnabled)
+  const [customMusic, setCustomMusic] = useState(hasCustomMusic)
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
+  const musicFileRef = useRef<HTMLInputElement>(null)
 
   const rosterNames = parseRosterText(rosterText)
   const dupCount = rosterNames.length - new Set(rosterNames).size
@@ -136,6 +148,25 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     exportConfigFile(inline ? await inlineConfigImages(persisted) : persisted)
   }
 
+  async function handleMusicFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      await putMusic(await readFileAsDataUrl(file))
+      setCustomMusic(true)
+      toast('背景音乐已更新，点右上角音乐按钮播放')
+    } catch {
+      toast('音乐保存失败：文件可能过大或本地存储已满')
+    }
+  }
+
+  async function handleClearMusic() {
+    await clearMusic()
+    setCustomMusic(false)
+    toast('已恢复内置合成音乐')
+  }
+
   async function handleRosterFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -222,6 +253,20 @@ export default function LotteryConfigPanel({ onClose }: Props) {
           />
           <span>倒计时{countdownOn ? '已开启' : '已关闭'}</span>
         </label>
+      </section>
+
+      <section>
+        <h3>背景音乐</h3>
+        <p className="field-hint">
+          默认是内置合成的轻音乐（无需音频文件、可离线）。可上传自己的音频替换；点右上角 ♫ 按钮播放/暂停。
+        </p>
+        <div>
+          <button onClick={() => musicFileRef.current?.click()}>上传背景音乐</button>
+          <input ref={musicFileRef} type="file" accept="audio/*" hidden onChange={handleMusicFile} />
+          {customMusic
+            ? <button onClick={handleClearMusic}>恢复内置合成音乐</button>
+            : <span className="field-hint" style={{ marginLeft: '8px' }}>当前：内置合成音乐</span>}
+        </div>
       </section>
 
       <section>

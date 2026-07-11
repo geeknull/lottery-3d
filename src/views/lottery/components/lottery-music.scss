@@ -1,20 +1,32 @@
-// 容器缩成 0：仅承载隐藏的 audio，按钮自身用 .hud-btn 定位脱离此容器
+// 容器缩成 0：按钮自身用 .hud-btn 定位脱离此容器
 .lottery-music {
   position: fixed;
   width: 0;
   height: 0;
-  overflow: hidden;
   user-select: none;
-}
-
-.music-item {
-  display: block !important;
-  opacity: 0;
 }
 
 // 视觉由 .hud-btn 统一提供，这里只负责定位（最右）
 .music-box {
   right: 12px;
+
+  // 播放时唱片转起来（CSS 动画替代原 JS rAF）
+  &.playing svg {
+    animation: music-spin 3s linear infinite;
+  }
+}
+
+@keyframes music-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 尊重「减少动效」：晕动症用户不转
+@media (prefers-reduced-motion: reduce) {
+  .music-box.playing svg {
+    animation: none;
+  }
 }
 // 窄屏收紧（与 lottery.scss 的 HUD 窄屏间距一致）
 @media (max-width: 480px) {
