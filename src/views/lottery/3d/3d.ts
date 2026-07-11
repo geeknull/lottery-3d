@@ -16,7 +16,10 @@ export { transform, transformStatus, animate };
 
 import { create3DCard } from './3d-card-element';
 import { targetsCoord } from './3d-card-coord';
+import { setSceneData } from './3d-scene-data';
+import type { SceneData } from './3d-scene-data';
 export { rotateBall, rotateBallStop } from './3d-action';
+export type { SceneData } from './3d-scene-data';
 
 // 窗口尺寸变化时同步相机宽高比与渲染器尺寸
 function onWindowResize() {
@@ -28,10 +31,11 @@ function onWindowResize() {
 
 let initialized = false;
 
-function init() {
+function init(sceneData: SceneData) {
   if (initialized) return; // 幂等：StrictMode 开发态双调用 effect 时不重复建场景
   initialized = true;
 
+  setSceneData(sceneData); // core 注入名单/行列数，3D 层据此建卡与算位（不再反向 import lottery-config）
   initCamera(); // 相机
   initScene(); // 场景
 

@@ -1,9 +1,7 @@
-import lotteryConfig from '../core/lottery-config';
 import { scene, objects } from './3d-core';
+import { getSceneData } from './3d-scene-data';
 import { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import type { Card } from '../core/lottery-types';
-
-const { cardList } = lotteryConfig;
 
 // 构建单张卡片的 DOM（纯 DOM，不碰 three.js，便于单测）。
 // 名字与 id 都来自用户名单，必须用 textContent，绝不能用 innerHTML——
@@ -35,9 +33,9 @@ export function createCardElement(card: Card, isPrize: boolean): HTMLDivElement 
   return element;
 }
 
-const create3DCard = function(_objects = objects) {
+const create3DCard = function() {
+  const { cardList, cardListWinAll } = getSceneData();
   // 中奖的卡片要染色
-  const cardListWinAll = lotteryConfig.cardListWinAll;
   const cardListWinAllIds = cardListWinAll.map(_ => _.id);
 
   for (let i = 0; i < cardList.length; i++) {

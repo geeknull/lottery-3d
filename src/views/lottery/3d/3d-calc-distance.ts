@@ -2,9 +2,7 @@ import { MathUtils } from 'three';
 import { Tween, Easing } from '@tweenjs/tween.js';
 import { camera, cardSize } from './3d-core';
 import { tweenGroup } from './tween-group';
-import lotteryConfig from '../core/lottery-config';
-
-const { colCount, rowCount } = lotteryConfig;
+import { getSceneData } from './3d-scene-data';
 
 export const checkFixDirection = (canvasAspect: number, objectAspect: number) => {
   // canvasAspect = canvasWidth / canvasHeight
@@ -69,6 +67,7 @@ export const setCameraZ = async (width: number, height: number, multiple = 1.05,
 }
 
 export const setTableDist = async (multiple = 1.05, duration = 0) => {
+  const { colCount, rowCount } = getSceneData();
   const objectsWidth = (cardSize.width + cardSize.padding) * colCount;
   const objectsHeight = (cardSize.height + cardSize.padding) * rowCount;
   return await setCameraZ(objectsWidth, objectsHeight, multiple, duration);
