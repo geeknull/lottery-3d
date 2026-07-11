@@ -210,7 +210,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
 
   return (
     <div className="lottery-config-panel">
-      <span className="close-btn" onClick={onClose}>✖</span>
+      <button type="button" className="close-btn" aria-label="关闭" onClick={onClose}>✖</button>
       <h2 className="panel-title">抽奖配置</h2>
 
       <section>

@@ -14,7 +14,7 @@ export default function LotteryHistory({ onClose }: Props) {
 
   return (
     <div className="lottery-history">
-      <span className="close-btn" onClick={onClose}>✖</span>
+      <button type="button" className="close-btn" aria-label="关闭" onClick={onClose}>✖</button>
       <h2 className="panel-title">🕑 抽奖历史</h2>
 
       {rows.length === 0 ? (

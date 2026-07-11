@@ -27,3 +27,9 @@ button {
 button:disabled {
   cursor: not-allowed;
 }
+// 这些原是 span，语义化成 <button> 后去掉原生外框（尺寸/位置/颜色仍由各组件定义）
+.close-btn, .update-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+}

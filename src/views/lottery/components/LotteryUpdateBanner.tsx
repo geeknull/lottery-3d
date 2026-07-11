@@ -71,7 +71,7 @@ export default function LotteryUpdateBanner() {
         <span className="update-icon" aria-hidden="true">{variant.icon}</span>
         <span className="update-text">{variant.text}</span>
         <button className="update-apply" onClick={applyUpdate}>{variant.apply}</button>
-        <span className="update-dismiss" title="稍后再说" onClick={() => setDismissed(true)}>{variant.dismiss}</span>
+        <button type="button" className="update-dismiss" title="稍后再说" onClick={() => setDismissed(true)}>{variant.dismiss}</button>
       </div>
       <button className="update-detail-toggle" onClick={toggleDetail}>
         看看更新了什么 {expanded ? '▴' : '▾'}

@@ -142,7 +142,7 @@ export default function LotteryAction() {
       </div>
       {showAllWinUserPanel && (
         <div className="show-all-win-user">
-          <span className="close-btn" onClick={() => { setShowAllWinUserPanel(false); setVoidTarget(null); setWinSearch('') }}>✖</span>
+          <button type="button" className="close-btn" aria-label="关闭" onClick={() => { setShowAllWinUserPanel(false); setVoidTarget(null); setWinSearch('') }}>✖</button>
           <div className="win-panel-tools">
             <input
               className="win-search"

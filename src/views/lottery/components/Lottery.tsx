@@ -56,44 +56,44 @@ export default function Lottery() {
           ✕ 退出双屏控制
         </button>
       )}
-      <div className="hud-btn fullscreen-btn" data-label="全屏" title="全屏（快捷键 F）" onClick={toggleFullscreen}>
+      <button type="button" className="hud-btn fullscreen-btn" data-label="全屏" title="全屏（快捷键 F）" aria-label="全屏" onClick={toggleFullscreen}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M8 3H5a2 2 0 0 0-2 2v3" />
           <path d="M16 3h3a2 2 0 0 1 2 2v3" />
           <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
           <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
         </svg>
-      </div>
-      <div className="hud-btn history-btn" data-label="历史" title="抽奖历史" onClick={() => setShowHistory(true)}>
+      </button>
+      <button type="button" className="hud-btn history-btn" data-label="历史" title="抽奖历史" aria-label="抽奖历史" onClick={() => setShowHistory(true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3 2" />
         </svg>
-      </div>
-      <div className={'hud-btn dual-screen-btn' + (dualSupported ? '' : ' hud-disabled')} data-label={dualSupported ? '双屏控制' : '双屏不可用'} title={dualSupported ? '打开控制窗（双屏遥控）' : '当前浏览器不支持双屏（需 Safari 15.4+）'} onClick={handleOpenControl}>
+      </button>
+      <button type="button" className={'hud-btn dual-screen-btn' + (dualSupported ? '' : ' hud-disabled')} data-label={dualSupported ? '双屏控制' : '双屏不可用'} title={dualSupported ? '打开控制窗（双屏遥控）' : '当前浏览器不支持双屏（需 Safari 15.4+）'} aria-label={dualSupported ? '打开控制窗（双屏遥控）' : '双屏不可用'} onClick={handleOpenControl}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="3" y="5" width="12" height="9" rx="1.5" />
           <path d="M7 18h5M9.5 14v3" />
           <rect x="13.5" y="10" width="7.5" height="9" rx="1.5" />
         </svg>
-      </div>
+      </button>
       <a className="hud-btn github-btn" data-label="GitHub 源码" title="在 GitHub 查看源码" href="https://github.com/geeknull/lottery-3d" target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 .5C5.37.5 0 5.78 0 12.29c0 5.2 3.44 9.6 8.21 11.16.6.11.82-.25.82-.56 0-.27-.01-1.16-.02-2.1-3.34.71-4.04-1.41-4.04-1.41-.55-1.37-1.34-1.74-1.34-1.74-1.09-.73.08-.71.08-.71 1.2.08 1.84 1.21 1.84 1.21 1.07 1.79 2.81 1.27 3.5.97.11-.76.42-1.27.76-1.56-2.67-.3-5.47-1.31-5.47-5.83 0-1.29.47-2.34 1.24-3.17-.12-.3-.54-1.52.12-3.16 0 0 1.01-.32 3.3 1.21a11.6 11.6 0 0 1 3-.4c1.02 0 2.05.13 3 .4 2.29-1.53 3.3-1.21 3.3-1.21.66 1.64.24 2.86.12 3.16.77.83 1.24 1.88 1.24 3.17 0 4.53-2.81 5.54-5.49 5.83.43.37.81 1.1.81 2.22 0 1.6-.01 2.9-.01 3.29 0 .32.21.69.83.57C20.56 21.88 24 17.48 24 12.29 24 5.78 18.63.5 12 .5z" />
         </svg>
       </a>
-      <div className="hud-btn fairness-btn" data-label="公平性" title="抽奖公平性（可验证）" onClick={() => setShowFairness(true)}>
+      <button type="button" className="hud-btn fairness-btn" data-label="公平性" title="抽奖公平性（可验证）" aria-label="抽奖公平性（可验证）" onClick={() => setShowFairness(true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           <path d="M9 12l2 2 4-4" />
         </svg>
-      </div>
-      <div className="hud-btn config-btn" data-label="配置" title="抽奖配置" onClick={() => setShowConfig(true)}>
+      </button>
+      <button type="button" className="hud-btn config-btn" data-label="配置" title="抽奖配置" aria-label="抽奖配置" onClick={() => setShowConfig(true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
-      </div>
+      </button>
       {showConfig && <LotteryConfigPanel onClose={() => setShowConfig(false)} />}
       {showFairness && <LotteryFairness onClose={() => setShowFairness(false)} />}
       {showHistory && <LotteryHistory onClose={() => setShowHistory(false)} />}

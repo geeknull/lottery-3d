@@ -45,7 +45,7 @@ export default function LotteryFairness({ onClose }: Props) {
 
   return (
     <div className="lottery-fairness">
-      <span className="close-btn" onClick={onClose}>✖</span>
+      <button type="button" className="close-btn" aria-label="关闭" onClick={onClose}>✖</button>
       <h2 className="panel-title">🛡 抽奖公平性</h2>
 
       <p className="fairness-intro">
