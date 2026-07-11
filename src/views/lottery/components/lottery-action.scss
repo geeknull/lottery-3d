@@ -17,10 +17,6 @@
   align-items: center;
   gap: 12px;
 }
-.hidden-layout-btns {
-  display: none; // 调试用布局切换按钮，仅保留 DOM
-}
-
 // 主操作：开始抽奖 ↔ 停！ 单按钮 toggle，全场视觉焦点
 .primary-cta {
   position: relative;

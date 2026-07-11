@@ -52,7 +52,6 @@ interface VoidTarget {
 }
 
 export default function LotteryAction() {
-  const showBtn = false
   const [showAllWinUserPanel, setShowAllWinUserPanel] = useState(false)
   const [voidTarget, setVoidTarget] = useState<VoidTarget | null>(null)
   const [winSearch, setWinSearch] = useState('')
@@ -91,17 +90,9 @@ export default function LotteryAction() {
     }
   }, [])
 
-  const btnDisplay = { display: showBtn ? undefined : 'none' }
-
   return (
     <div className="lottery-action">
       <div id="menu">
-        <div className="hidden-layout-btns">
-          <button id="table" style={btnDisplay}>TABLE</button>
-          <button id="sphere" style={btnDisplay}>SPHERE</button>
-          <button id="helix" style={btnDisplay}>HELIX</button>
-          <button id="grid" style={btnDisplay}>GRID</button>
-        </div>
         <button
           id="primaryCta"
           className={'primary-cta' + (spinning ? ' is-spinning' : '')}
