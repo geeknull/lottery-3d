@@ -19,6 +19,8 @@ export interface UserLotteryConfig {
   headerTitle: string;
   prizes: PrizeConfig[];
   roster: (string | RosterEntry)[]; // 抽奖名单（允许重名）
+  avatarStyle?: string;          // 生成头像风格 id，缺省 fun-emoji
+  avatarAutoDowngrade?: boolean; // 大名单自动降级为轻量头像
 }
 
 const CONFIG_KEY = '___lottery_config___';
@@ -43,6 +45,8 @@ function isValidConfig(data: unknown): data is UserLotteryConfig {
         typeof prize.everyTimeGet === 'number' && prize.everyTimeGet >= 1 &&
         (prize.img === undefined || typeof prize.img === 'string');
     }) &&
+    (cfg.avatarStyle === undefined || typeof cfg.avatarStyle === 'string') &&
+    (cfg.avatarAutoDowngrade === undefined || typeof cfg.avatarAutoDowngrade === 'boolean') &&
     Array.isArray(cfg.roster) &&
     cfg.roster.length > 0 &&
     cfg.roster.every((entry: unknown) => {

@@ -113,6 +113,18 @@ describe('parseConfigJson', () => {
     }
     expect(parseConfigJson(JSON.stringify(badImg))).toBeNull()
   })
+
+  it('接受可选的 avatarStyle / avatarAutoDowngrade', () => {
+    const cfg = { ...validConfig, avatarStyle: 'bottts', avatarAutoDowngrade: true }
+    const parsed = parseConfigJson(JSON.stringify(cfg))
+    expect(parsed?.avatarStyle).toBe('bottts')
+    expect(parsed?.avatarAutoDowngrade).toBe(true)
+  })
+
+  it('avatarStyle 非字符串 / avatarAutoDowngrade 非布尔则拒绝', () => {
+    expect(parseConfigJson(JSON.stringify({ ...validConfig, avatarStyle: 123 }))).toBeNull()
+    expect(parseConfigJson(JSON.stringify({ ...validConfig, avatarAutoDowngrade: 'yes' }))).toBeNull()
+  })
 })
 
 describe('saveUserConfig', () => {

@@ -3,6 +3,7 @@ import { loadUserConfig, configHash, normalizeRoster } from './config-store';
 import { randomSeed } from './lottery-rng';
 import { isSavedRestorable } from './config-restore';
 import { bus } from './event-bus';
+import { resolveStyle, DEFAULT_AVATAR_STYLE } from './avatar-styles';
 import type { PrizeConfig } from './config-store';
 import type { Card, Prize, DrawLogEntry } from './lottery-types';
 
@@ -40,7 +41,10 @@ const userConfig = loadUserConfig();
 const headerTitle = userConfig?.headerTitle ?? DEFAULT_HEADER_TITLE;
 const prizeConfigs = userConfig?.prizes ?? DEFAULT_PRIZES;
 const people = userConfig ? normalizeRoster(userConfig.roster) : defaultPeople;
-const { cardList, colCount, rowCount } = buildCards(people);
+const avatarStyle = userConfig?.avatarStyle ?? DEFAULT_AVATAR_STYLE;
+const autoDowngrade = userConfig?.avatarAutoDowngrade ?? false;
+const effectiveStyle = resolveStyle(avatarStyle, people.length, autoDowngrade);
+const { cardList, colCount, rowCount } = buildCards(people, effectiveStyle);
 
 // 重名奖项 id 加序号去重（与卡片同规则）
 const prizeNameCount = new Map<string, number>();
