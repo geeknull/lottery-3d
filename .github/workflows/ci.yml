@@ -23,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # 需完整历史算 push 范围与提交数
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -31,6 +33,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm test
+      # 按本次 push 的提交生成 release-notes.json，随 dist 部署（不 commit 回仓、不打 tag）
+      - run: node scripts/gen-release-notes.mjs
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
       # build 内含 tsc --noEmit，顺带类型检查；放在 E2E 前先拦类型/构建错误
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium

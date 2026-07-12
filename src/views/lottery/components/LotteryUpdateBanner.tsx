@@ -8,12 +8,10 @@ import './lottery-update-banner.scss'
 // 看场合提示——本场抽奖一旦开始（已抽出中奖人），更新会刷新页面、可能影响进度，
 // 此时改为警告措辞、劝主持人抽完再更新；空闲时则正常鼓励更新。始终由用户点击，不自动刷新。
 // 「看看更新了什么」可展开本次更新内容：拉 release-notes.json（不在 PWA 预缓存里，fetch 即最新版）。
-// 陈旧守卫：横幅出现 ⟹ SW 已发现比当前更新的构建。若线上 release-notes.json.version
-// 仍等于本构建内置的 __NOTES_VERSION__，说明文件自本构建以来没动过——也就是「发了新版却忘了
-// 更新说明」，此时旧内容会误导，改显示「本次更新暂无说明」。版本不同才是真·新说明，照常展示。
+// 该文件在部署时按本次 push 的提交自动生成，故永远是最新说明，notes 非空即展示。
 type Detail =
   | { kind: 'notes', items: string[] } // 本次发布的新说明
-  | { kind: 'none' } // 无说明（漏更新 / 说明为空）
+  | { kind: 'none' } // 无说明（notes 为空，罕见）
   | { kind: 'error' } // 拉取失败
 
 export default function LotteryUpdateBanner() {
@@ -42,8 +40,7 @@ export default function LotteryUpdateBanner() {
         return { kind: 'error' }
       }
       const data = await res.json()
-      const fresh = data?.version !== __NOTES_VERSION__ // 版本变了 = 本次发版确实更新了说明
-      const items = fresh && Array.isArray(data?.notes)
+      const items = Array.isArray(data?.notes)
         ? data.notes.filter((n: unknown): n is string => typeof n === 'string')
         : []
       return items.length > 0 ? { kind: 'notes', items } : { kind: 'none' }

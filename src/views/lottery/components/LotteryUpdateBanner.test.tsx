@@ -4,8 +4,6 @@ import LotteryUpdateBanner from './LotteryUpdateBanner'
 import { markNeedRefresh } from '../core/pwa-update'
 import lotteryConfig from '../core/lottery-config'
 
-// __NOTES_VERSION__ 由 vite.config 的 define 注入（= 当前构建内置的 release-notes 版本）
-
 afterEach(cleanup)
 
 beforeEach(() => {
@@ -29,25 +27,16 @@ function renderBannerWithUpdate() {
 }
 
 describe('LotteryUpdateBanner 更新详情', () => {
-  it('线上版本与构建内置版本不同 → 展示新版更新内容', async () => {
-    mockReleaseNotes({ version: '9999.99.99', notes: ['新功能一', '新功能二'] })
+  it('notes 非空 → 展示更新内容', async () => {
+    mockReleaseNotes({ notes: ['新功能一', '新功能二'] })
     renderBannerWithUpdate()
     fireEvent.click(screen.getByText(/看看更新了什么/))
     await waitFor(() => expect(screen.getByText('新功能一')).toBeTruthy())
     expect(screen.getByText('新功能二')).toBeTruthy()
   })
 
-  it('线上版本与构建内置版本相同（发版漏更新说明）→ 显示「本次更新暂无说明」而非旧内容', async () => {
-    // 版本号没动 = 说明文件自本次构建以来未更新，但 SW 已发现新版 → 旧内容会误导
-    mockReleaseNotes({ version: __NOTES_VERSION__, notes: ['上一版的旧内容'] })
-    renderBannerWithUpdate()
-    fireEvent.click(screen.getByText(/看看更新了什么/))
-    await waitFor(() => expect(screen.getByText('本次更新暂无说明')).toBeTruthy())
-    expect(screen.queryByText('上一版的旧内容')).toBeNull()
-  })
-
-  it('线上版本变了但 notes 为空 → 显示「本次更新暂无说明」', async () => {
-    mockReleaseNotes({ version: '9999.99.99', notes: [] })
+  it('notes 为空 → 显示「本次更新暂无说明」', async () => {
+    mockReleaseNotes({ notes: [] })
     renderBannerWithUpdate()
     fireEvent.click(screen.getByText(/看看更新了什么/))
     await waitFor(() => expect(screen.getByText('本次更新暂无说明')).toBeTruthy())
