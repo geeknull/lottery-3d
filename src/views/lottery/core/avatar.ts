@@ -7,7 +7,7 @@ const COLORS = [
   '#6b5b95', '#3b8a6d',
 ];
 
-function hashCode(str: string): number {
+export function hashCode(str: string): number {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0;

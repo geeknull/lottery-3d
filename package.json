@@ -19,6 +19,8 @@
     "lint:fix": "oxlint . --fix && eslint . --fix"
   },
   "dependencies": {
+    "@dicebear/collection": "^9.4.2",
+    "@dicebear/core": "^9.4.3",
     "@tweenjs/tween.js": "^25.0.0",
     "mitt": "^3.0.1",
     "react": "^19.2.7",
