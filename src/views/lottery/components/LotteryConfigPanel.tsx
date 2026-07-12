@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import {
   saveUserConfig, clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
@@ -15,6 +15,7 @@ import { isImageRef, gcImages } from '../core/image-store'
 import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
 import { isCountdownEnabled, setCountdownEnabled } from '../core/lottery-countdown'
 import { hasCustomMusic, putMusic, clearMusic } from '../core/lottery-music-store'
+import { AVATAR_STYLES, DEFAULT_AVATAR_STYLE, AVATAR_HEAVY_WARN, generateAvatarFor } from '../core/avatar-styles'
 import { useOnEscape } from './useOnEscape'
 import './lottery-config-panel.scss'
 
@@ -49,6 +50,8 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const [soundOn, setSoundOn] = useState(isSoundEnabled)
   const [countdownOn, setCountdownOn] = useState(isCountdownEnabled)
   const [customMusic, setCustomMusic] = useState(hasCustomMusic)
+  const [avatarStyle, setAvatarStyle] = useState(() => loadUserConfig()?.avatarStyle ?? DEFAULT_AVATAR_STYLE)
+  const [avatarAutoDowngrade, setAvatarAutoDowngrade] = useState(() => loadUserConfig()?.avatarAutoDowngrade ?? false)
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
   const musicFileRef = useRef<HTMLInputElement>(null)
@@ -56,6 +59,12 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const rosterNames = parseRosterText(rosterText)
   const dupCount = rosterNames.length - new Set(rosterNames).size
   const totalPrizeCount = prizes.reduce((sum, p) => sum + (p.count || 0), 0)
+  const sampleName = rosterNames[0] || '示'
+  const avatarPreviews = useMemo(
+    () => AVATAR_STYLES.map(s => ({ id: s.id, label: s.label, uri: generateAvatarFor(sampleName, s.id) })),
+    [sampleName],
+  )
+  const currentAvatarStyle = AVATAR_STYLES.find(s => s.id === avatarStyle)
 
   function updatePrize(index: number, patch: Partial<PrizeConfig>) {
     setPrizes(prev => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)))
@@ -106,6 +115,8 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       prizes: prizes.map(p => ({ name: p.name.trim(), count: p.count, everyTimeGet: p.everyTimeGet, ...(p.img ? { img: p.img } : {}) })),
       // 不带头像的条目存纯字符串，配置 JSON 更紧凑
       roster: parseRosterEntries(rosterText).map(entry => (entry.avatar ? entry : entry.name)),
+      avatarStyle,
+      ...(avatarAutoDowngrade ? { avatarAutoDowngrade: true } : {}),
     }
   }
 
@@ -193,6 +204,8 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     setTitle(cfg.headerTitle)
     setPrizes(cfg.prizes)
     setRosterText(rosterEntriesToText(cfg.roster))
+    setAvatarStyle(cfg.avatarStyle ?? DEFAULT_AVATAR_STYLE)
+    setAvatarAutoDowngrade(cfg.avatarAutoDowngrade ?? false)
     toast('配置已载入面板，请检查后点「保存并应用」生效')
   }
 
@@ -269,6 +282,40 @@ export default function LotteryConfigPanel({ onClose }: Props) {
             ? <button onClick={handleClearMusic}>恢复内置合成音乐</button>
             : <span className="field-hint" style={{ marginLeft: '8px' }}>当前：内置合成音乐</span>}
         </div>
+      </section>
+
+      <section>
+        <h3>头像风格</h3>
+        <p className="field-hint">没自带头像时的默认生成款。点选即换，保存后生效（不影响已抽进度）。</p>
+        <div className="avatar-styles">
+          {avatarPreviews.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              className={'avatar-style-option' + (avatarStyle === p.id ? ' selected' : '')}
+              aria-pressed={avatarStyle === p.id}
+              onClick={() => setAvatarStyle(p.id)}
+            >
+              <img src={p.uri} alt="" />
+              <span>{p.label}</span>
+            </button>
+          ))}
+        </div>
+        {currentAvatarStyle?.heavy && rosterNames.length > AVATAR_HEAVY_WARN && (
+          <p className="perf-warning">
+            {avatarAutoDowngrade
+              ? `当前 ${rosterNames.length} 人较多，抽奖时会自动改用轻量首字头像（这里仍显示你选的风格）。`
+              : `当前 ${rosterNames.length} 人用「${currentAvatarStyle.label}」头像可能卡顿，建议换轻量风格，或打开下方自动降级。`}
+          </p>
+        )}
+        <label className="sound-toggle">
+          <input
+            type="checkbox"
+            checked={avatarAutoDowngrade}
+            onChange={e => setAvatarAutoDowngrade(e.target.checked)}
+          />
+          <span>大名单自动用轻量头像</span>
+        </label>
       </section>
 
       <section>

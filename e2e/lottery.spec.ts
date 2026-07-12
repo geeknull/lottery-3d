@@ -286,6 +286,56 @@ test.describe('背景音乐', () => {
   })
 })
 
+test.describe('头像风格设置', () => {
+  test('选风格保存后持久化，不清空进度', async ({ page }) => {
+    await gotoFresh(page)
+    await drawOneRound(page)
+    await closeBanner(page)
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+
+    await page.locator('.config-btn').click()
+    await page.locator('.avatar-style-option:has-text("机器人")').click()
+    await page.locator('.panel-actions .primary').click() // 换风格不改 hash，无确认框
+    await page.waitForTimeout(3500)
+
+    // 进度仍在（换头像不清进度）
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    // 风格已持久化
+    await page.locator('.config-btn').click()
+    await expect(page.locator('.avatar-style-option:has-text("机器人")')).toHaveClass(/selected/)
+  })
+
+  test('大名单选重风格出软提示；开自动降级则实际用轻量', async ({ page }) => {
+    const bigRoster = Array.from({ length: 600 }, (_, i) => '选手' + i)
+    // 600 人 + bottts + 不降级：出提示
+    await page.goto('/')
+    await page.evaluate((roster) => {
+      localStorage.removeItem('___lottery___')
+      localStorage.setItem('___lottery_countdown___', 'off')
+      localStorage.setItem('___lottery_config___', JSON.stringify({
+        version: 1, headerTitle: '压测', prizes: [{ name: '一等奖', count: 1, everyTimeGet: 1 }],
+        roster, avatarStyle: 'bottts',
+      }))
+    }, bigRoster)
+    await page.reload()
+    await page.waitForTimeout(4000)
+    await page.locator('.config-btn').click()
+    await expect(page.locator('.perf-warning:has-text("可能卡顿")')).toBeVisible()
+
+    // 600 人 + bottts + 开降级：第一张卡片头像是轻量（含 linearGradient），不是 bottts
+    await page.evaluate((roster) => {
+      localStorage.setItem('___lottery_config___', JSON.stringify({
+        version: 1, headerTitle: '压测', prizes: [{ name: '一等奖', count: 1, everyTimeGet: 1 }],
+        roster, avatarStyle: 'bottts', avatarAutoDowngrade: true,
+      }))
+    }, bigRoster)
+    await page.reload()
+    await page.waitForTimeout(4000)
+    const src = await page.locator('.element .card-avatar').first().getAttribute('src')
+    expect(src).toContain('linearGradient')
+  })
+})
+
 test.describe('浏览器兼容性降级', () => {
   test('无 BroadcastChannel 时提示且不崩，核心抽奖仍可用', async ({ page }) => {
     // 模拟老浏览器（如 Safari < 15.4）：移除 BroadcastChannel
