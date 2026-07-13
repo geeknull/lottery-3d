@@ -249,7 +249,7 @@
         background: rgba(var(--card-rgb), 0.3);
         border: 1px solid rgba(var(--accent-light-rgb), 0.12);
 
-        // 悬停名字时显现作废按钮
+        // 悬停名字 / 键盘聚焦时显现作废按钮
         .void-btn {
           position: absolute;
           top: -7px;
@@ -262,6 +262,9 @@
           font-size: 11px;
           font-style: normal;
           line-height: 1;
+          padding: 0;
+          border: 0;
+          appearance: none;
           border-radius: 50%;
           color: #fff;
           background: rgba(220, 70, 70, 0.95);
@@ -269,7 +272,16 @@
           opacity: 0;
           transition: opacity .15s;
         }
-        &:hover .void-btn {
+        // 悬停、或键盘 Tab 聚焦到按钮时显现（focus-within 覆盖键盘可达）
+        &:hover .void-btn,
+        &:focus-within .void-btn {
+          opacity: 1;
+        }
+      }
+
+      // 触屏没有 hover，作废按钮常显，避免点不出来
+      @media (hover: none) {
+        .prize-win-user-name .void-btn {
           opacity: 1;
         }
       }

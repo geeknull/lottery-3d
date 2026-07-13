@@ -61,7 +61,11 @@ test.describe('中奖作废与补抽', () => {
     // 打开中奖名单作废（不退回奖池）
     await page.locator('.icon-action:has-text("展示中奖")').click()
     const voidName = (await page.locator('.prize-win-user-name').first().textContent())?.replace('✖', '').trim()
-    await page.locator('.void-btn').first().click({ force: true })
+    // 键盘可达：作废按钮是真正的 button，能聚焦并用回车触发（非 hover-only 的 <i>）
+    const voidBtn = page.locator('.void-btn').first()
+    await voidBtn.focus()
+    await expect(voidBtn).toBeFocused()
+    await page.keyboard.press('Enter')
     await page.locator('.void-confirm-btns button').nth(1).click() // TA 不再参与
     await expect(page.locator('.prize-item-count-text').first()).toHaveText('5/5')
     await page.locator('.show-all-win-user .close-btn').click()

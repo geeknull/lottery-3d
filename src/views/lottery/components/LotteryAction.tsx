@@ -161,11 +161,13 @@ export default function LotteryAction() {
                   {matched.map((user, userIndex) => (
                     <span className="prize-win-user-name" key={userIndex}>
                       {user.name}
-                      <i
+                      <button
+                        type="button"
                         className="void-btn"
                         title="作废此中奖（名额退回，可补抽）"
+                        aria-label={`作废 ${item.name} ${user.name} 的中奖`}
                         onClick={() => setVoidTarget({ prizeId: item.id, prizeName: item.name, card: user })}
-                      >✖</i>
+                      >✖</button>
                     </span>
                   ))}
                 </div>
