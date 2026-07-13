@@ -6,7 +6,8 @@ export default defineConfig({
   fullyParallel: false, // 共享 localStorage 状态，串行更稳
   workers: 1,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  // CI 上除 github 行内注解外，再出 HTML 报告（含失败重试的 trace），作为构建产物便于排查
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   timeout: 60_000,
   use: {
     baseURL: 'http://localhost:8080',

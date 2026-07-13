@@ -42,12 +42,14 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+      # 仅在有步骤失败时上传 E2E 报告（含 trace）便于排查；全绿时不留无用产物
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
         with:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore  # 若失败发生在 E2E 之前（无报告），静默跳过不告警
       # 仅 main 推送 / 手动触发时上传部署产物；PR 不部署
       - uses: actions/upload-pages-artifact@v5
         if: ${{ github.event_name != 'pull_request' }}
