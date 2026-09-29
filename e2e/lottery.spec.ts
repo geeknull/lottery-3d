@@ -137,12 +137,13 @@ test.describe('快捷键与主题', () => {
 })
 
 test.describe('双屏控制', () => {
-  test('控制窗遥控展示窗完成一轮抽奖', async ({ page, context }) => {
+  test('控制窗遥控展示窗完成一轮抽奖', async ({ page }) => {
     await gotoFresh(page)
 
-    // 开控制窗（同 context 同源，BroadcastChannel 互通）
-    const control = await context.newPage()
-    await control.goto('/?mode=control')
+    // 从展示窗打开带配对标识的控制窗。
+    const popup = page.waitForEvent('popup')
+    await page.locator('.dual-screen-btn').click()
+    const control = await popup
     await control.waitForTimeout(2500)
 
     // 连上：已连接 + 奖项列表 + 展示窗自动隐藏操作 UI

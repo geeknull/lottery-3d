@@ -20,10 +20,10 @@ describe('isValidSyncMessage', () => {
   }
 
   it('合法的心跳/命令/状态消息通过', () => {
-    expect(isValidSyncMessage({ kind: 'heartbeat' })).toBe(true)
-    expect(isValidSyncMessage({ kind: 'command', command: { action: 'start' } })).toBe(true)
-    expect(isValidSyncMessage({ kind: 'command', command: { action: 'selectPrize', prizeId: 'p1' } })).toBe(true)
-    expect(isValidSyncMessage({ kind: 'state', snapshot: validSnapshot })).toBe(true)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'heartbeat' })).toBe(true)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'command', command: { action: 'start' } })).toBe(true)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'command', command: { action: 'selectPrize', prizeId: 'p1' } })).toBe(true)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'display', kind: 'state', snapshot: validSnapshot })).toBe(true)
   })
 
   it('非对象/空值/未知 kind 一律拒绝', () => {
@@ -31,20 +31,27 @@ describe('isValidSyncMessage', () => {
     expect(isValidSyncMessage(undefined)).toBe(false)
     expect(isValidSyncMessage('heartbeat')).toBe(false)
     expect(isValidSyncMessage({})).toBe(false)
-    expect(isValidSyncMessage({ kind: 'nope' })).toBe(false)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'nope' })).toBe(false)
+  })
+
+  it('缺少配对标识或角色错误的消息拒绝', () => {
+    expect(isValidSyncMessage({ kind: 'heartbeat' })).toBe(false)
+    expect(isValidSyncMessage({ kind: 'heartbeat', sessionId: '', senderRole: 'display' })).toBe(false)
+    expect(isValidSyncMessage({ kind: 'command', sessionId: 'session-a', senderRole: 'display', command: { action: 'start' } })).toBe(false)
+    expect(isValidSyncMessage({ kind: 'state', sessionId: 'session-a', senderRole: 'control', snapshot: validSnapshot })).toBe(false)
   })
 
   it('命令 action 非法或 selectPrize 缺 prizeId 时拒绝', () => {
-    expect(isValidSyncMessage({ kind: 'command', command: { action: 'boom' } })).toBe(false)
-    expect(isValidSyncMessage({ kind: 'command', command: { action: 'selectPrize' } })).toBe(false)
-    expect(isValidSyncMessage({ kind: 'command' })).toBe(false)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'command', command: { action: 'boom' } })).toBe(false)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'command', command: { action: 'selectPrize' } })).toBe(false)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'command' })).toBe(false)
   })
 
   it('状态快照缺字段或 prizes 非数组时拒绝（挡住控制窗 prizes.map 白屏）', () => {
-    expect(isValidSyncMessage({ kind: 'state' })).toBe(false)
-    expect(isValidSyncMessage({ kind: 'state', snapshot: { ...validSnapshot, prizes: 'x' } })).toBe(false)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'display', kind: 'state' })).toBe(false)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'display', kind: 'state', snapshot: { ...validSnapshot, prizes: 'x' } })).toBe(false)
     const { headerTitle: _omit, ...noTitle } = validSnapshot
-    expect(isValidSyncMessage({ kind: 'state', snapshot: noTitle })).toBe(false)
+    expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'display', kind: 'state', snapshot: noTitle })).toBe(false)
   })
 })
 
@@ -65,15 +72,29 @@ beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
 
 function display(ch: Channel, onCommand = vi.fn(), onConnectionChange = vi.fn()) {
-  return createDisplaySync(ch, { onCommand, onConnectionChange })
+  return createDisplaySync(ch, { onCommand, onConnectionChange }, 'session-a')
 }
 
 describe('控制窗 → 展示窗 命令', () => {
+  it('不同会话的控制窗既不能执行命令，也不能使展示窗进入双屏模式', () => {
+    const [disp, ctrl] = channelPair()
+    const onCommand = vi.fn()
+    const onConnection = vi.fn()
+    display(disp, onCommand, onConnection)
+    const onState = vi.fn()
+    const control = createControlSync(ctrl, { onState, onConnectionChange: vi.fn() }, 'session-b')
+    control.send({ action: 'start' })
+    vi.advanceTimersByTime(9000)
+    expect(onCommand).not.toHaveBeenCalled()
+    expect(onConnection).not.toHaveBeenCalled()
+    expect(onState).not.toHaveBeenCalled()
+  })
+
   it('控制窗 send 命令，展示窗 onCommand 收到', () => {
     const [disp, ctrl] = channelPair()
     const onCommand = vi.fn()
     display(disp, onCommand)
-    const control = createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() })
+    const control = createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() }, 'session-a')
     control.send({ action: 'start' })
     expect(onCommand).toHaveBeenCalledWith({ action: 'start' })
   })
@@ -82,7 +103,7 @@ describe('控制窗 → 展示窗 命令', () => {
     const [disp, ctrl] = channelPair()
     const onCommand = vi.fn()
     display(disp, onCommand)
-    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() })
+    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() }, 'session-a')
     expect(onCommand).toHaveBeenCalledWith({ action: 'requestState' })
   })
 })
@@ -92,18 +113,29 @@ describe('展示窗 → 控制窗 状态', () => {
     const [disp, ctrl] = channelPair()
     const d = display(disp)
     const onState = vi.fn()
-    createControlSync(ctrl, { onState, onConnectionChange: vi.fn() })
+    createControlSync(ctrl, { onState, onConnectionChange: vi.fn() }, 'session-a')
     d.postState(snap)
     expect(onState).toHaveBeenCalledWith(snap)
   })
 })
 
 describe('展示窗感知控制窗在线（用于自动隐藏 UI）', () => {
+  it('两个展示窗的心跳不会被当成控制窗在线', () => {
+    const [a, b] = channelPair()
+    const onA = vi.fn()
+    const onB = vi.fn()
+    display(a, vi.fn(), onA)
+    display(b, vi.fn(), onB)
+    vi.advanceTimersByTime(9000)
+    expect(onA).not.toHaveBeenCalled()
+    expect(onB).not.toHaveBeenCalled()
+  })
+
   it('控制窗握手/心跳后展示窗判定控制窗已连接', () => {
     const [disp, ctrl] = channelPair()
     const onConn = vi.fn()
     display(disp, vi.fn(), onConn)
-    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() })
+    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() }, 'session-a')
     expect(onConn).toHaveBeenLastCalledWith(true) // 控制窗创建即发 requestState，展示窗立刻感知
   })
 
@@ -111,7 +143,7 @@ describe('展示窗感知控制窗在线（用于自动隐藏 UI）', () => {
     const [disp, ctrl] = channelPair()
     const onConn = vi.fn()
     display(disp, vi.fn(), onConn)
-    const control = createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() })
+    const control = createControlSync(ctrl, { onState: vi.fn(), onConnectionChange: vi.fn() }, 'session-a')
     expect(onConn).toHaveBeenLastCalledWith(true)
     control.close()
     vi.advanceTimersByTime(9000)
@@ -124,7 +156,7 @@ describe('连接状态', () => {
     const [disp, ctrl] = channelPair()
     const d = display(disp)
     const onConnectionChange = vi.fn()
-    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange })
+    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange }, 'session-a')
     vi.advanceTimersByTime(3000) // 展示窗发出第一次心跳
     expect(onConnectionChange).toHaveBeenLastCalledWith(true)
     void d
@@ -134,7 +166,7 @@ describe('连接状态', () => {
     const [disp, ctrl] = channelPair()
     const d = display(disp)
     const onConnectionChange = vi.fn()
-    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange })
+    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange }, 'session-a')
     vi.advanceTimersByTime(3000) // 连接建立
     expect(onConnectionChange).toHaveBeenLastCalledWith(true)
     d.close() // 展示窗关闭，不再发心跳
@@ -146,7 +178,7 @@ describe('连接状态', () => {
     const [disp, ctrl] = channelPair()
     display(disp)
     const onConnectionChange = vi.fn()
-    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange })
+    createControlSync(ctrl, { onState: vi.fn(), onConnectionChange }, 'session-a')
     vi.advanceTimersByTime(3000)
     vi.advanceTimersByTime(3000)
     vi.advanceTimersByTime(3000)

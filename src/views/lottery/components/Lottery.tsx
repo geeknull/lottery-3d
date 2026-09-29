@@ -22,7 +22,9 @@ import './lottery.scss'
 
 function handleOpenControl() {
   if (!openControlWindow()) {
-    toast('当前浏览器不支持双屏遥控（需 Chrome / Edge / Firefox，或 Safari 15.4+）')
+    toast(isDualScreenSupported()
+      ? '控制窗未能打开，请允许浏览器弹窗后重试'
+      : '当前浏览器不支持双屏遥控（需 Chrome / Edge / Firefox，或 Safari 15.4+）')
   }
 }
 

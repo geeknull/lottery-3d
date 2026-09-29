@@ -13,10 +13,13 @@ export type SyncCommand =
   | { action: 'stop' }
   | { action: 'requestState' } // 控制窗握手：请展示窗立即回发当前状态
 
-export type SyncMessage =
+type SyncPayload =
   | { kind: 'command'; command: SyncCommand }
   | { kind: 'state'; snapshot: StateSnapshot }
   | { kind: 'heartbeat' }
+
+type SyncRole = 'display' | 'control'
+export type SyncMessage = SyncPayload & { sessionId: string; senderRole: SyncRole }
 
 // 频道抽象，便于测试注入 mock（真实实现见 broadcastChannel）
 export interface Channel {
@@ -32,14 +35,37 @@ export function isDualScreenSupported(): boolean {
 
 // 持有展示窗打开的控制窗引用，供主屏「退出双屏」一键关闭副屏
 let controlWindow: Window | null = null
+// 每个展示页实例独立配对，避免复制标签页继承 sessionStorage 后共用控制频道。
+function newSessionId(): string {
+  return globalThis.crypto?.randomUUID?.()
+    ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`
+}
+let displaySessionId = newSessionId()
+
+export function getDisplaySessionId(): string {
+  return displaySessionId
+}
+
+export function resetDisplaySessionId(): string {
+  displaySessionId = newSessionId()
+  return displaySessionId
+}
+
+export function getControlSessionId(): string | null {
+  const session = new URLSearchParams(window.location.search).get('session')
+  return session && /^[a-zA-Z0-9-]{12,120}$/.test(session) ? session : null
+}
 
 // 打开控制窗（副屏）。返回 false 表示当前浏览器不支持双屏。
 export function openControlWindow(): boolean {
   if (!isDualScreenSupported()) {
     return false
   }
-  controlWindow = window.open(window.location.pathname + '?mode=control', 'lottery-control', 'width=460,height=760')
-  return true
+  const url = new URL(window.location.href)
+  url.searchParams.set('mode', 'control')
+  url.searchParams.set('session', displaySessionId)
+  controlWindow = window.open(url.href, `lottery-control-${displaySessionId}`, 'width=460,height=760')
+  return controlWindow !== null
 }
 
 // 主屏一键关闭副屏（控制窗）
@@ -83,20 +109,22 @@ function isValidSnapshot(s: unknown): s is StateSnapshot {
 export function isValidSyncMessage(data: unknown): data is SyncMessage {
   if (typeof data !== 'object' || data === null) return false
   const msg = data as Record<string, unknown>
+  if (typeof msg.sessionId !== 'string' || !msg.sessionId ||
+      (msg.senderRole !== 'display' && msg.senderRole !== 'control')) return false
   switch (msg.kind) {
     case 'heartbeat':
       return true
     case 'command':
-      return isValidCommand(msg.command)
+      return msg.senderRole === 'control' && isValidCommand(msg.command)
     case 'state':
-      return isValidSnapshot(msg.snapshot)
+      return msg.senderRole === 'display' && isValidSnapshot(msg.snapshot)
     default:
       return false
   }
 }
 
-export function broadcastChannel(name = SYNC_CHANNEL): Channel {
-  const bc = new BroadcastChannel(name)
+export function broadcastChannel(sessionId: string): Channel {
+  const bc = new BroadcastChannel(`${SYNC_CHANNEL}:${sessionId}`)
   return {
     post: msg => bc.postMessage(msg),
     setHandler: cb => { bc.onmessage = e => { if (isValidSyncMessage(e.data)) cb(e.data) } },
@@ -104,11 +132,11 @@ export function broadcastChannel(name = SYNC_CHANNEL): Channel {
   }
 }
 
-// 双向在线监测内核：两端共用。各自定时发心跳，并把"近期收到过对端任何消息"
-// 视为对端在线、超过 OFFLINE_MS 无消息视为离线。BroadcastChannel 不回弹自己发的消息，
-// 所以一端收到的消息必来自对端，无需区分发送方。
+// 仅同一会话的相反角色能够更新在线状态和触发业务操作。
 function attachPresence(
   channel: Channel,
+  sessionId: string,
+  senderRole: SyncRole,
   now: () => number,
   onConnectionChange: (connected: boolean) => void,
   onMessage: (msg: SyncMessage) => void,
@@ -122,11 +150,12 @@ function attachPresence(
     }
   }
   channel.setHandler(msg => {
+    if (!isValidSyncMessage(msg) || msg.sessionId !== sessionId || msg.senderRole === senderRole) return
     onMessage(msg)
     lastSeen = now()
     setConnected(true)
   })
-  const beat = setInterval(() => channel.post({ kind: 'heartbeat' }), HEARTBEAT_MS)
+  const beat = setInterval(() => channel.post({ kind: 'heartbeat', sessionId, senderRole }), HEARTBEAT_MS)
   const check = setInterval(() => {
     if (connected && now() - lastSeen > OFFLINE_MS) {
       setConnected(false)
@@ -153,15 +182,16 @@ export interface DisplayHandlers {
 export function createDisplaySync(
   channel: Channel,
   handlers: DisplayHandlers,
+  sessionId: string,
   now: () => number = () => Date.now(),
 ): DisplaySync {
-  const stop = attachPresence(channel, now, handlers.onConnectionChange, msg => {
+  const stop = attachPresence(channel, sessionId, 'display', now, handlers.onConnectionChange, msg => {
     if (msg.kind === 'command') {
       handlers.onCommand(msg.command)
     }
   })
   return {
-    postState: snapshot => channel.post({ kind: 'state', snapshot }),
+    postState: snapshot => channel.post({ kind: 'state', snapshot, sessionId, senderRole: 'display' }),
     close: () => {
       stop()
       channel.close()
@@ -184,17 +214,18 @@ export interface ControlHandlers {
 export function createControlSync(
   channel: Channel,
   handlers: ControlHandlers,
+  sessionId: string,
   now: () => number = () => Date.now(),
 ): ControlSync {
-  const stop = attachPresence(channel, now, handlers.onConnectionChange, msg => {
+  const stop = attachPresence(channel, sessionId, 'control', now, handlers.onConnectionChange, msg => {
     if (msg.kind === 'state') {
       handlers.onState(msg.snapshot)
     }
   })
   // 握手：请展示窗立即回发当前状态（否则要等下次状态变化或心跳）
-  channel.post({ kind: 'command', command: { action: 'requestState' } })
+  channel.post({ kind: 'command', command: { action: 'requestState' }, sessionId, senderRole: 'control' })
   return {
-    send: cmd => channel.post({ kind: 'command', command: cmd }),
+    send: cmd => channel.post({ kind: 'command', command: cmd, sessionId, senderRole: 'control' }),
     close: () => {
       stop()
       channel.close()
