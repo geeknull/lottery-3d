@@ -65,4 +65,35 @@ describe('isSavedRestorable', () => {
     expect(isSavedRestorable(null, cardList)).toBe(false)
     expect(isSavedRestorable('x', cardList)).toBe(false)
   })
+
+  it('v2 ID 数组可恢复，但不混用旧卡片对象或未知版本', () => {
+    const compact = baseSaved({ version: 2, cardListWinAll: ['张三'], cardListRemainAll: ['李四'] })
+    expect(isSavedRestorable(compact, cardList)).toBe(true)
+    expect(isSavedRestorable({ ...compact, version: 3 }, cardList)).toBe(false)
+    expect(isSavedRestorable({ ...compact, cardListWinAll: [winner('张三')] }, cardList)).toBe(false)
+    expect(isSavedRestorable({ ...compact, cardListRemainAll: ['王五'] }, cardList)).toBe(false)
+  })
+
+  it.each([null, undefined, winner('王五'), '李四'])('拒绝旧存档中损坏的剩余卡片：%j', entry => {
+    expect(isSavedRestorable(baseSaved({ cardListRemainAll: [entry] }), cardList)).toBe(false)
+  })
+
+  it.each([
+    null,
+    { id: '一等奖', countRemain: 0, round: 1, cardListWin: [null] },
+    { id: '一等奖', countRemain: 0, round: 1, cardListWin: [winner('王五')] },
+    { id: '一等奖', countRemain: Infinity, round: 1, cardListWin: [] },
+    { id: '一等奖', countRemain: 0, round: -1, cardListWin: [] },
+    { id: '一等奖', countRemain: 0, round: '1', cardListWin: [] },
+  ])('拒绝损坏的奖项或奖项内卡片：%j', prize => {
+    expect(isSavedRestorable(baseSaved({ prizeList: [prize] }), cardList)).toBe(false)
+  })
+
+  it.each([
+    null,
+    { type: 'draw', at: 1, prizeId: '一等奖', prizeName: '一等奖', winnerIds: ['张三'], winnerNames: null },
+    { type: 'draw', at: 1, prizeId: '一等奖', prizeName: '一等奖', winnerIds: ['王五'], winnerNames: ['王五'] },
+  ])('拒绝会破坏历史展示的流水元素：%j', entry => {
+    expect(isSavedRestorable(baseSaved({ drawLog: [entry] }), cardList)).toBe(false)
+  })
 })

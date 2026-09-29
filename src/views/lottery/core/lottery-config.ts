@@ -2,6 +2,7 @@ import { buildCards, defaultPeople } from './lottery-config-users';
 import { loadUserConfig, configHash, normalizeRoster } from './config-store';
 import { randomSeed } from './lottery-rng';
 import { isSavedRestorable } from './config-restore';
+import type { SavedCardReference } from './config-restore';
 import { bus } from './event-bus';
 import { resolveStyle, DEFAULT_AVATAR_STYLE } from './avatar-styles';
 import type { PrizeConfig } from './config-store';
@@ -102,12 +103,19 @@ const lotteryConfig: LotteryConfig = {
     // 捕获后发事件提示主持人及时导出。从健康转失败只提醒一次，避免每轮刷屏。
     try {
       localStorage.setItem(localStorageKey, JSON.stringify({
+        version: 2,
         hash: currentHash,
         currentPrize: lotteryConfig.currentPrize,
-        prizeList: lotteryConfig.prizeList,
-        cardListWinAll: lotteryConfig.cardListWinAll,
-        cardListRemainAll: lotteryConfig.cardListRemainAll,
-        cardListExcluded: lotteryConfig.cardListExcluded,
+        // 进度只存引用，不把已解析的奖品图或生成的头像重复写入 localStorage。
+        prizeList: lotteryConfig.prizeList.map(prize => ({
+          id: prize.id,
+          countRemain: prize.countRemain,
+          round: prize.round,
+          cardListWin: prize.cardListWin.map(card => card.id),
+        })),
+        cardListWinAll: lotteryConfig.cardListWinAll.map(card => card.id),
+        cardListRemainAll: lotteryConfig.cardListRemainAll.map(card => card.id),
+        cardListExcluded: lotteryConfig.cardListExcluded.map(card => card.id),
         seed: lotteryConfig.seed,
         rngState: lotteryConfig.rngState,
         seedCommit: lotteryConfig.seedCommit,
@@ -131,37 +139,41 @@ const lotteryConfig: LotteryConfig = {
     if (!raw) {
       return void 0;
     }
-    let saved;
+    let saved: unknown;
     try {
       saved = JSON.parse(raw);
-    } catch (e) {
-      console.log(e);
+    } catch {
       return void 0;
     }
     // 配置变过（或老版本存档没有指纹）就不恢复，避免名单/奖项对不上
-    if (!saved || saved.hash !== currentHash) {
+    if (!saved || typeof saved !== 'object' || !('hash' in saved) || saved.hash !== currentHash) {
       return void 0;
     }
-    // 完整性校验：数组字段类型 + 中奖 id 都在当前名单内。不通过就当新局，
-    // 挡住被篡改的非数组（否则下方赋值后 .map/.some 抛错→白屏）、哈希碰撞、id 错配。
-    if (!isSavedRestorable(saved, cardList)) {
+    // 校验版本、进度结构及所有引用，通过后才更新内存，避免半恢复状态。
+    if (!isSavedRestorable(saved, cardList, lotteryConfig.prizeList)) {
       return void 0;
     }
-    lotteryConfig.currentPrize = saved.currentPrize;
+    const cardsById = new Map(cardList.map(card => [card.id, card]));
+    const restoreCards = (references: SavedCardReference[]) => references.map(reference =>
+      cardsById.get(typeof reference === 'string' ? reference : reference.id)!,
+    );
+    lotteryConfig.currentPrize = saved.currentPrize ?? null;
     // 只恢复进度字段，展示字段（img/detail 等）以当前配置为准——
     // 整体覆盖会把"中途给奖项配的图"冲掉
-    const savedPrizeList: Prize[] = saved.prizeList ?? [];
+    const savedPrizeList = new Map((saved.prizeList ?? []).map(prize => [prize.id, prize]));
     lotteryConfig.prizeList.forEach(prize => {
-      const savedPrize = savedPrizeList.find(_ => _.id === prize.id);
+      const savedPrize = savedPrizeList.get(prize.id);
       if (savedPrize) {
-        prize.countRemain = savedPrize.countRemain;
         prize.round = savedPrize.round;
-        prize.cardListWin = savedPrize.cardListWin;
+        prize.cardListWin = restoreCards(savedPrize.cardListWin);
+        // 旧版「作废后再撤销」可能重复归还名额；以仍有效的中奖名单恢复余额。
+        prize.countRemain = prize.count - prize.cardListWin.length;
       }
     });
-    lotteryConfig.cardListWinAll = saved.cardListWinAll;
-    lotteryConfig.cardListRemainAll = saved.cardListRemainAll;
-    lotteryConfig.cardListExcluded = saved.cardListExcluded ?? []; // 老存档没有该字段
+    // 旧存档里的头像/名字/下标都丢弃，统一恢复为当前名单的卡片实例。
+    lotteryConfig.cardListWinAll = restoreCards(saved.cardListWinAll);
+    lotteryConfig.cardListRemainAll = restoreCards(saved.cardListRemainAll);
+    lotteryConfig.cardListExcluded = restoreCards(saved.cardListExcluded ?? []);
     // 种子/进度字段：老存档没有时沿用本次新生成的种子
     if (typeof saved.seed === 'number') {
       lotteryConfig.seed = saved.seed;
@@ -178,5 +190,4 @@ const lotteryConfig: LotteryConfig = {
 // 启动时恢复抽奖进度（原版此调用缺失导致进度只写不读）
 lotteryConfig.getLocalStorage();
 
-console.log('lotteryConfig', lotteryConfig);
 export default lotteryConfig;
