@@ -42,6 +42,7 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
+      - run: pnpm e2e:pwa
       # 仅在有步骤失败时上传 E2E 报告（含 trace）便于排查；全绿时不留无用产物
       - uses: actions/upload-artifact@v7
         if: ${{ failure() }}
