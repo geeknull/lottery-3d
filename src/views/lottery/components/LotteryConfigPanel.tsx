@@ -50,6 +50,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const [soundOn, setSoundOn] = useState(isSoundEnabled)
   const [countdownOn, setCountdownOn] = useState(isCountdownEnabled)
   const [customMusic, setCustomMusic] = useState(hasCustomMusic)
+  const [saving, setSaving] = useState(false)
   const [avatarStyle, setAvatarStyle] = useState(() => loadUserConfig()?.avatarStyle ?? DEFAULT_AVATAR_STYLE)
   const [avatarAutoDowngrade, setAvatarAutoDowngrade] = useState(() => loadUserConfig()?.avatarAutoDowngrade ?? false)
   const rosterFileRef = useRef<HTMLInputElement>(null)
@@ -121,6 +122,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   }
 
   async function handleSave() {
+    if (saving) return
     const cfg = buildConfig()
     if (!cfg) return
     // 配置实质未变（标题/奖项/名单一致，比如只换了奖品图）时保留抽奖进度直接生效
@@ -130,19 +132,24 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       lotteryConfig.cardList.map(c => c.name),
     )
     const newHash = configHash(cfg.headerTitle, cfg.prizes, cfg.roster)
-    if (newHash !== activeHash) {
-      if (!(await appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }))) return
-      lotteryConfig.clearLocalStorage()
+    setSaving(true)
+    try {
+      if (newHash !== activeHash && !(await appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }))) return
+      // 两项写入都成功前，保留原配置和进度，以便失败后继续抽奖或重试。
+      const persisted = await persistConfigImages(cfg)
+      if (!saveUserConfig(persisted)) {
+        toast('配置保存失败：本地存储空间可能已满（名单头像/奖品图过大），请精简后重试', 8000)
+        return
+      }
+      if (newHash !== activeHash) lotteryConfig.clearLocalStorage()
+      // 清理失败只留下未引用的图片，不应阻断已经成功保存的配置生效。
+      await gcImages(persisted.prizes.map(p => p.img).filter(isImageRef)).catch(() => {})
+      location.reload()
+    } catch {
+      toast('配置保存失败：请检查浏览器存储空间后重试', 8000)
+    } finally {
+      setSaving(false)
     }
-    // 奖品图的 dataURL 移入 IndexedDB，配置只存 idb: 引用（避免撑爆 localStorage）
-    const persisted = await persistConfigImages(cfg)
-    if (!saveUserConfig(persisted)) {
-      toast('配置保存失败：本地存储空间可能已满（名单头像/奖品图过大），请精简后重试', 8000)
-      return
-    }
-    // 清理换图后不再引用的旧图片
-    await gcImages(persisted.prizes.map(p => p.img).filter(isImageRef))
-    location.reload()
   }
 
   async function handleExportConfig() {
@@ -376,7 +383,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       </section>
 
       <section className="panel-actions">
-        <button className="primary" onClick={handleSave}>保存并应用</button>
+        <button className="primary" disabled={saving} onClick={handleSave}>{saving ? '保存中…' : '保存并应用'}</button>
         <button onClick={handleExportConfig}>导出配置 JSON</button>
         <button onClick={() => configFileRef.current?.click()}>导入配置 JSON</button>
         <input ref={configFileRef} type="file" accept=".json" hidden onChange={handleConfigFile} />
