@@ -109,10 +109,13 @@ const undoLastDraw = function(): string[] | null {
     return null;
   }
   const ids = new Set(entry.winnerIds);
+  // 已作废的中奖记录已归还名额；撤销仅移除该轮仍有效的中奖。
+  const removed = prize.cardListWin.filter(c => ids.has(c.id));
+  const removedIds = new Set(removed.map(c => c.id));
   prize.cardListWin = prize.cardListWin.filter(c => !ids.has(c.id));
-  prize.countRemain += entry.winnerIds.length;
+  prize.countRemain += removed.length;
   prize.round = Math.max(0, prize.round - 1);
-  lotteryConfig.cardListWinAll = lotteryConfig.cardListWinAll.filter(c => !ids.has(c.id));
+  lotteryConfig.cardListWinAll = lotteryConfig.cardListWinAll.filter(c => !removedIds.has(c.id));
   recomputeRemain();
 
   // 标记被撤销 + 追加一条 undo 历史（不消耗随机流）
@@ -129,7 +132,7 @@ const undoLastDraw = function(): string[] | null {
 
   lotteryConfig.setLocalStorage();
   notifyLotteryChange();
-  return entry.winnerIds;
+  return [...removedIds];
 }
 
 export { getRandomCard, voidWinner, undoLastDraw }
