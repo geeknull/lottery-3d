@@ -35,7 +35,9 @@ export default function LotteryControl() {
     )
   }
 
-  const { headerTitle, prizes, currentPrizeId, spinning, lastReveal } = snapshot
+  const { headerTitle, prizes, currentPrizeId, spinning, lastReveal, phase, winnerGroupIndex, groupCount = 0, replayAvailable } = snapshot
+  const busy = phase ? !['idle', 'presenting', 'spinning'].includes(phase) : false
+  const canPresent = phase === 'presenting'
 
   return (
     <div className="lottery-control">
@@ -51,7 +53,7 @@ export default function LotteryControl() {
           <button
             key={p.id}
             className={'control-prize' + (p.id === currentPrizeId ? ' selected' : '')}
-            disabled={!connected || spinning}
+            disabled={!connected || spinning || busy}
             onClick={() => send({ action: 'selectPrize', prizeId: p.id })}
           >
             <span className="cp-name">{p.name}</span>
@@ -62,11 +64,23 @@ export default function LotteryControl() {
 
       <button
         className={'control-cta' + (spinning ? ' is-spinning' : '')}
-        disabled={!connected}
+        disabled={!connected || busy}
         onClick={() => send({ action: spinning ? 'stop' : 'start' })}
       >
-        {spinning ? '停 !' : '开始抽奖'}
+        {spinning ? '停 !' : phase === 'preparing' ? '准备中…' : phase === 'revealing' ? '揭晓中…' : busy ? '调整中…' : '开始抽奖'}
       </button>
+
+      <div className="control-presentation">
+        {phase === 'revealing' && <button disabled={!connected} onClick={() => send({ action: 'skipReveal' })}>跳过动画，直接定格</button>}
+        {replayAvailable && !busy && !spinning && <button disabled={!connected} onClick={() => send({ action: 'replayReveal' })}>重放揭晓</button>}
+        {canPresent && groupCount > 1 && <>
+          <button disabled={!connected} onClick={() => send({ action: 'winnerOverview' })}>中奖总览</button>
+          <button disabled={!connected || winnerGroupIndex == null || winnerGroupIndex === 0} onClick={() => send({ action: 'winnerPreviousGroup' })}>上一组</button>
+          <span>{winnerGroupIndex == null ? `全部 · ${groupCount} 组` : `${winnerGroupIndex + 1} / ${groupCount} 组`}</span>
+          <button disabled={!connected || winnerGroupIndex === groupCount - 1} onClick={() => send({ action: 'winnerNextGroup' })}>{winnerGroupIndex == null ? '分组近景' : '下一组'}</button>
+        </>}
+        {!spinning && !busy && <button disabled={!connected} onClick={() => send({ action: 'resetView' })}>视角复位</button>}
+      </div>
 
       {lastReveal && (
         <div className="control-reveal">

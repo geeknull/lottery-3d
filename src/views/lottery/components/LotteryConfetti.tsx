@@ -28,6 +28,12 @@ export default function LotteryConfetti() {
       lastTime = time
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       particles = stepParticles(particles, dt)
+      // The central stage stays clear of confetti, including the winners' names.
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, 0, canvas.width * 0.12, canvas.height)
+      ctx.rect(canvas.width * 0.88, 0, canvas.width * 0.12, canvas.height)
+      ctx.clip()
       particles.forEach(p => {
         ctx.save()
         ctx.translate(p.x, p.y)
@@ -37,6 +43,7 @@ export default function LotteryConfetti() {
         ctx.fillRect(-p.width / 2, -p.height / 2, p.width, p.height)
         ctx.restore()
       })
+      ctx.restore()
       if (particles.length > 0) {
         rafId = requestAnimationFrame(frame)
       } else {
@@ -48,8 +55,8 @@ export default function LotteryConfetti() {
     const onReveal = () => {
       if (prefersReducedMotion()) return // 尊重减少动效：不放全屏彩带
       // 粒子数量随屏宽适配，避免小屏过密
-      const count = Math.min(180, Math.max(80, Math.round(window.innerWidth / 10)))
-      particles.push(...createBurst(canvas.width, canvas.height, count))
+      const count = Math.min(72, Math.max(32, Math.round(window.innerWidth / 24)))
+      particles = createBurst(canvas.width, canvas.height, count).map(p => ({ ...p, life: Math.min(p.life, 1.25) }))
       if (!running) {
         running = true
         lastTime = performance.now()

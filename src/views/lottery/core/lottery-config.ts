@@ -7,6 +7,7 @@ import { bus } from './event-bus';
 import { resolveStyle, DEFAULT_AVATAR_STYLE } from './avatar-styles';
 import type { PrizeConfig } from './config-store';
 import type { Card, Prize, DrawLogEntry } from './lottery-types';
+import { isRehearsal } from './rehearsal';
 
 export const DEFAULT_HEADER_TITLE = '幸运大抽奖';
 export const DEFAULT_PRIZES: PrizeConfig[] = [
@@ -56,6 +57,7 @@ const prizeList: Prize[] = prizeConfigs.map(p => {
     count: p.count,
     countRemain: p.count,
     everyTimeGet: p.everyTimeGet,
+    presentation: p.presentation ?? 'standard',
     name: p.name,
     detail: p.name + '商品',
     img: p.img ?? '',
@@ -70,6 +72,8 @@ const currentHash = configHash(headerTitle, prizeConfigs, cardList.map(c => c.na
 
 // 整场抽奖的种子：无存档时新生成（rngState 从 seed 起步）
 const initialSeed = randomSeed();
+// Capture this once: a rehearsal never reads or mutates the formal draw stream.
+const rehearsal = isRehearsal();
 
 let isInit = false;
 let storageHealthy = true; // localStorage 写入是否正常（失败只提醒一次的去重标志）
@@ -98,6 +102,7 @@ const lotteryConfig: LotteryConfig = {
     return cardList.find(_ => _.id === id);
   },
   setLocalStorage() {
+    if (rehearsal) return;
     // 写入是抽奖热路径（每轮 getRandomCard 都调）。配额超限/隐私模式下 setItem 会抛
     // QuotaExceededError，不能让它冒泡打断 lotteryStop 的揭晓动画/彩带，更不能静默丢结果——
     // 捕获后发事件提示主持人及时导出。从健康转失败只提醒一次，避免每轮刷屏。
@@ -131,6 +136,7 @@ const lotteryConfig: LotteryConfig = {
     }
   },
   getLocalStorage() {
+    if (rehearsal) return;
     if (isInit !== false) {
       return void 0;
     }
@@ -183,6 +189,7 @@ const lotteryConfig: LotteryConfig = {
     }
   },
   clearLocalStorage() {
+    if (rehearsal) return;
     localStorage.removeItem(localStorageKey)
   },
 };

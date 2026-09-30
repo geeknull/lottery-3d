@@ -23,10 +23,14 @@ export function createCardElement(card: Card, isPrize: boolean): HTMLDivElement 
   const symbol = document.createElement('div');
   symbol.className = 'symbol';
   symbol.textContent = card.name;
+  symbol.title = card.name;
+  // Fit long names on the physical card, including in a group closeup.
+  symbol.style.setProperty('--winner-name-size', `${card.name.length > 12 ? 16 : card.name.length > 6 ? 21 : 29}px`);
   element.appendChild(symbol);
 
   const details = document.createElement('div');
   details.className = 'details';
+  details.title = card.id;
   details.textContent = card.id; // 纯文本展示，防 XSS（原为 innerHTML）
   element.appendChild(details);
 
@@ -36,11 +40,11 @@ export function createCardElement(card: Card, isPrize: boolean): HTMLDivElement 
 const create3DCard = function() {
   const { cardList, cardListWinAll } = getSceneData();
   // 中奖的卡片要染色
-  const cardListWinAllIds = cardListWinAll.map(_ => _.id);
+  const cardListWinAllIds = new Set(cardListWinAll.map(_ => _.id));
 
   for (let i = 0; i < cardList.length; i++) {
     const currentCardData = cardList[i];
-    const element = createCardElement(currentCardData, cardListWinAllIds.includes(currentCardData.id));
+    const element = createCardElement(currentCardData, cardListWinAllIds.has(currentCardData.id));
 
     const objectCSS = new CSS3DObject( element );
     objectCSS.position.x = Math.random() * 4000 - 2000;

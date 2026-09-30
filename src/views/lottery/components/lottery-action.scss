@@ -8,8 +8,9 @@
   padding-bottom: 14px; // 与屏幕底留出余量，避免最底部图标贴边/出屏
   box-sizing: border-box;
 }
-#menu {
+.lottery-action #menu {
   position: relative;
+  bottom: auto;
   width: 100%;
   box-sizing: border-box;
   display: flex;
@@ -287,4 +288,33 @@
       }
     }
   }
+}
+
+.presentation-controls {
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-bright);
+  font-size: 12px;
+  button {
+    border: 1px solid rgba(var(--accent-light-rgb), .3);
+    border-radius: 5px;
+    outline: none;
+    padding: 7px 10px;
+    font: inherit;
+    color: inherit;
+    background: rgba(var(--hud-bg-rgb), .8);
+    white-space: nowrap;
+    &:disabled { opacity: .35; }
+  }
+  .presentation-tools { display: flex; justify-content: center; gap: 10px; }
+  .presentation-groups { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+}
+.primary-cta { white-space: nowrap; }
+.primary-cta:disabled { opacity: .6; animation: none; }
+@media (max-height: 650px) {
+  #menu { gap: 8px; }
+  .primary-cta { font-size: 20px; padding: 10px 40px; }
+  .presentation-controls { gap: 5px; }
 }

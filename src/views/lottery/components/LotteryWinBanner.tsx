@@ -1,56 +1,31 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { bus } from '../core/event-bus'
+import STATUS from '../core/lottery-status'
 import type { Card } from '../core/lottery-types'
 import './lottery-win-banner.scss'
 
-interface RevealData {
-  prizeName: string
-  prizeImg?: string
-  winners: Card[]
-}
+interface RevealData { prizeName: string; prizeImg?: string; winners: Card[] }
 
-interface Props {
-  duration?: number // 自动消失时长（毫秒）
-}
-
-// 开奖揭晓横幅：全屏大字展示奖项与中奖名单，台下最后一排也能看清
-export default function LotteryWinBanner({ duration = 6000 }: Props) {
+// A title above the result keeps the completed camera move visible.
+export default function LotteryWinBanner() {
   const [reveal, setReveal] = useState<RevealData | null>(null)
-  const timerRef = useRef(0)
-
   useEffect(() => {
-    const onReveal = (data: RevealData) => {
-      setReveal(data)
-      clearTimeout(timerRef.current)
-      timerRef.current = window.setTimeout(() => setReveal(null), duration)
-    }
+    const onReveal = (data: RevealData) => setReveal(data)
+    const unsubscribe = STATUS.subscribe(() => {
+      if (['preparing', 'idle', 'init'].includes(STATUS.getPhase())) setReveal(null)
+    })
     bus.on('lottery-win-reveal', onReveal)
-    return () => {
-      bus.off('lottery-win-reveal', onReveal)
-      clearTimeout(timerRef.current)
-    }
-  }, [duration])
-
-  if (!reveal) {
-    return null
-  }
-
-  return (
-    <div className="lottery-win-banner" onClick={() => setReveal(null)}>
-      <div className="banner-inner">
-        <div className="banner-congrats">🎉 恭喜中奖 🎉</div>
-        {reveal.prizeImg && <img className="banner-prize-img" src={reveal.prizeImg} alt="" />}
-        <div className="banner-prize-name">{reveal.prizeName}</div>
-        <div className="banner-winners">
-          {reveal.winners.map(w => (
-            <div className="banner-winner" key={w.id}>
-              <img className="banner-avatar" src={w.avatar} alt="" />
-              <span className="banner-name">{w.name}</span>
-            </div>
-          ))}
-        </div>
-        <div className="banner-hint">点击任意处关闭</div>
-      </div>
-    </div>
-  )
+    return () => { bus.off('lottery-win-reveal', onReveal); unsubscribe() }
+  }, [])
+  if (!reveal) return null
+  return <button type="button" className="lottery-win-banner" onClick={() => setReveal(null)} aria-label={`收起${reveal.prizeName}揭晓标题`}>
+    {reveal.prizeImg && <img className="banner-prize-img" src={reveal.prizeImg} alt="" />}
+    <span className="banner-inner">
+      <span className="banner-congrats">恭喜中奖 · {reveal.winners.length} 位</span>
+      <span className="banner-prize-name">{reveal.prizeName}</span>
+    </span>
+    <span className="banner-winners" aria-live="polite">
+      {reveal.winners.map(w => <span className="banner-winner" key={w.id}>{w.name}</span>)}
+    </span>
+  </button>
 }

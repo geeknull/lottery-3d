@@ -1,0 +1,30 @@
+.lottery-preflight {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  overflow-y: auto;
+  color: #edf9fb;
+  background: rgba(2, 12, 19, 0.98);
+  padding: 36px 24px;
+
+  .preflight-content { position: relative; max-width: 820px; margin: auto; }
+  .close-btn { position: absolute; top: 0; right: 0; font-size: 22px; }
+  .preflight-eyebrow { color: var(--header-color); letter-spacing: 0.2em; font-size: 12px; margin: 0 0 8px; }
+  h2 { font-size: 28px; margin: 0 0 12px; }
+  .preflight-intro { color: #a7bdc5; line-height: 1.6; margin: 0 40px 22px 0; }
+  .preflight-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .preflight-check { padding: 20px; border: 1px solid #314651; border-radius: 10px; background: #0d202b; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  h3 { margin: 0; font-size: 17px; }
+  header span { font-size: 12px; white-space: nowrap; color: #e9c480; }
+  .is-ready header span { color: #8edbb8; }
+  .is-failed header span { color: #ffaaaa; }
+  .is-checking header span { color: #a7bdc5; }
+  section p { color: #b4c7ce; font-size: 14px; line-height: 1.7; min-height: 48px; margin: 14px 0 0; }
+  .preflight-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  button { cursor: pointer; }
+}
+
+@media (max-width: 640px) {
+  .lottery-preflight .preflight-checks { grid-template-columns: 1fr; }
+}

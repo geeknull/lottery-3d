@@ -67,6 +67,8 @@ export const setSphereDist = async (multiple = 1.05, duration = 0) => {
 
 const layoutBounds = new Map<'helix' | 'grid', Box3>();
 
+export function clearLayoutBounds() { layoutBounds.clear(); }
+
 export const setLayoutDist = (type: 'helix' | 'grid', duration = 0) => {
   let bounds = layoutBounds.get(type);
   if (!bounds) {

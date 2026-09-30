@@ -1,50 +1,53 @@
-const WAIT_LOTTERY = 'wait';
-const RUNNING_LOTTERY = 'running';
-const INIT = 'init';
+import { bus } from './event-bus'
 
-export type LotteryStatus = typeof WAIT_LOTTERY | typeof RUNNING_LOTTERY | typeof INIT;
+const WAIT_LOTTERY = 'wait'
+const RUNNING_LOTTERY = 'running'
+const INIT = 'init'
 
-let lotteryStatus: LotteryStatus = INIT;
-const listeners = new Set<() => void>();
+export type LotteryStatus = typeof WAIT_LOTTERY | typeof RUNNING_LOTTERY | typeof INIT
+export type LotteryPhase = 'init' | 'idle' | 'preparing' | 'spinning' | 'revealing' | 'presenting' | 'transitioning'
 
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
+// 唯一的运行状态；旧的 wait/running 与 spin-change 都从 phase 派生。
+let phase: LotteryPhase = INIT
+const listeners = new Set<() => void>()
 
-const getStatus = () => {
-  return lotteryStatus;
+function subscribe(listener: () => void) {
+  listeners.add(listener)
+  return () => { listeners.delete(listener) }
 }
 
-const setStatus = (value: LotteryStatus) => {
-  if (lotteryStatus === value) return;
-  lotteryStatus = value;
-  listeners.forEach(listener => listener());
+function getPhase(): LotteryPhase { return phase }
+
+function getStatus(): LotteryStatus {
+  if (phase === 'init') return INIT
+  return phase === 'idle' || phase === 'presenting' ? WAIT_LOTTERY : RUNNING_LOTTERY
 }
-const setStatusWait = () => {
-  setStatus(WAIT_LOTTERY);
+
+function setPhase(next: LotteryPhase) {
+  if (phase === next) return
+  const wasSpinning = phase === 'spinning'
+  phase = next
+  listeners.forEach(listener => listener())
+  if (wasSpinning !== (phase === 'spinning')) bus.emit('spin-change', phase === 'spinning')
 }
-const setStatusRun = () => {
-  setStatus(RUNNING_LOTTERY);
+
+// 兼容布局轮播与初始化的粗粒度状态，不再保存第二份状态。
+function setStatus(value: LotteryStatus) {
+  setPhase(value === WAIT_LOTTERY ? 'idle' : value === RUNNING_LOTTERY ? 'transitioning' : 'init')
 }
-const isWait = () => {
-  return lotteryStatus === WAIT_LOTTERY;
-}
-const isRun = () => {
-  return lotteryStatus === RUNNING_LOTTERY;
-}
+
 const status = {
   subscribe,
+  getPhase,
+  setPhase,
   getStatus,
   setStatus,
-  setStatusWait,
-  setStatusRun,
-  isWait,
-  isRun,
+  setStatusWait: () => setPhase('idle'),
+  setStatusRun: () => setPhase('transitioning'),
+  isWait: () => getStatus() === WAIT_LOTTERY,
+  isRun: () => getStatus() === RUNNING_LOTTERY,
   WAIT_LOTTERY,
   RUNNING_LOTTERY,
-  INIT
-}
-export default status;
+  INIT,
+} as const
+export default status

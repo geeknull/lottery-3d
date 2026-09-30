@@ -22,22 +22,36 @@ export interface CountdownDeps {
 }
 
 // 倒计时驱动逻辑：从 from 数到 1，再 GO，再隐藏
-export async function runCountdown(from: number, deps: CountdownDeps): Promise<void> {
-  for (let n = from; n >= 1; n--) {
-    deps.onTick(n)
-    deps.beep?.()
-    await deps.wait(STEP_MS)
+export async function runCountdown(from: number, deps: CountdownDeps, signal?: AbortSignal): Promise<void> {
+  try {
+    for (let n = from; n >= 1; n--) {
+      if (signal?.aborted) return
+      deps.onTick(n)
+      deps.beep?.()
+      await deps.wait(STEP_MS)
+    }
+    if (signal?.aborted) return
+    deps.onTick(0) // GO
+    await deps.wait(GO_MS)
+  } finally {
+    deps.onTick(-1) // 隐藏；场景卸载/失败也不会留下数字
   }
-  deps.onTick(0) // GO
-  await deps.wait(GO_MS)
-  deps.onTick(-1) // 隐藏
 }
 
 // 真实播放：把当前数字广播给倒计时组件，用真实定时器
-export function playCountdown(from = 3): Promise<void> {
+export function playCountdown(from = 3, signal?: AbortSignal): Promise<void> {
   return runCountdown(from, {
     onTick: n => bus.emit('countdown', n),
-    wait: ms => new Promise(resolve => setTimeout(resolve, ms)),
+    wait: ms => new Promise(resolve => {
+      if (signal?.aborted) { resolve(); return }
+      const finish = () => {
+        clearTimeout(timer)
+        signal?.removeEventListener('abort', finish)
+        resolve()
+      }
+      const timer = setTimeout(finish, ms)
+      signal?.addEventListener('abort', finish, { once: true })
+    }),
     beep: () => playTick(),
-  })
+  }, signal)
 }

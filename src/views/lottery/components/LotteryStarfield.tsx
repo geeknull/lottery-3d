@@ -1,107 +1,83 @@
-// https://github.com/moshang-xc/lottery
+// A small Canvas depth field; the result frame is deliberately still.
 import { useEffect } from 'react'
 import { prefersReducedMotion } from '../core/reduced-motion'
+import STATUS from '../core/lottery-status'
 
-interface Star {
-  x: number;
-  y: number;
-  z: number;
-}
+interface Star { x: number; y: number; z: number }
 
-// 创建星空画布并启动动画，返回清理函数（停止 rAF + 移除画布）。
-// 供 useEffect 卸载 / StrictMode 双调用时干净拆除，避免多个画布与 rAF 循环叠加泄漏。
 function startStarfield(): () => void {
-  const canvasBox = document.createElement('div')
-  canvasBox.style.position = 'fixed'
-  canvasBox.style.top = '0'
-  canvasBox.style.left = '0'
-  canvasBox.style.zIndex = '-1'
   const canvas = document.createElement('canvas')
-  canvasBox.appendChild(canvas)
-  document.body.appendChild(canvasBox)
-
-  const c = canvas.getContext('2d')!
-  const numStars = 1000
-  const radius = 1
-  canvas.width = window.innerWidth
-  canvas.height = window.innerHeight
-  const focalLength = canvas.width
-  let centerX = canvas.width / 2
-  let centerY = canvas.height / 2
+  canvas.className = 'lottery-depth-field'
+  Object.assign(canvas.style, { position: 'fixed', inset: '0', zIndex: '-1', pointerEvents: 'none' })
+  document.body.appendChild(canvas)
+  const context = canvas.getContext('2d')!
   let stars: Star[] = []
   let rafId = 0
   let stopped = false
-
-  function initializeStars() {
-    centerX = canvas.width / 2
-    centerY = canvas.height / 2
-    stars = []
-    for (let i = 0; i < numStars; i++) {
-      stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        z: Math.random() * canvas.width,
-      })
+  let last = 0
+  const media = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+  function resize() {
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    stars = Array.from({ length: 140 }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      z: 80 + Math.random() * canvas.width,
+    }))
+    draw(0)
+  }
+  function draw(delta: number) {
+    const centerX = canvas.width / 2
+    const centerY = canvas.height / 2
+    const phase = STATUS.getPhase()
+    const speed = phase === 'spinning' ? .018 : .003
+    context.fillStyle = '#000a14'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.fillStyle = phase === 'presenting' ? 'rgba(160,218,225,.18)' : 'rgba(160,218,225,.42)'
+    for (const star of stars) {
+      star.z -= delta * speed
+      if (star.z < 60) star.z = canvas.width
+      const perspective = canvas.width / star.z
+      const x = (star.x - centerX) * perspective + centerX
+      const y = (star.y - centerY) * perspective + centerY
+      if (x < 0 || y < 0 || x > canvas.width || y > canvas.height) continue
+      context.beginPath()
+      context.arc(x, y, Math.min(1.5, perspective * .55), 0, Math.PI * 2)
+      context.fill()
     }
   }
-
-  function moveStars() {
-    for (let i = 0; i < numStars; i++) {
-      const star = stars[i]
-      star.z--
-      if (star.z <= 0) {
-        star.z = canvas.width
-      }
+  function frame(now: number) {
+    if (stopped) return
+    const elapsed = now - last
+    if (elapsed >= 32) {
+      draw(Math.min(elapsed, 50))
+      last = now
+    }
+    rafId = requestAnimationFrame(frame)
+  }
+  function syncMotion() {
+    cancelAnimationFrame(rafId)
+    draw(0)
+    if (!prefersReducedMotion() && STATUS.getPhase() !== 'presenting') {
+      last = performance.now()
+      rafId = requestAnimationFrame(frame)
     }
   }
-
-  function drawStars() {
-    // Resize to the screen
-    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-      initializeStars()
-    }
-
-    c.fillStyle = 'rgba(0,10,20,1)'
-    c.fillRect(0, 0, canvas.width, canvas.height)
-    c.fillStyle = 'rgba(209, 255, 255, ' + radius + ')'
-    for (let i = 0; i < numStars; i++) {
-      const star = stars[i]
-      const pixelX = (star.x - centerX) * (focalLength / star.z) + centerX
-      const pixelY = (star.y - centerY) * (focalLength / star.z) + centerY
-      const pixelRadius = radius * (focalLength / star.z)
-      c.beginPath()
-      c.arc(pixelX, pixelY, pixelRadius, 0, 2 * Math.PI)
-      c.fill()
-    }
-  }
-
-  function executeFrame() {
-    if (stopped) {
-      return
-    }
-    // 尊重减少动效：只画一帧静态星空，不做连续「穿越」动画
-    if (prefersReducedMotion()) {
-      drawStars()
-      return
-    }
-    rafId = requestAnimationFrame(executeFrame)
-    moveStars()
-    drawStars()
-  }
-
-  initializeStars()
-  executeFrame()
-
+  resize()
+  syncMotion()
+  const unsubscribe = STATUS.subscribe(syncMotion)
+  media?.addEventListener('change', syncMotion)
+  window.addEventListener('resize', resize)
   return () => {
     stopped = true
     cancelAnimationFrame(rafId)
-    canvasBox.remove()
+    unsubscribe()
+    media?.removeEventListener('change', syncMotion)
+    window.removeEventListener('resize', resize)
+    canvas.remove()
   }
 }
 
 export default function LotteryStarfield() {
   useEffect(() => startStarfield(), [])
-  return <div className="empty"></div>
+  return null
 }

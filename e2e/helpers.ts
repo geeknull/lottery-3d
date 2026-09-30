@@ -1,9 +1,7 @@
-import type { Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 
 // 3D 初始化是异步的（卡片从随机位飞到 table），给足时间
 const INIT_WAIT = 3500
-const DRAW_SPIN_WAIT = 2200 // 开始旋转到可以停的间隔
-const FLY_WAIT = 3000 // 停止后卡片飞出 + 横幅出现
 
 export async function gotoFresh(page: Page) {
   await page.goto('/')
@@ -20,9 +18,9 @@ export async function gotoFresh(page: Page) {
 // 主操作是单个 toggle 大按钮 #primaryCta（开始抽奖 ↔ 停 !），两次点同一按钮
 export async function drawOneRound(page: Page) {
   await page.locator('#primaryCta').click()
-  await page.waitForTimeout(DRAW_SPIN_WAIT)
+  await expect(page.locator('#primaryCta')).toHaveText('停 !', { timeout: 20000 })
   await page.locator('#primaryCta').click()
-  await page.waitForTimeout(FLY_WAIT)
+  await expect(page.locator('#primaryCta')).toBeEnabled({ timeout: 20000 })
 }
 
 export async function closeBanner(page: Page) {

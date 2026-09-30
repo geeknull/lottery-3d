@@ -16,6 +16,8 @@ export function setSceneData(data: SceneData): void {
   sceneData = data
 }
 
+export function clearSceneData() { sceneData = null }
+
 // 未注入即调用属编程错误（init 里会先 setSceneData）
 export function getSceneData(): SceneData {
   if (!sceneData) {

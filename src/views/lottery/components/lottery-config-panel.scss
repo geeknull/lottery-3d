@@ -51,7 +51,8 @@
   }
 
   input,
-  textarea {
+  textarea,
+  select {
     background: rgba(var(--accent-dark-rgb), 0.15);
     border: 1px solid rgba(var(--accent-light-rgb), 0.25);
     color: #fff;
@@ -138,6 +139,8 @@
       width: 80px;
     }
 
+    select { min-width: 86px; background-color: #10252c; }
+
     .prize-img-cell {
       display: flex;
       align-items: center;
@@ -178,6 +181,8 @@
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+
+    .apply-impact { flex-basis: 100%; margin: 0; color: #d6c394; font-size: 13px; line-height: 1.6; }
 
     .primary {
       background-color: rgba(var(--accent-dark-rgb), 0.75);

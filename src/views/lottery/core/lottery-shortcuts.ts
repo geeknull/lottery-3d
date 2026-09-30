@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { resetView, toggleDraw } from './lottery-controller'
+import { dispatchLotteryCommand } from './lottery-controller'
 
 // 键盘快捷键：空格 = 开始/停止抽奖（适配翻页笔），F = 切换全屏，R = 视角复位
 
@@ -60,12 +60,12 @@ export function useLotteryShortcuts() {
       const action = getShortcutAction(e, blocked)
       if (action === 'toggle-draw') {
         e.preventDefault() // 防止空格滚动页面/触发聚焦按钮
-        toggleDraw()
+        void dispatchLotteryCommand({ action: 'toggleDraw' })
       } else if (action === 'fullscreen') {
         toggleFullscreen()
       } else if (action === 'reset-view') {
         e.preventDefault()
-        void resetView()
+        void dispatchLotteryCommand({ action: 'resetView' })
       }
     }
     window.addEventListener('keydown', onKeyDown)

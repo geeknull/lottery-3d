@@ -114,6 +114,16 @@ describe('parseConfigJson', () => {
     expect(parseConfigJson(JSON.stringify(badImg))).toBeNull()
   })
 
+  it.each(['standard', 'ceremonial'])('接受显式揭晓节奏 %s，旧配置缺省字段仍合法', presentation => {
+    const cfg = { ...validConfig, prizes: [{ ...validConfig.prizes[0], presentation }] }
+    expect(parseConfigJson(JSON.stringify(cfg))?.prizes[0].presentation).toBe(presentation)
+    expect(parseConfigJson(JSON.stringify(validConfig))).toEqual(validConfig)
+  })
+
+  it.each(['unknown', '', null, 1])('拒绝非法揭晓节奏 %s', presentation => {
+    expect(parseConfigJson(JSON.stringify({ ...validConfig, prizes: [{ ...validConfig.prizes[0], presentation }] }))).toBeNull()
+  })
+
   it('接受可选的 avatarStyle / avatarAutoDowngrade', () => {
     const cfg = { ...validConfig, avatarStyle: 'bottts', avatarAutoDowngrade: true }
     const parsed = parseConfigJson(JSON.stringify(cfg))
@@ -213,5 +223,12 @@ describe('configHash', () => {
     const a = configHash('标题', [{ name: '一等奖', count: 1, everyTimeGet: 1 }], validConfig.roster)
     const b = configHash('标题', [{ name: '一等奖', count: 1, everyTimeGet: 1, img: 'data:image/jpeg;base64,xxx' }], validConfig.roster)
     expect(a).toBe(b)
+  })
+
+  it('缺省、简洁与隆重节奏的指纹完全一致', () => {
+    const base = configHash('标题', validConfig.prizes, validConfig.roster)
+    for (const presentation of ['standard', 'ceremonial'] as const) {
+      expect(configHash('标题', validConfig.prizes.map(prize => ({ ...prize, presentation })), validConfig.roster)).toBe(base)
+    }
   })
 })

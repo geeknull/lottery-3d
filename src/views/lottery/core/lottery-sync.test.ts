@@ -47,6 +47,20 @@ describe('isValidSyncMessage', () => {
     expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'command' })).toBe(false)
   })
 
+  it.each(['skipReveal', 'replayReveal', 'winnerOverview', 'winnerNextGroup', 'winnerPreviousGroup', 'resetView'])(
+    '%s 使用同一条配对控制指令通道', action => {
+      expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'control', kind: 'command', command: { action } })).toBe(true)
+    },
+  )
+
+  it('新快照展示字段兼容旧版，同时拒绝非法阶段和分组数', () => {
+    const message = { sessionId: 'session-a', senderRole: 'display', kind: 'state' }
+    expect(isValidSyncMessage({ ...message, snapshot: { ...validSnapshot, phase: 'revealing', winnerGroupIndex: null, groupCount: 2, replayAvailable: false } })).toBe(true)
+    for (const extra of [{ phase: 'unknown' }, { winnerGroupIndex: -1 }, { winnerGroupIndex: 0.5 }, { groupCount: -1 }, { replayAvailable: 'yes' }]) {
+      expect(isValidSyncMessage({ ...message, snapshot: { ...validSnapshot, ...extra } })).toBe(false)
+    }
+  })
+
   it('状态快照缺字段或 prizes 非数组时拒绝（挡住控制窗 prizes.map 白屏）', () => {
     expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'display', kind: 'state' })).toBe(false)
     expect(isValidSyncMessage({ sessionId: 'session-a', senderRole: 'display', kind: 'state', snapshot: { ...validSnapshot, prizes: 'x' } })).toBe(false)

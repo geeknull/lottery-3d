@@ -2,6 +2,7 @@ import { Quaternion, Vector3 } from 'three';
 import { Easing, Tween } from '@tweenjs/tween.js';
 import { camera, controls, initControls, render } from './3d-core';
 import { tweenGroup } from './tween-group';
+import { pauseIdleOrbit } from './idle-orbit';
 
 export interface CameraView {
   target: Vector3;
@@ -11,6 +12,16 @@ export interface CameraView {
 // 保存构图而非初始的固定 3000：布局与窗口尺寸变化后仍能正确复位。
 let homeView: () => CameraView = () => ({ target: new Vector3(), distance: 3000 });
 let cameraTween: Tween<{ progress: number }> | null = null;
+
+export function cancelCameraView() {
+  cameraTween?.stop();
+  cameraTween = null;
+}
+
+export function disposeCameraView() {
+  cancelCameraView();
+  homeView = () => ({ target: new Vector3(), distance: 3000 });
+}
 
 export function rememberCameraView(view: () => CameraView) {
   homeView = view;
@@ -22,6 +33,7 @@ export function setCameraView(view: () => CameraView, duration = 0): Promise<voi
 }
 
 export function resetCameraView(duration = 450): Promise<void> {
+  pauseIdleOrbit();
   // 被新的构图接替时也结束旧 Promise，不留下等待中的布局流程。
   cameraTween?.stop();
   const view = homeView();

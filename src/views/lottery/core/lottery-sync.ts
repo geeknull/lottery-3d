@@ -1,4 +1,5 @@
 import type { StateSnapshot } from './lottery-snapshot'
+import type { LotteryCommand } from './lottery-commands'
 
 // 双屏通信层：同源两窗口通过 BroadcastChannel 通信。
 // 展示窗（执行端）发状态+心跳、收命令；控制窗（遥控器）发命令、收状态+心跳并判在线。
@@ -8,9 +9,7 @@ const HEARTBEAT_MS = 3000 // 展示窗心跳间隔
 const OFFLINE_MS = 8000 // 控制窗超过此时长没收到任何消息即判定展示窗离线
 
 export type SyncCommand =
-  | { action: 'selectPrize'; prizeId: string }
-  | { action: 'start' }
-  | { action: 'stop' }
+  | LotteryCommand
   | { action: 'requestState' } // 控制窗握手：请展示窗立即回发当前状态
 
 type SyncPayload =
@@ -84,6 +83,14 @@ function isValidCommand(c: unknown): c is SyncCommand {
   switch (cmd.action) {
     case 'start':
     case 'stop':
+    case 'toggleDraw':
+    case 'resetView':
+    case 'table':
+    case 'skipReveal':
+    case 'replayReveal':
+    case 'winnerOverview':
+    case 'winnerNextGroup':
+    case 'winnerPreviousGroup':
     case 'requestState':
       return true
     case 'selectPrize':
@@ -100,7 +107,11 @@ function isValidSnapshot(s: unknown): s is StateSnapshot {
     typeof snap.headerTitle === 'string' &&
     Array.isArray(snap.prizes) && // 控制窗会 prizes.map，非数组会白屏，这是最关键的一道
     (snap.currentPrizeId === null || typeof snap.currentPrizeId === 'string') &&
-    typeof snap.spinning === 'boolean'
+    typeof snap.spinning === 'boolean' &&
+    (snap.phase === undefined || (typeof snap.phase === 'string' && ['init', 'idle', 'preparing', 'spinning', 'revealing', 'presenting', 'transitioning'].includes(snap.phase))) &&
+    (snap.winnerGroupIndex === undefined || snap.winnerGroupIndex === null || (Number.isInteger(snap.winnerGroupIndex) && Number(snap.winnerGroupIndex) >= 0)) &&
+    (snap.groupCount === undefined || (Number.isInteger(snap.groupCount) && Number(snap.groupCount) >= 0)) &&
+    (snap.replayAvailable === undefined || typeof snap.replayAvailable === 'boolean')
   )
 }
 

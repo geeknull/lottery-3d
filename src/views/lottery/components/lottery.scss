@@ -171,3 +171,39 @@
   z-index: 800;
   pointer-events: none;
 }
+
+.stage-session-tools {
+  position: absolute;
+  left: 18px;
+  top: 14px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-bright);
+  a, button { font: inherit; color: inherit; padding: 6px 8px; text-decoration: none; background: rgba(var(--hud-bg-rgb), .9); border: 1px solid rgba(var(--accent-light-rgb), .3); border-radius: 4px; outline: none; white-space: nowrap; }
+  a:hover, button:hover { border-color: rgba(var(--accent-light-rgb), .8); }
+}
+.rehearsal-label { color: #ffd166; white-space: nowrap; }
+.lottery-wrap.control-active .stage-session-tools { display: none; }
+.lottery-wrap.is-rehearsal .lottery-header > span { visibility: hidden; }
+.lottery-header > span { max-width: calc(100% - 840px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1000px) {
+  .lottery-header > span { visibility: hidden; }
+  .stage-session-tools { left: 8px; gap: 5px; }
+  .is-rehearsal .github-btn, .is-rehearsal .fairness-btn, .is-rehearsal .history-btn { display: none; }
+}
+.lottery-confetti { z-index: 4; }
+.lottery-wrap[data-stage-phase='presenting'] .prize-item.shine .line-1,
+.lottery-wrap[data-stage-phase='presenting'] .prize-item.shine .line-2,
+.lottery-wrap[data-stage-phase='presenting'] .prize-item.shine .line-3,
+.lottery-wrap[data-stage-phase='presenting'] .prize-item.shine .line-4 { animation-play-state: paused; opacity: .25; }
+
+@media (max-height: 650px) {
+  .prize-list { gap: 10px; padding: 6px 0; }
+  .prize-item { height: 64px; flex-shrink: 0; padding: 8px; }
+  .prize-item .prize-item-right .prize-item-title { font-size: 18px; margin-bottom: 8px; }
+  .prize-item .prize-item-left { width: 48px; }
+  .prize-item .prize-item-left img { width: 48px; height: 48px; }
+}

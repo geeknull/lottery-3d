@@ -1,8 +1,8 @@
 import { useRef, useState, useMemo } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import {
-  saveUserConfig, clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
-  rosterEntriesToText, parseConfigJson, exportConfigFile, exportWinnersCsv, configHash,
+  clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
+  rosterEntriesToText, parseConfigJson, exportConfigFile, exportWinnersCsv,
   PERF_WARN_ROSTER,
 } from '../core/config-store'
 import type { PrizeConfig, UserLotteryConfig } from '../core/config-store'
@@ -11,7 +11,8 @@ import { THEMES, loadTheme, applyTheme } from '../core/lottery-theme'
 import type { ThemeId } from '../core/lottery-theme'
 import { compressImageToDataUrl } from '../core/image-utils'
 import { persistConfigImages, inlineConfigImages } from '../core/config-images'
-import { isImageRef, gcImages } from '../core/image-store'
+import { isImageRef } from '../core/image-store'
+import { configChangesProgress, makeConfigApplication, prepareConfig } from '../core/config-apply'
 import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
 import { isCountdownEnabled, setCountdownEnabled } from '../core/lottery-countdown'
 import { hasCustomMusic, putMusic, clearMusic } from '../core/lottery-music-store'
@@ -37,7 +38,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   // 初始值取当前生效的配置（用户配置或内置默认）
   const [title, setTitle] = useState(lotteryConfig.headerTitle)
   const [prizes, setPrizes] = useState<PrizeConfig[]>(() =>
-    lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet, img: p.img || undefined }))
+    lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet, img: p.img || undefined, presentation: p.presentation ?? 'standard' }))
   )
   // 名单文本优先取用户配置原文（保留「名字,头像」行），默认配置则只有名字
   const [rosterText, setRosterText] = useState(() => {
@@ -56,6 +57,9 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
   const musicFileRef = useRef<HTMLInputElement>(null)
+  const applyConfig = useMemo(() => makeConfigApplication(() =>
+    appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }),
+  ), [])
 
   const rosterNames = parseRosterText(rosterText)
   const dupCount = rosterNames.length - new Set(rosterNames).size
@@ -84,69 +88,21 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   }
 
   function buildConfig(): UserLotteryConfig | null {
-    if (!title.trim()) {
-      toast('请填写活动标题')
-      return null
-    }
-    if (prizes.length === 0) {
-      toast('至少需要一个奖项')
-      return null
-    }
-    for (const p of prizes) {
-      if (!p.name.trim()) {
-        toast('奖项名称不能为空')
-        return null
-      }
-      if (!(p.count >= 1) || !(p.everyTimeGet >= 1)) {
-        toast('奖项总数和每轮抽取数至少为 1')
-        return null
-      }
-    }
-    if (rosterNames.length === 0) {
-      toast('抽奖名单不能为空')
-      return null
-    }
-    if (totalPrizeCount > rosterNames.length) {
-      toast(`奖品总数（${totalPrizeCount}）超过了名单人数（${rosterNames.length}），请调整奖项数量或补充名单`)
-      return null
-    }
-    return {
-      version: 1,
-      headerTitle: title.trim(),
-      prizes: prizes.map(p => ({ name: p.name.trim(), count: p.count, everyTimeGet: p.everyTimeGet, ...(p.img ? { img: p.img } : {}) })),
-      // 不带头像的条目存纯字符串，配置 JSON 更紧凑
-      roster: parseRosterEntries(rosterText).map(entry => (entry.avatar ? entry : entry.name)),
-      avatarStyle,
-      ...(avatarAutoDowngrade ? { avatarAutoDowngrade: true } : {}),
-    }
+    const result = prepareConfig({ title, prizes, rosterText, avatarStyle, avatarAutoDowngrade })
+    if (result.error) toast(result.error)
+    return result.config ?? null
   }
 
   async function handleSave() {
     if (saving) return
     const cfg = buildConfig()
     if (!cfg) return
-    // 配置实质未变（标题/奖项/名单一致，比如只换了奖品图）时保留抽奖进度直接生效
-    const activeHash = configHash(
-      lotteryConfig.headerTitle,
-      lotteryConfig.prizeList.map(p => ({ name: p.name, count: p.count, everyTimeGet: p.everyTimeGet })),
-      lotteryConfig.cardList.map(c => c.name),
-    )
-    const newHash = configHash(cfg.headerTitle, cfg.prizes, cfg.roster)
     setSaving(true)
     try {
-      if (newHash !== activeHash && !(await appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }))) return
-      // 两项写入都成功前，保留原配置和进度，以便失败后继续抽奖或重试。
-      const persisted = await persistConfigImages(cfg)
-      if (!saveUserConfig(persisted)) {
-        toast('配置保存失败：本地存储空间可能已满（名单头像/奖品图过大），请精简后重试', 8000)
-        return
-      }
-      if (newHash !== activeHash) lotteryConfig.clearLocalStorage()
-      // 清理失败只留下未引用的图片，不应阻断已经成功保存的配置生效。
-      await gcImages(persisted.prizes.map(p => p.img).filter(isImageRef)).catch(() => {})
-      location.reload()
-    } catch {
-      toast('配置保存失败：请检查浏览器存储空间后重试', 8000)
+      await applyConfig(cfg)
+    } catch (error) {
+      toast(error instanceof Error && error.message.startsWith('配置保存失败')
+        ? error.message : '配置保存失败：请检查浏览器存储空间后重试', 8000)
     } finally {
       setSaving(false)
     }
@@ -234,6 +190,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     <div className="lottery-config-panel">
       <button type="button" className="close-btn" aria-label="关闭" onClick={onClose}>✖</button>
       <h2 className="panel-title">抽奖配置</h2>
+      <p className="field-hint">标题、名单与奖项规则需保存后生效；更改这些内容会重置进度。只换图片、头像风格或揭晓节奏会保留进度。</p>
 
       <section>
         <h3>活动标题</h3>
@@ -329,10 +286,11 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         <h3>奖项（{prizes.length} 个，共 {totalPrizeCount} 份）</h3>
         <p className="field-hint">
           「总数」是该奖项的获奖名额；「每轮抽取」是点一次「停！」开出的人数。奖品总数不能超过名单人数。
+          「简洁」适合连续开奖，「隆重」会延长揭晓停顿与飞出过程；只影响演出，不改变抽奖结果，保存后生效。
         </p>
         <table className="prize-table">
           <thead>
-            <tr><th>名称</th><th>总数</th><th>每轮抽取</th><th>奖品图</th><th></th></tr>
+            <tr><th>名称</th><th>总数</th><th>每轮抽取</th><th>揭晓节奏</th><th>奖品图</th><th></th></tr>
           </thead>
           <tbody>
             {prizes.map((p, i) => (
@@ -340,6 +298,15 @@ export default function LotteryConfigPanel({ onClose }: Props) {
                 <td><input value={p.name} onChange={e => updatePrize(i, { name: e.target.value })} /></td>
                 <td><input type="number" min={1} value={p.count} onChange={e => updatePrize(i, { count: Number(e.target.value) })} /></td>
                 <td><input type="number" min={1} value={p.everyTimeGet} onChange={e => updatePrize(i, { everyTimeGet: Number(e.target.value) })} /></td>
+                <td><select
+                  className="prize-presentation-select"
+                  aria-label={`第${i + 1}个奖项的揭晓节奏`}
+                  value={p.presentation ?? 'standard'}
+                  onChange={e => updatePrize(i, { presentation: e.target.value === 'ceremonial' ? 'ceremonial' : 'standard' })}
+                >
+                  <option value="standard">简洁</option>
+                  <option value="ceremonial">隆重</option>
+                </select></td>
                 <td className="prize-img-cell">
                   {p.img && !isImageRef(p.img) && <img className="prize-img-thumb" src={p.img} alt="奖品图" />}
                   <label className="prize-img-upload">
@@ -383,6 +350,9 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       </section>
 
       <section className="panel-actions">
+        <p className="apply-impact">{configChangesProgress({ version: 1, headerTitle: title.trim(), prizes: prizes.map(prize => ({ ...prize, name: prize.name.trim() })), roster: parseRosterEntries(rosterText) })
+          ? '本次保存将清空中奖进度和随机流水，应用前会再次确认。'
+          : '当前名单与奖项规则未变，保存后保留中奖进度。'}</p>
         <button className="primary" disabled={saving} onClick={handleSave}>{saving ? '保存中…' : '保存并应用'}</button>
         <button onClick={handleExportConfig}>导出配置 JSON</button>
         <button onClick={() => configFileRef.current?.click()}>导入配置 JSON</button>

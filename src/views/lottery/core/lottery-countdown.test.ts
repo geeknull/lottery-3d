@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { runCountdown, isCountdownEnabled, setCountdownEnabled } from './lottery-countdown'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { runCountdown, playCountdown, isCountdownEnabled, setCountdownEnabled } from './lottery-countdown'
+import { bus } from './event-bus'
 
 beforeEach(() => localStorage.clear())
 
@@ -38,5 +39,29 @@ describe('runCountdown', () => {
     const ticks: number[] = []
     await runCountdown(5, { onTick: n => ticks.push(n), wait: async () => {} })
     expect(ticks).toEqual([5, 4, 3, 2, 1, 0, -1])
+  })
+
+  it('取消后隐藏字幕，不继续播报后续数字或 GO', async () => {
+    const abort = new AbortController()
+    const ticks: number[] = []
+    await runCountdown(3, { onTick: n => ticks.push(n), wait: async () => abort.abort() }, abort.signal)
+    expect(ticks).toEqual([3, -1])
+  })
+
+  it('真实等待在取消时立即清理定时器并结束 Promise', async () => {
+    vi.useFakeTimers()
+    const abort = new AbortController()
+    const onTick = vi.fn()
+    bus.on('countdown', onTick)
+    try {
+      const running = playCountdown(3, abort.signal)
+      abort.abort()
+      await running
+      expect(onTick.mock.calls).toEqual([[3], [-1]])
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      bus.off('countdown', onTick)
+      vi.useRealTimers()
+    }
   })
 })

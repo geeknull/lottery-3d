@@ -55,6 +55,35 @@ describe('setLocalStorage 写入容错', () => {
 })
 
 describe('轻量进度与旧存档迁移', () => {
+  it('旧配置默认简洁，改为隆重后仍恢复同一份进度与公平验证包', async () => {
+    const { saveUserConfig } = await import('./config-store')
+    const userConfig = {
+      version: 1 as const, headerTitle: '节奏兼容',
+      prizes: [{ name: '大奖', count: 2, everyTimeGet: 1 }], roster: ['甲', '乙', '丙'],
+    }
+    saveUserConfig(userConfig)
+    vi.resetModules()
+    const configured = (await import('./lottery-config')).default
+    expect(configured.prizeList[0].presentation).toBe('standard')
+    const { getRandomCard } = await import('./lottery-algorithm')
+    const { ensureSeedCommit, createVerificationPackage } = await import('./lottery-fairness')
+    await ensureSeedCommit()
+    getRandomCard(configured.prizeList[0])
+    const progress = localStorage.getItem('___lottery___')
+    const verification = createVerificationPackage()
+    saveUserConfig({ ...userConfig, prizes: [{ ...userConfig.prizes[0], presentation: 'ceremonial' }] })
+    vi.resetModules()
+    const reloaded = (await import('./lottery-config')).default
+    expect(reloaded.prizeList[0].presentation).toBe('ceremonial')
+    expect(reloaded.prizeList[0].countRemain).toBe(1)
+    expect(reloaded.cardListWinAll.map(card => card.id)).toEqual(configured.cardListWinAll.map(card => card.id))
+    expect(reloaded.rngState).toBe(configured.rngState)
+    expect(localStorage.getItem('___lottery___')).toBe(progress)
+    const { createVerificationPackage: reloadedPackage, verifyCurrent } = await import('./lottery-fairness')
+    expect(reloadedPackage()).toEqual(verification)
+    expect((await verifyCurrent()).ok).toBe(true)
+  })
+
   it('恢复图片后的真实抽奖只保存 ID 与进度，不把图片写回 localStorage', async () => {
     const { putImage } = await import('./image-store')
     const { hydrateLotteryImages } = await import('./config-images')

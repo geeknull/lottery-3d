@@ -1,11 +1,17 @@
 // 用户自定义抽奖配置的读写、导入导出，以及中奖名单 CSV 导出
-import type { Prize } from './lottery-types';
+import type { Prize, PrizePresentation } from './lottery-types';
+import { isRehearsal } from './rehearsal';
 
 export interface PrizeConfig {
   name: string;
   count: number; // 总数量
   everyTimeGet: number; // 每轮抽取数量
   img?: string; // 奖品图（data URL 或 http URL），可选
+  presentation?: PrizePresentation; // 揭晓节奏，缺省 standard
+}
+
+export function isPrizePresentation(value: unknown): value is PrizePresentation {
+  return value === 'standard' || value === 'ceremonial';
 }
 
 // 名单条目：纯名字用字符串，带头像用对象（两种形态可混用，便于老配置兼容）
@@ -25,8 +31,7 @@ export interface UserLotteryConfig {
 
 const CONFIG_KEY = '___lottery_config___';
 
-// 名单规模性能阈值：CSS3DRenderer 旋转时需每帧重算所有卡片的 3D 变换，
-// 实测 ~300 人流畅、1000 人起明显掉帧、2000 人卡顿。超过此值在配置面板给出提示。
+// Large rosters need an on-device rehearsal; this threshold is a prompt, not a frame-rate claim.
 export const PERF_WARN_ROSTER = 1000;
 
 function isValidConfig(data: unknown): data is UserLotteryConfig {
@@ -43,7 +48,8 @@ function isValidConfig(data: unknown): data is UserLotteryConfig {
         typeof prize.name === 'string' && prize.name.length > 0 &&
         typeof prize.count === 'number' && prize.count >= 1 &&
         typeof prize.everyTimeGet === 'number' && prize.everyTimeGet >= 1 &&
-        (prize.img === undefined || typeof prize.img === 'string');
+        (prize.img === undefined || typeof prize.img === 'string') &&
+        (prize.presentation === undefined || isPrizePresentation(prize.presentation));
     }) &&
     (cfg.avatarStyle === undefined || typeof cfg.avatarStyle === 'string') &&
     (cfg.avatarAutoDowngrade === undefined || typeof cfg.avatarAutoDowngrade === 'boolean') &&
@@ -78,6 +84,7 @@ export function loadUserConfig(): UserLotteryConfig | null {
 // 返回 false 表示写入失败（多为 localStorage 配额超限或隐私模式禁用），
 // 由调用方提示用户，避免配置被静默丢弃。
 export function saveUserConfig(cfg: UserLotteryConfig): boolean {
+  if (isRehearsal()) return false;
   try {
     localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
     return true;
@@ -87,6 +94,7 @@ export function saveUserConfig(cfg: UserLotteryConfig): boolean {
 }
 
 export function clearUserConfig(): void {
+  if (isRehearsal()) return;
   localStorage.removeItem(CONFIG_KEY);
 }
 
@@ -129,7 +137,7 @@ export function rosterEntriesToText(roster: (string | RosterEntry)[]): string {
 }
 
 // 配置指纹：用于校验 localStorage 里的抽奖进度是否属于当前配置。
-// 奖品图、头像是纯展示字段，不参与指纹（换图/换头像不应清空抽奖进度）。
+// 奖品图、头像、揭晓节奏是纯展示字段，不参与指纹（修改它们不应清空抽奖进度）。
 export function configHash(headerTitle: string, prizes: PrizeConfig[], roster: (string | RosterEntry)[]): string {
   const prizeKeys = prizes.map(({ name, count, everyTimeGet }) => ({ name, count, everyTimeGet }));
   const rosterNames = normalizeRoster(roster).map(entry => entry.name);

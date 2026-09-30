@@ -123,3 +123,13 @@
 @keyframes control-pulse {
   50% { box-shadow: 0 0 36px rgba(255, 120, 120, 0.7); }
 }
+
+.control-presentation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  button { font: inherit; padding: 10px 14px; border: 1px solid rgba(var(--accent-light-rgb), .4); border-radius: 6px; outline: none; }
+  button:disabled { opacity: .35; }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import { useLotteryVersion } from '../core/lottery-store'
 import { toggleDraw, isSpinning, tableShow } from '../core/lottery-controller'
@@ -10,6 +10,7 @@ import STATUS from '../core/lottery-status'
 import { toast, appConfirm } from './feedback'
 import { bus } from '../core/event-bus'
 import type { Card } from '../core/lottery-types'
+import LotteryPresentationControls from './LotteryPresentationControls'
 import './lottery-action.scss'
 
 async function handleUndo() {
@@ -27,6 +28,7 @@ async function handleUndo() {
   const ids = undoLastDraw()
   if (ids) {
     ids.forEach(id => setCardPrizeMark(id, false)) // 卡片墙去染色
+    await tableShow() // 撤下已作废的中奖镜头和标题
     toast('已撤销最近一轮抽奖')
   }
 }
@@ -56,6 +58,8 @@ export default function LotteryAction() {
   const [voidTarget, setVoidTarget] = useState<VoidTarget | null>(null)
   const [winSearch, setWinSearch] = useState('')
   useLotteryVersion() // 中奖名单面板打开期间数据变化也能刷新
+  const phase = useSyncExternalStore(STATUS.subscribe, STATUS.getPhase)
+  const drawBusy = !['idle', 'presenting', 'spinning'].includes(phase)
   const prizeList = lotteryConfig.prizeList
 
   // 中奖名单按姓名搜索（大名单现场作废时快速定位），不碰抽奖逻辑
@@ -64,13 +68,14 @@ export default function LotteryAction() {
     .map(item => ({ item, matched: winTerm ? item.cardListWin.filter(u => u.name.includes(winTerm)) : item.cardListWin }))
     .filter(g => g.matched.length > 0) // 只展示有中奖人的奖项，空奖项不占空间
 
-  function handleVoid(returnToPool: boolean) {
+  async function handleVoid(returnToPool: boolean) {
     if (!voidTarget) return
     const ok = voidWinner(voidTarget.prizeId, voidTarget.card.id, returnToPool)
     if (ok) {
       setCardPrizeMark(voidTarget.card.id, false) // 卡片墙去掉中奖染色
     }
     setVoidTarget(null)
+    if (ok) await tableShow()
   }
 
   const [showcaseOn, setShowcaseOn] = useState(isShowcaseActive())
@@ -97,11 +102,14 @@ export default function LotteryAction() {
           id="primaryCta"
           className={'primary-cta' + (spinning ? ' is-spinning' : '')}
           title="快捷键：空格 / 翻页笔（PageDown、B、Enter）"
+          disabled={drawBusy}
+          aria-busy={drawBusy}
           onClick={toggleDraw}
         >
           <span className="cta-dot" aria-hidden="true" />
-          {spinning ? '停 !' : '开始抽奖'}
+          {spinning ? '停 !' : phase === 'preparing' ? '准备中…' : phase === 'revealing' ? '揭晓中…' : phase === 'transitioning' ? '调整中…' : phase === 'init' ? '舞台加载中…' : '开始抽奖'}
         </button>
+        <LotteryPresentationControls />
         <div className="secondary-actions">
           <button className="icon-action" title="平铺展示全部卡片" onClick={tableShow}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -123,7 +131,7 @@ export default function LotteryAction() {
             </svg>
             <span>{showcaseOn ? '停止轮播' : '轮播展示'}</span>
           </button>
-          <button className="icon-action" title="撤销最近一轮抽奖，名额退回可重抽" onClick={handleUndo}>
+          <button className="icon-action" disabled={drawBusy || spinning} title="撤销最近一轮抽奖，名额退回可重抽" onClick={handleUndo}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 14L4 9l5-5" /><path d="M4 9h11a6 6 0 0 1 0 12h-4" />
             </svg>
@@ -164,6 +172,7 @@ export default function LotteryAction() {
                       <button
                         type="button"
                         className="void-btn"
+                        disabled={drawBusy || spinning}
                         title="作废此中奖（名额退回，可补抽）"
                         aria-label={`作废 ${item.name} ${user.name} 的中奖`}
                         onClick={() => setVoidTarget({ prizeId: item.id, prizeName: item.name, card: user })}

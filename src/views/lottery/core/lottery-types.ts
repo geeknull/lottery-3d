@@ -11,6 +11,9 @@ export interface Card {
   col: number // table 模式下的列号（从 1 开始）
 }
 
+// Only affects stage timing, never the draw rule or random stream.
+export type PrizePresentation = 'standard' | 'ceremonial'
+
 // 一个奖项
 export interface Prize {
   count: number // 总数量
@@ -19,6 +22,7 @@ export interface Prize {
   name: string
   detail?: string
   img?: string
+  presentation?: PrizePresentation // 缺省简洁节奏；旧配置兼容
   id: string
   round: number // 已抽取轮数
   cardListWin: Card[] // 本奖项的中奖名单

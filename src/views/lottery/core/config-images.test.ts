@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { persistConfigImages, inlineConfigImages } from './config-images'
 import { getImage, isImageRef, gcImages } from './image-store'
 import type { UserLotteryConfig } from './config-store'
+import { parseConfigJson } from './config-store'
 
 const DATA_IMG = 'data:image/png;base64,AAAA'
 
@@ -58,5 +59,14 @@ describe('persist → inline 往返', () => {
     const original = baseConfig([DATA_IMG, 'http://x/b.png', undefined])
     const roundtrip = await inlineConfigImages(await persistConfigImages(original))
     expect(roundtrip.prizes.map(p => p.img)).toEqual([DATA_IMG, 'http://x/b.png', undefined])
+  })
+
+  it('保存图片及自包含导出后仍保留揭晓节奏', async () => {
+    const original = baseConfig([DATA_IMG])
+    original.prizes[0].presentation = 'ceremonial'
+    const persisted = await persistConfigImages(original)
+    expect(persisted.prizes[0].presentation).toBe('ceremonial')
+    const exported = JSON.stringify(await inlineConfigImages(persisted))
+    expect(parseConfigJson(exported)).toEqual(original)
   })
 })

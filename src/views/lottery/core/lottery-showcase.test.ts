@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+vi.mock('../components/feedback', () => ({ toast: vi.fn() }))
+
 async function loadFresh() {
   vi.resetModules()
+  const { default: status } = await import('./lottery-status')
+  status.setStatusWait()
   return await import('./lottery-showcase')
 }
 
@@ -31,6 +35,54 @@ beforeEach(async () => {
 })
 
 describe('lottery-showcase', () => {
+  it('抽奖准备/旋转/揭晓中不能启动轮播夺取阶段控制权', async () => {
+    const { default: status } = await import('./lottery-status')
+    const { deps, calls } = makeDeps()
+    for (const phase of ['preparing', 'spinning', 'revealing'] as const) {
+      status.setPhase(phase)
+      await showcase.startShowcase(deps)
+      expect(status.getPhase()).toBe(phase)
+      expect(showcase.isShowcaseActive()).toBe(false)
+    }
+    expect(calls).toEqual([])
+  })
+
+  it('旧轮播和归位 Promise 不会覆盖后续抽奖或场景卸载的阶段', async () => {
+    const { default: status } = await import('./lottery-status')
+    let finishOld!: () => void
+    let finishTable!: () => void
+    const deps = {
+      doTransform: () => new Promise<void>(resolve => { finishOld = resolve }),
+      wait: async () => {},
+    }
+    const oldShowcase = showcase.startShowcase(deps)
+    showcase.stopShowcase()
+    const table = showcase.returnToTable({ ...deps, doTransform: () => new Promise<void>(resolve => { finishTable = resolve }) })
+    finishOld()
+    await oldShowcase
+    expect(status.getPhase()).toBe('transitioning')
+    showcase.stopShowcase()
+    status.setPhase('preparing')
+    finishTable()
+    await table
+    expect(status.getPhase()).toBe('preparing')
+
+    status.setStatusWait()
+    const beforeDispose = showcase.startShowcase(deps)
+    showcase.stopShowcase()
+    status.setPhase('init')
+    finishOld()
+    await beforeDispose
+    expect(status.getPhase()).toBe('init')
+  })
+
+  it('布局失败会停止轮播并释放忙碌态，可继续正常抽奖', async () => {
+    const { default: status } = await import('./lottery-status')
+    await showcase.startShowcase({ doTransform: async () => { throw new Error('failed') }, wait: async () => {} })
+    expect(showcase.isShowcaseActive()).toBe(false)
+    expect(status.isWait()).toBe(true)
+  })
+
   it('按 sphere→helix→grid→table 顺序循环切换布局', async () => {
     const { calls, deps } = makeDeps()
     const origWait = deps.wait

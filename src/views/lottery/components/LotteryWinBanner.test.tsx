@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
 import LotteryWinBanner from './LotteryWinBanner'
 import { bus } from '../core/event-bus'
+import STATUS from '../core/lottery-status'
 import type { Card } from '../core/lottery-types'
 
 afterEach(cleanup)
@@ -32,11 +33,15 @@ describe('LotteryWinBanner', () => {
     expect(screen.queryByText('一等奖')).toBeNull()
   })
 
-  it('到时间自动消失', async () => {
-    render(<LotteryWinBanner duration={60} />)
+  it('定格与分组展示保留标题，下一轮准备时收起', () => {
+    render(<LotteryWinBanner />)
+    act(() => STATUS.setPhase('presenting'))
     reveal('二等奖', ['赵六'])
+    act(() => STATUS.setPhase('transitioning'))
+    act(() => STATUS.setPhase('presenting'))
     expect(screen.getByText('二等奖')).toBeTruthy()
-    await waitFor(() => expect(screen.queryByText('二等奖')).toBeNull(), { timeout: 1500 })
+    act(() => STATUS.setPhase('preparing'))
+    expect(screen.queryByText('二等奖')).toBeNull()
   })
 
   it('连续开奖时展示最新一轮', () => {

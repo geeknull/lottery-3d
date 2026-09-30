@@ -65,4 +65,9 @@ describe('buildSnapshot', () => {
   it('currentPrize 为 null 时 currentPrizeId 为 null', () => {
     expect(buildSnapshot(source({ currentPrize: null }), false).currentPrizeId).toBeNull()
   })
+
+  it('广播准备/揭晓阶段和分组镜头状态供控制窗锁定相同操作', () => {
+    const presentation = { phase: 'presenting' as const, winnerGroupIndex: 1, groupCount: 3, replayAvailable: true }
+    expect(buildSnapshot(source(), false, presentation)).toMatchObject(presentation)
+  })
 })

@@ -34,6 +34,7 @@ const initScene = function() {
 
 // 渲染器
 const initRenderer = function() {
+  renderStats = { requests: 0, renders: 0, frames: 0 };
   renderer = new CSS3DRenderer();
   renderer.setSize( getContainerWidth(), getContainerHeight() );
   document.getElementById( 'container' )!.appendChild( renderer.domElement );
@@ -54,9 +55,33 @@ const initControls = function(target = new Vector3(), distance = 3000) {
   controls.addEventListener( 'change', render );
 }
 
-// 渲染
+// All animation and control callbacks only invalidate. The frame loop draws once
+// after every update has settled, so N concurrent tweens never produce N draws.
+let dirty = false;
+let renderStats = { requests: 0, renders: 0, frames: 0 };
 function render() {
-  renderer.render( scene, camera );
+  dirty = true;
+  renderStats.requests++;
+}
+
+export function flushRender() {
+  renderStats.frames++;
+  if (!dirty || !renderer) return;
+  dirty = false;
+  renderer.render(scene, camera);
+  renderStats.renders++;
+}
+
+export function getRenderStats() { return { ...renderStats }; }
+
+export function disposeCore() {
+  controls?.removeEventListener('change', render);
+  controls?.dispose();
+  scene?.clear();
+  renderer?.domElement.remove();
+  objects.length = 0;
+  Object.values(targets).forEach(list => { list.length = 0; });
+  dirty = false;
 }
 
 function getContainerWidth() {

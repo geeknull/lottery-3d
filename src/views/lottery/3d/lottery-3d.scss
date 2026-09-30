@@ -89,3 +89,86 @@
     display: none;
   }
 }
+
+// Two quiet CSS ellipses add depth without introducing a WebGL layer or
+// per-card animation/compositing effects on the large roster.
+.stage-orbits {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity 0.5s ease;
+
+  i {
+    position: absolute;
+    top: 56%;
+    left: 50%;
+    width: 78%;
+    height: 27%;
+    border: 1px solid rgba(var(--accent-light-rgb), 0.15);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(-12deg);
+    box-shadow: 0 0 40px rgba(var(--accent-glow-rgb), 0.035);
+  }
+
+  i + i {
+    width: 63%;
+    height: 42%;
+    transform: translate(-50%, -50%) rotate(21deg);
+  }
+}
+
+.lottery-3d-wrap:has(#container[data-stage-phase='presenting']) .stage-orbits {
+  opacity: 0.12;
+}
+
+.element.winner-current {
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 5px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 20px rgba(var(--prize-mark-rgb), 0.32);
+
+  .symbol {
+    max-width: 92%;
+    margin-top: 5px;
+    font-size: var(--winner-name-size, 29px);
+    line-height: 1.12;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+  }
+
+  .details {
+    margin-top: 5px;
+    font-size: 12px;
+    opacity: 0.84;
+  }
+
+  .card-avatar {
+    flex-shrink: 0;
+    width: 82px;
+    height: 82px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-orbits,
+  .element.winner-background {
+    transition: none;
+  }
+}
+
+.element {
+  backface-visibility: hidden;
+}
+
+// Hundreds of glowing card layers are expensive to composite. Keep every
+// participant on stage, but reserve shadows for the current winning cards.
+.is-large-roster .element:not(.winner-current) {
+  box-shadow: none;
+
+  .symbol,
+  .details {
+    text-shadow: none;
+  }
+}
