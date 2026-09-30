@@ -1,0 +1,116 @@
+{
+  "label": "upgraded",
+  "capturedAt": "2026-09-30T12:54:30.855Z",
+  "baseURL": "http://127.0.0.1:18182",
+  "environment": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "arch": "arm64",
+    "cpu": "Apple M4 Pro",
+    "chromium": "148.0.7778.96",
+    "headless": true,
+    "viewport": "1440x900"
+  },
+  "note": "Development server; four-second spinning windows, three rounds per fresh roster context. Heap after forced GC. Timing is machine-specific, not a production FPS guarantee.",
+  "results": [
+    {
+      "count": 500,
+      "initMs": 878.7000000476837,
+      "heapMB": [
+        9.545158386230469,
+        10.835342407226562,
+        10.963607788085938,
+        11.0721435546875
+      ],
+      "samples": [
+        {
+          "frames": 194,
+          "medianMs": 17.199999999999818,
+          "p95Ms": 41.69999999999982,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 195
+        },
+        {
+          "frames": 189,
+          "medianMs": 17.5,
+          "p95Ms": 41.69999999999891,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 189
+        },
+        {
+          "frames": 187,
+          "medianMs": 17.399999999997817,
+          "p95Ms": 41.79999999999927,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 188
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "initMs": 1385.1000000238419,
+      "heapMB": [
+        13.039794921875,
+        13.95749282836914,
+        14.274978637695312,
+        14.353874206542969
+      ],
+      "samples": [
+        {
+          "frames": 73,
+          "medianMs": 58.100000000000364,
+          "p95Ms": 74.70000000000073,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 74
+        },
+        {
+          "frames": 77,
+          "medianMs": 58.20000000000073,
+          "p95Ms": 75.10000000000036,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 78
+        },
+        {
+          "frames": 80,
+          "medianMs": 57.79999999999927,
+          "p95Ms": 66.90000000000146,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 81
+        }
+      ]
+    },
+    {
+      "count": 3000,
+      "initMs": 4879.900000095367,
+      "heapMB": [
+        25.518352508544922,
+        27.097064971923828,
+        27.440765380859375,
+        27.46017074584961
+      ],
+      "samples": [
+        {
+          "frames": 12,
+          "medianMs": 558.3000000000002,
+          "p95Ms": 574.7999999999993,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 13
+        },
+        {
+          "frames": 10,
+          "medianMs": 574.8000000000029,
+          "p95Ms": 600.1000000000022,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 10
+        },
+        {
+          "frames": 10,
+          "medianMs": 557.6000000000022,
+          "p95Ms": 591.3999999999978,
+          "maxRendersPerFrame": 1,
+          "renderCalls": 10
+        }
+      ]
+    }
+  ]
+}
