@@ -32,13 +32,15 @@ export function resetCameraView(duration = 450): Promise<void> {
   controls.enabled = false;
 
   const finish = () => {
-    camera.position.copy(position);
+    // 复位动画期间也可能改变窗口尺寸，结束时按最新构图收拢。
+    const currentView = homeView();
+    camera.position.copy(currentView.target).add(new Vector3(0, 0, currentView.distance));
     camera.up.set(0, 1, 0);
     camera.quaternion.copy(frontRotation);
     camera.zoom = 1;
-    camera.far = Math.max(10000, view.distance * 6);
+    camera.far = Math.max(10000, currentView.distance * 6);
     camera.updateProjectionMatrix();
-    initControls(view.target, view.distance);
+    initControls(currentView.target, currentView.distance);
     render();
   };
 

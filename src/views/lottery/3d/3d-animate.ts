@@ -29,6 +29,7 @@ function transform( targetList: Object3D[], duration: number ) {
   return new Promise<void>((resolve) => {
     for ( let i = 0; i < objects.length; i ++ ) {
       const object = objects[ i ];
+      object.element.classList.remove('winner-background');
       const target = targetList[ i ];
 
       new Tween( object.position, tweenGroup )

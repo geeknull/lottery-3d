@@ -1,87 +1,94 @@
 import { Tween, Easing } from '@tweenjs/tween.js';
-import type { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
-import { cardSize, objects, scene, camera, controls, render } from './3d-core';
+import { cardSize, objects, scene, camera, controls, render, getContainerWidth, getContainerHeight } from './3d-core';
 import { Vector3 } from 'three';
-import { getCameraZ, setCardDist } from './3d-calc-distance';
+import { getFitWidthZ, getFitHeightZ, setCardDist } from './3d-calc-distance';
 import { tweenGroup } from './tween-group';
-import { rememberCameraView, resetCameraView } from './3d-camera-view';
+import { rememberCameraView, resetCameraView, setCameraView } from './3d-camera-view';
+import { getWinnerLayout } from './3d-winner-layout';
 
-function cardFlyAnimation(cardIndexList: number[]) {
-  controls.enabled = false;
-  return new Promise<void>((resolve) => {
-    const selectObject: CSS3DObject[] = [];
-    cardIndexList.forEach((item) => {
-      selectObject.push(objects[item]);
-    });
-    const locates: { x: number; y: number }[] = [];
-    const duration = 600;
+function getWinnerComposition(count: number) {
+  const width = getContainerWidth();
+  const height = getContainerHeight();
+  // 留出边缘呼吸空间和底部复位按钮的位置，矮窗口也不会遮住中奖姓名。
+  const availableWidth = Math.max(1, width - Math.min(64, width / 4));
+  const availableHeight = Math.max(1, height - Math.min(160, height / 3));
+  const layout = getWinnerLayout(count, availableWidth / availableHeight, cardSize);
+  const distance = Math.max(
+    getFitWidthZ(layout.width) * width / availableWidth,
+    getFitHeightZ(layout.height) * height / availableHeight,
+  );
+  return { ...layout, distance };
+}
 
-    const selectRowCount = 1; // 行数 默认一行
-    const cardPadding = 30;
-    const objectLength = selectObject.length;
-    const canvasSize = {
-      width: (objectLength / selectRowCount + 1) * (cardSize.width + cardPadding),
-      height: (selectRowCount + 1) * (cardSize.height + cardPadding)
-    }
+async function cardFlyAnimation(cardIndexList: number[]) {
+  if (cardIndexList.length === 0) return;
 
-    // 计算中奖卡片位置
-    const everyRowCount = Math.round(objectLength / selectRowCount);
-    for (let i = 0; i < selectRowCount; i++) {
-      const currentObjects = selectObject.slice(i * everyRowCount, (i+1) * everyRowCount);
-      for (let j = 0; j < currentObjects.length; j++) {
-        locates.push({
-          x: ((cardSize.width + cardPadding) * (j + 1)) - (canvasSize.width / 2),
-          y: -(cardSize.height + cardPadding) * (i + 1) + (canvasSize.height / 2)
-        });
-      }
-    }
-
-    const objectsWidth = (cardSize.width + cardPadding) * (selectObject.length / selectRowCount) - cardPadding;
-    const objectsHeight = (cardSize.height + cardPadding) * selectRowCount - cardPadding;
-    const cardDistZ = setCardDist(objectsWidth, objectsHeight);
-    const revealDistance = camera.position.z;
-
-    // 运行卡片动画
-    selectObject.forEach((object, index) => {
-      new Tween(object.position, tweenGroup)
-        .to(
-          {
-            x: locates[index].x,
-            y: locates[index].y,
-            z: cardDistZ // z: 2200 // 原始默认
-          },
-          Math.random() * duration + duration
-        )
-        .easing(Easing.Exponential.InOut)
-        .start();
-
-      new Tween(object.rotation, tweenGroup)
-        .to(
-          { x: 0, y: 0, z: 0 },
-          Math.random() * duration + duration
-        )
-        .easing(Easing.Exponential.InOut)
-        .start();
-
-      object.element.classList.add("prize");
-    });
-
-    // 空对象 Tween 仅用作计时器，驱动渲染并在动画结束时 resolve
-    new Tween({}, tweenGroup)
-      .to({}, duration * 2)
-      .onUpdate(render)
-      .start()
-      .onComplete(() => {
-        // 中奖卡片已经离开球面。窗口变窄后复位也必须看全这一排，
-        // 不能按原球面距离把相机移到中奖卡片背后。
-        rememberCameraView(() => ({
-          target: new Vector3(),
-          distance: Math.max(revealDistance, cardDistZ + getCameraZ(objectsWidth, objectsHeight)),
-        }));
-        void resetCameraView(0);
-        resolve();
-      });
+  const selectedObjects = cardIndexList.map(index => objects[index]);
+  const selectedSet = new Set(selectedObjects);
+  for (const object of objects) {
+    object.element.classList.toggle('winner-background', !selectedSet.has(object));
+  }
+  const layout = getWinnerComposition(selectedObjects.length);
+  const revealDistance = camera.position.z;
+  // 大批中奖者也必须飞到背景卡片前方，不能为了入镜退到球体里面。
+  const frontZ = objects.reduce((z, object) => Math.max(z, object.position.z), 0)
+    + Math.hypot(cardSize.width, cardSize.height) / 2 + 30;
+  const winnerZ = Math.max(frontZ, setCardDist(layout.width, layout.height));
+  const winnerView = (distance: number) => ({
+    target: new Vector3(0, 0, winnerZ),
+    distance: Math.max(revealDistance - winnerZ, distance),
   });
+  const duration = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 600;
+  const cameraMove = setCameraView(() => winnerView(layout.distance), duration * 2)
+    .then(() => { controls.enabled = false; });
+  // 相机可能先完成（包括减少动态效果模式），飞卡期间仍由程序持有视角。
+  controls.enabled = false;
+  await Promise.all([
+    cameraMove,
+    new Promise<void>((resolve) => {
+      // 运行卡片动画
+      selectedObjects.forEach((object, index) => {
+        new Tween(object.position, tweenGroup)
+          .to(
+            {
+              ...layout.positions[index],
+              z: winnerZ,
+            },
+            Math.random() * duration + duration
+          )
+          .easing(Easing.Exponential.InOut)
+          .start();
+
+        new Tween(object.rotation, tweenGroup)
+          .to(
+            { x: 0, y: 0, z: 0 },
+            Math.random() * duration + duration
+          )
+          .easing(Easing.Exponential.InOut)
+          .start();
+
+        object.element.classList.add("prize");
+      });
+
+      // 空对象 Tween 仅用作计时器，驱动渲染并在动画结束时 resolve
+      new Tween({}, tweenGroup)
+        .to({}, duration * 2)
+        .onUpdate(render)
+        .start()
+        .onComplete(() => resolve());
+    }),
+  ]);
+
+  // 揭晓结束及之后每次复位，都按最新画布重排；切换布局会替换此构图。
+  // 使用揭晓时的固定深度，避免拖拽相机后反复复位导致卡片越移越远。
+  rememberCameraView(() => {
+    const current = getWinnerComposition(selectedObjects.length);
+    selectedObjects.forEach((object, index) => {
+      object.position.set(current.positions[index].x, current.positions[index].y, winnerZ);
+    });
+    return winnerView(current.distance);
+  });
+  await resetCameraView(0);
 }
 
 // 持有当前旋转 tween，停止时只停它自己，不用 removeAll 一刀切

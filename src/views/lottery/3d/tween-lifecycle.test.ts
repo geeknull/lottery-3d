@@ -13,8 +13,9 @@ import { tweenGroup } from './tween-group'
 // renderer/controls are replaced because jsdom cannot render a CSS3D scene.
 vi.mock('./3d-core', () => {
   const controls = { enabled: true, target: new Vector3() }
+  const camera = new PerspectiveCamera(40, 16 / 9, 1, 10000)
   return {
-    camera: new PerspectiveCamera(40, 16 / 9, 1, 10000),
+    camera,
     scene: new Scene(),
     controls,
     initControls: vi.fn((target: Vector3) => {
@@ -24,6 +25,8 @@ vi.mock('./3d-core', () => {
     objects: [],
     targets: { table: [], sphere: [], helix: [], grid: [] },
     cardSize: { width: 140, height: 180, padding: 20 },
+    getContainerWidth: () => camera.aspect * 800,
+    getContainerHeight: () => 800,
     render: vi.fn(),
   }
 })
@@ -31,6 +34,7 @@ vi.mock('./3d-core', () => {
 beforeEach(() => {
   vi.useFakeTimers()
   vi.spyOn(performance, 'now').mockReturnValue(0)
+  camera.aspect = 16 / 9
   void setCameraView(() => ({ target: new Vector3(), distance: 3000 }))
   setSceneData({ cardList: [], cardListWinAll: [], colCount: 20, rowCount: 25 })
 })
@@ -42,6 +46,7 @@ afterEach(() => {
   objects.length = 0
   Object.values(targets).forEach(list => { list.length = 0 })
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   vi.useRealTimers()
 })
 
@@ -81,6 +86,73 @@ describe('shared animation lifecycle', () => {
     await flightDone
     expect(camera.position.z).toBe(4000)
     expect(objects.every(object => object.element.classList.contains('prize'))).toBe(true)
+    expect(tweenGroup.getAll()).toHaveLength(0)
+  })
+
+  it('keeps controls locked until winner placement finishes with reduced motion', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })))
+    addCards(10)
+    const flight = cardFlyAnimation(Array.from({ length: 10 }, (_, index) => index))
+    expect(controls.enabled).toBe(false)
+    await Promise.resolve()
+    expect(controls.enabled).toBe(false)
+    tweenGroup.update(1)
+    await flight
+    expect(controls.enabled).toBe(true)
+    expect(tweenGroup.getAll()).toHaveLength(0)
+  })
+
+  it('keeps an empty draw at the current view without starting animations', async () => {
+    const position = camera.position.clone()
+    await cardFlyAnimation([])
+    expect(camera.position.equals(position)).toBe(true)
+    expect(controls.enabled).toBe(true)
+    expect(tweenGroup.getAll()).toHaveLength(0)
+  })
+
+  it('keeps a large winner group in front of the background and fully in frame', async () => {
+    addCards(201)
+    objects[200].position.z = 800
+    const flight = cardFlyAnimation(Array.from({ length: 200 }, (_, index) => index))
+    tweenGroup.update(1201)
+    await flight
+    expect(objects[0].position.z).toBeGreaterThan(800 + Math.hypot(140, 180) / 2)
+    expect(controls.target.z).toBe(objects[0].position.z)
+    camera.updateMatrixWorld(true)
+    for (const object of objects.slice(0, 200)) {
+      for (const x of [-70, 70]) {
+        for (const y of [-90, 90]) {
+          const corner = new Vector3(x, y, 0).add(object.position).project(camera)
+          expect(Math.abs(corner.x)).toBeLessThan(1)
+          expect(Math.abs(corner.y)).toBeLessThan(1)
+        }
+      }
+    }
+    expect(tweenGroup.getAll()).toHaveLength(0)
+  })
+
+  it('reflows winners if the viewport changes during flight or reset without drifting', async () => {
+    addCards(10)
+    const flight = cardFlyAnimation(Array.from({ length: 10 }, (_, index) => index))
+    camera.aspect = 0.6
+    tweenGroup.update(1201)
+    await flight
+    const narrowRows = new Set(objects.map(object => object.position.y)).size
+    const plane = objects[0].position.z
+
+    const reset = resetCameraView(100)
+    tweenGroup.update(50)
+    camera.aspect = 2.5
+    tweenGroup.update(101)
+    await reset
+    expect(new Set(objects.map(object => object.position.y)).size).toBeLessThan(narrowRows)
+    const positions = objects.map(object => object.position.toArray())
+    const home = camera.position.clone()
+    camera.position.set(2000, 3000, -500)
+    await resetCameraView(0)
+    expect(objects.map(object => object.position.toArray())).toEqual(positions)
+    expect(camera.position.equals(home)).toBe(true)
+    expect(controls.target.toArray()).toEqual([0, 0, plane])
     expect(tweenGroup.getAll()).toHaveLength(0)
   })
 
