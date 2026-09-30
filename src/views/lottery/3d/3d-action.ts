@@ -1,10 +1,13 @@
 import { Tween, Easing } from '@tweenjs/tween.js';
 import type { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import { cardSize, objects, scene, camera, controls, render } from './3d-core';
-import { setCardDist } from './3d-calc-distance';
+import { Vector3 } from 'three';
+import { getCameraZ, setCardDist } from './3d-calc-distance';
 import { tweenGroup } from './tween-group';
+import { rememberCameraView, resetCameraView } from './3d-camera-view';
 
 function cardFlyAnimation(cardIndexList: number[]) {
+  controls.enabled = false;
   return new Promise<void>((resolve) => {
     const selectObject: CSS3DObject[] = [];
     cardIndexList.forEach((item) => {
@@ -33,12 +36,13 @@ function cardFlyAnimation(cardIndexList: number[]) {
       }
     }
 
+    const objectsWidth = (cardSize.width + cardPadding) * (selectObject.length / selectRowCount) - cardPadding;
+    const objectsHeight = (cardSize.height + cardPadding) * selectRowCount - cardPadding;
+    const cardDistZ = setCardDist(objectsWidth, objectsHeight);
+    const revealDistance = camera.position.z;
+
     // 运行卡片动画
     selectObject.forEach((object, index) => {
-      const objectsWidth = (cardSize.width + cardPadding) * (selectObject.length / selectRowCount) - cardPadding;
-      const objectsHeight = (cardSize.height + cardPadding) * selectRowCount - cardPadding;
-      const cardDistZ = setCardDist(objectsWidth, objectsHeight);
-
       new Tween(object.position, tweenGroup)
         .to(
           {
@@ -68,6 +72,13 @@ function cardFlyAnimation(cardIndexList: number[]) {
       .onUpdate(render)
       .start()
       .onComplete(() => {
+        // 中奖卡片已经离开球面。窗口变窄后复位也必须看全这一排，
+        // 不能按原球面距离把相机移到中奖卡片背后。
+        rememberCameraView(() => ({
+          target: new Vector3(),
+          distance: Math.max(revealDistance, cardDistZ + getCameraZ(objectsWidth, objectsHeight)),
+        }));
+        void resetCameraView(0);
         resolve();
       });
   });
@@ -83,9 +94,11 @@ let spinTween: Tween<{ a: number }> | null = null;
 // 卡片 transform，大名单旋转帧率大幅提升（瓶颈是合成层/DOM 写入随卡片数线性增长）。
 // 旋转是无限循环、由停止操作打断，不返回 Promise（原来 onComplete 永不触发、是死代码）。
 function rotateBall() {
+  // 倒计时期间仍可拖拽；真正开抽前重新居中并清除手势惯性。
+  void resetCameraView(0);
   const circleCount = 10000; // 1万圈
   const durationTime = 1000 * circleCount / 4;
-  // 保持当前相机的半径与高度（用户可能已缩放/拖拽），只让它绕中心公转
+  // 沿当前球体构图的半径绕中心公转。
   const radius = Math.hypot(camera.position.x, camera.position.z) || camera.position.z;
   const startAngle = Math.atan2(camera.position.x, camera.position.z);
   const height = camera.position.y;
@@ -104,18 +117,13 @@ function rotateBall() {
 }
 
 // 停止旋转：只停旋转 tween 本身（不用 tweenGroup.removeAll——那会连带杀掉别处
-// 正在跑的 tween 且不触发其 onComplete，逼出 zAnimate 里的 5 秒兜底）。
+// 正在跑的 tween 且不触发其 onComplete）。
 // 相机复位到正前方看向中心，让中奖卡片朝观众飞出。
 function rotateBallStop() {
   spinTween?.stop();
+  if (spinTween) tweenGroup.remove(spinTween);
   spinTween = null;
-  setTimeout(() => {
-    const radius = Math.hypot(camera.position.x, camera.position.z) || camera.position.z || 3000;
-    camera.position.set(0, camera.position.y, radius);
-    camera.lookAt(scene.position);
-    controls.enabled = true; // 恢复用户可拖拽/缩放
-    render();
-  }, 0);
+  void resetCameraView(0);
 }
 
 export { rotateBall, rotateBallStop, cardFlyAnimation }

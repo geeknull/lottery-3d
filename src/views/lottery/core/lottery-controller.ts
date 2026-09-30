@@ -11,6 +11,7 @@ import { ensureSeedCommit } from './lottery-fairness'
 import { startSpinTicks, stopSpinTicks, playReveal } from './lottery-sound'
 import { isCountdownEnabled, playCountdown } from './lottery-countdown'
 import { notifyLotteryChange } from './lottery-store'
+import { resetCameraView } from '../3d/3d-camera-view'
 
 // 抽奖的开始/停止流程。从 LotteryAction 组件抽出来，
 // 按钮和键盘快捷键共用同一套入口。
@@ -20,6 +21,21 @@ let spinning = false
 
 export function isSpinning(): boolean {
   return spinning
+}
+
+// 只改变当前构图，保留布局、中奖卡片和抽奖进度。
+export async function resetView(): Promise<void> {
+  if (!STATUS.isWait()) {
+    toast('请等当前抽奖或动画结束后再复位视角')
+    return
+  }
+  stopShowcase()
+  STATUS.setStatusRun()
+  try {
+    await resetCameraView()
+  } finally {
+    STATUS.setStatusWait()
+  }
 }
 
 // 改变旋转状态并广播，让主操作按钮在「开始抽奖 ↔ 停！」间切换文案

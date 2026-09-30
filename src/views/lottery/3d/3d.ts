@@ -26,6 +26,7 @@ function onWindowResize() {
   camera.aspect = getContainerWidth() / getContainerHeight();
   camera.updateProjectionMatrix();
   renderer.setSize(getContainerWidth(), getContainerHeight());
+  controls.handleResize();
   render();
 }
 
@@ -48,6 +49,10 @@ function init(sceneData: SceneData) {
   // 初始化完成后再监听 resize：camera/renderer 已就绪，
   // 避免原来在模块顶层注册、init 前触发时引用未初始化对象而抛错
   window.addEventListener('resize', onWindowResize);
+  // 父布局调整也会改变画布尺寸，不一定触发 window.resize。
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(onWindowResize).observe(document.getElementById('container')!);
+  }
 }
 
 export { init };
