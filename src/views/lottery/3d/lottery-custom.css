@@ -8,17 +8,20 @@
   overflow: hidden; /* 超长名字/id 不溢出卡片、不糊到隔壁 */
 }
 .element.prize.prize {
-  transition: background-color 1.5s ease-in 0.3s;
-  background-color: rgba(var(--prize-mark-rgb), 0.85) !important;
+  background-color: rgb(var(--prize-mark-rgb)) !important;
   box-shadow: 0 0 12px rgba(var(--prize-mark-rgb), 0.95);
+}
+.element.winner-background {
+  opacity: 0.18;
+  transition: opacity 0.35s ease;
 }
 .element.prize .symbol {
   text-shadow: none;
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff;
 }
 .element.prize .details {
   text-shadow: none;
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff;
 }
 
 .element .symbol {

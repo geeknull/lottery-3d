@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Scene } from 'three';
+import { PerspectiveCamera, Scene, Vector3 } from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import type { Object3D } from 'three';
@@ -40,10 +40,17 @@ const initRenderer = function() {
 }
 
 // 控制器
-const initControls = function() {
+const initControls = function(target = new Vector3(), distance = 3000) {
+  // reset() 不会清除 TrackballControls 的旋转/平移/缩放惯性。
+  // 通过公开的生命周期 API 重建，避免复位后被上一轮手势再次带偏。
+  controls?.removeEventListener('change', render);
+  controls?.dispose();
   controls = new TrackballControls( camera, renderer.domElement );
-  controls.minDistance = 500;
-  controls.maxDistance = 6000;
+  controls.target.copy(target);
+  controls.minDistance = Math.min(500, distance / 2);
+  controls.maxDistance = Math.max(6000, distance * 3);
+  controls.keys = ['', '', ''];
+  controls.update();
   controls.addEventListener( 'change', render );
 }
 

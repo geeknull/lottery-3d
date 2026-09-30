@@ -1,7 +1,7 @@
 import type { Object3D } from 'three';
 import { Tween, Easing } from '@tweenjs/tween.js';
 import { controls, render, objects, targets } from "./3d-core";
-import { setTableDist, setSphereDist } from './3d-calc-distance';
+import { setTableDist, setSphereDist, setLayoutDist } from './3d-calc-distance';
 import { tweenGroup } from './tween-group';
 
 let animating = false;
@@ -16,7 +16,8 @@ function animate() {
 function loop() {
   requestAnimationFrame( loop );
   tweenGroup.update();
-  controls.update();
+  // enabled 只拦输入事件，TrackballControls.update 自身仍会应用残余惯性。
+  if (controls.enabled) controls.update();
 }
 
 export type TransformType = 'table' | 'sphere' | 'helix' | 'grid';
@@ -28,6 +29,7 @@ function transform( targetList: Object3D[], duration: number ) {
   return new Promise<void>((resolve) => {
     for ( let i = 0; i < objects.length; i ++ ) {
       const object = objects[ i ];
+      object.element.classList.remove('winner-background');
       const target = targetList[ i ];
 
       new Tween( object.position, tweenGroup )
@@ -56,8 +58,10 @@ async function transformTargets(type: TransformType, duration: number, distMulti
   switch (type) {
     case 'table':
       transformStatus = 'table';
-      setTableDist(distMultiple); // 设置table的Z纵深
-      await transform( targets.table, duration );
+      await Promise.all([
+        setTableDist(distMultiple, duration),
+        transform( targets.table, duration ),
+      ]);
       break;
     case 'sphere':
       transformStatus = 'sphere';
@@ -68,11 +72,11 @@ async function transformTargets(type: TransformType, duration: number, distMulti
       break;
     case 'helix':
       transformStatus = 'helix';
-      await transform( targets.helix, duration );
+      await Promise.all([setLayoutDist('helix', duration), transform(targets.helix, duration)]);
       break;
     case 'grid':
       transformStatus = 'grid';
-      await transform( targets.grid, duration );
+      await Promise.all([setLayoutDist('grid', duration), transform(targets.grid, duration)]);
       break;
   }
 }

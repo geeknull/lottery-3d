@@ -1,8 +1,7 @@
-import { MathUtils } from 'three';
-import { Tween, Easing } from '@tweenjs/tween.js';
-import { camera, cardSize } from './3d-core';
-import { tweenGroup } from './tween-group';
+import { Box3, MathUtils, Vector3 } from 'three';
+import { camera, cardSize, targets } from './3d-core';
 import { getSceneData } from './3d-scene-data';
+import { setCameraView } from './3d-camera-view';
 
 export const checkFixDirection = (canvasAspect: number, objectAspect: number) => {
   // canvasAspect = canvasWidth / canvasHeight
@@ -32,22 +31,10 @@ export const getFitHeightZ = (height: number) => {
 };
 
 export const getFitSphereZ = (radius: number) => {
-  // height / 2
-  const z =  (radius) / (Math.sin( camera.fov * ( Math.PI / 180 ) / 2 ));
-  return z;
+  const halfVFov = MathUtils.degToRad(camera.fov) / 2;
+  const halfHFov = Math.atan(Math.tan(halfVFov) * camera.aspect);
+  return radius / Math.sin(Math.min(halfVFov, halfHFov));
 };
-
-export const zAnimate = async (z: number, duration: number) => {
-  return new Promise<void>((resolve) => {
-    // 没有任何地方再 removeAll，tween 必然正常跑完并触发 onComplete，
-    // 不再需要原来的 5 秒 setTimeout 兜底
-    new Tween( camera.position, tweenGroup )
-      .to( { z: z }, duration )
-      .easing( Easing.Exponential.InOut )
-      .start()
-      .onComplete(() => resolve());
-  });
-}
 
 export const getCameraZ = (width: number, height: number, multiple = 1.05) => {
   let zPosition: number;
@@ -62,8 +49,7 @@ export const getCameraZ = (width: number, height: number, multiple = 1.05) => {
 }
 
 export const setCameraZ = async (width: number, height: number, multiple = 1.05, duration = 0) => {
-  const z = getCameraZ(width, height, multiple);
-  await zAnimate(z, duration);
+  await setCameraView(() => ({ target: new Vector3(), distance: getCameraZ(width, height, multiple) }), duration);
 }
 
 export const setTableDist = async (multiple = 1.05, duration = 0) => {
@@ -74,8 +60,33 @@ export const setTableDist = async (multiple = 1.05, duration = 0) => {
 }
 
 export const setSphereDist = async (multiple = 1.05, duration = 0) => {
-  return await zAnimate(getFitSphereZ(800) * multiple, duration);
+  // 卡片有面积，不能只把球面上卡片中心当成可见边界。
+  const radius = 800 + Math.hypot(cardSize.width, cardSize.height) / 2;
+  return await setCameraView(() => ({ target: new Vector3(), distance: getFitSphereZ(radius) * multiple }), duration);
 }
+
+const layoutBounds = new Map<'helix' | 'grid', Box3>();
+
+export const setLayoutDist = (type: 'helix' | 'grid', duration = 0) => {
+  let bounds = layoutBounds.get(type);
+  if (!bounds) {
+    bounds = new Box3();
+    for (const object of targets[type]) {
+      for (const x of [-cardSize.width / 2, cardSize.width / 2]) {
+        for (const y of [-cardSize.height / 2, cardSize.height / 2]) {
+          bounds.expandByPoint(new Vector3(x, y, 0).applyQuaternion(object.quaternion).add(object.position));
+        }
+      }
+    }
+    layoutBounds.set(type, bounds);
+  }
+  const center = bounds.getCenter(new Vector3());
+  const size = bounds.getSize(new Vector3());
+  return setCameraView(() => ({
+    target: center,
+    distance: getCameraZ(size.x, size.y) + size.z / 2,
+  }), duration);
+};
 
 export const setCardDist = (cardWidth: number, cardHeight: number, multiple = 0.95) => {
   const z = getCameraZ(cardWidth, cardHeight, 1);
