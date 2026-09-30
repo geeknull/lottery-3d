@@ -6,8 +6,11 @@ test.describe('抽奖核心流程', () => {
   test('抽奖后剩余数量减少、卡片中奖染色、横幅展示', async ({ page }) => {
     await gotoFresh(page)
     // 默认选中最后一个奖项（三等奖，每轮 10 人）
-    const countBefore = await page.locator('.prize-item-count-text').last().textContent()
-    expect(countBefore).toBe('20/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 0/20')
+    await expect(page.locator('.prize-item-remaining').last()).toHaveText('剩余 20')
+    const progress = page.locator('.prize-item').last().getByRole('progressbar')
+    await expect(progress).toHaveAttribute('aria-valuenow', '0')
+    await expect(progress).toHaveAttribute('aria-valuemax', '20')
 
     await drawOneRound(page)
 
@@ -16,8 +19,10 @@ test.describe('抽奖核心流程', () => {
     await expect(page.locator('.banner-winner')).toHaveCount(10)
     await closeBanner(page)
 
-    // 剩余数量与中奖染色同步
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    // 已抽完成度、剩余数量与中奖染色同步
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
+    await expect(page.locator('.prize-item-remaining').last()).toHaveText('剩余 10')
+    await expect(progress).toHaveAttribute('aria-valuenow', '10')
     await expect(page.locator('.element.prize')).toHaveCount(10)
   })
 
@@ -25,11 +30,11 @@ test.describe('抽奖核心流程', () => {
     await gotoFresh(page)
     await drawOneRound(page)
     await closeBanner(page)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
 
     await page.reload()
     await page.waitForTimeout(3500)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
     await expect(page.locator('.element.prize')).toHaveCount(10)
   })
 
@@ -44,7 +49,7 @@ test.describe('抽奖核心流程', () => {
     await expect(page.locator('.confirm-dialog')).toBeVisible()
     await page.locator('.confirm-btns button.primary').click()
     await page.waitForTimeout(3500)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('20/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 0/20')
   })
 })
 
@@ -56,7 +61,7 @@ test.describe('中奖作废与补抽', () => {
     await page.waitForTimeout(2600)
     await drawOneRound(page)
     await closeBanner(page)
-    await expect(page.locator('.prize-item-count-text').first()).toHaveText('4/5')
+    await expect(page.locator('.prize-item-count-text').first()).toHaveText('已抽 1/5')
 
     // 打开中奖名单作废（不退回奖池）
     await page.locator('.icon-action:has-text("展示中奖")').click()
@@ -67,7 +72,7 @@ test.describe('中奖作废与补抽', () => {
     await expect(voidBtn).toBeFocused()
     await page.keyboard.press('Enter')
     await page.locator('.void-confirm-btns button').nth(1).click() // TA 不再参与
-    await expect(page.locator('.prize-item-count-text').first()).toHaveText('5/5')
+    await expect(page.locator('.prize-item-count-text').first()).toHaveText('已抽 0/5')
     await page.locator('.show-all-win-user .close-btn').click()
 
     // 补抽一轮，新中奖人与被作废的人不同
@@ -102,12 +107,12 @@ test.describe('撤销整轮', () => {
     await gotoFresh(page)
     await drawOneRound(page)
     await closeBanner(page)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
     await expect(page.locator('.element.prize')).toHaveCount(10)
 
     await page.locator('.icon-action:has-text("撤销")').click()
     await page.locator('.confirm-btns button.primary').click()
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('20/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 0/20')
     await expect(page.locator('.element.prize')).toHaveCount(0)
   })
 })
@@ -120,7 +125,7 @@ test.describe('快捷键与主题', () => {
     await page.keyboard.press('Space')
     await page.waitForTimeout(3000)
     await closeBanner(page)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
   })
 
   test('切换主题改变 data-theme 并持久化', async ({ page }) => {
@@ -163,7 +168,8 @@ test.describe('双屏控制', () => {
 
     // 中奖名单回传控制窗 + 剩余数同步
     await expect(control.locator('.control-reveal .cr-title')).toHaveText('最近中奖 · 三等奖', { timeout: 12000 })
-    await expect(control.locator('.control-prize').nth(3).locator('.cp-remain')).toHaveText('10/20')
+    await expect(control.locator('.control-prize').nth(3).locator('.cp-remain')).toHaveText('剩余 10')
+    await expect(control.locator('.control-prize').nth(3).locator('.cp-drawn')).toHaveText('已抽 10/20')
 
     // 关闭控制窗 → 展示窗恢复操作 UI
     await control.close()
@@ -296,7 +302,7 @@ test.describe('头像风格设置', () => {
     await gotoFresh(page)
     await drawOneRound(page)
     await closeBanner(page)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
 
     await page.locator('.config-btn').click()
     await page.locator('.avatar-style-option:has-text("机器人")').click()
@@ -304,7 +310,7 @@ test.describe('头像风格设置', () => {
     await page.waitForTimeout(3500)
 
     // 进度仍在（换头像不清进度）
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
     // 风格已持久化
     await page.locator('.config-btn').click()
     await expect(page.locator('.avatar-style-option:has-text("机器人")')).toHaveClass(/selected/)

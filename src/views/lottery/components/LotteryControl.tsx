@@ -57,7 +57,10 @@ export default function LotteryControl() {
             onClick={() => send({ action: 'selectPrize', prizeId: p.id })}
           >
             <span className="cp-name">{p.name}</span>
-            <span className="cp-remain">{p.countRemain}/{p.count}</span>
+            <span className="cp-counts">
+              <span className="cp-drawn">已抽 {p.count - p.countRemain}/{p.count}</span>
+              <span className="cp-remain">剩余 {p.countRemain}</span>
+            </span>
           </button>
         ))}
       </div>

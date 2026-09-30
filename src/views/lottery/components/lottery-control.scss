@@ -58,6 +58,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
       padding: 14px 18px;
       font-size: 17px;
       cursor: pointer;
@@ -74,7 +75,16 @@
       }
       &:disabled { opacity: 0.5; cursor: not-allowed; }
 
-      .cp-remain { font-variant-numeric: tabular-nums; color: rgba(var(--accent-light-rgb), 0.8); }
+      .cp-counts {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 4px 12px;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        color: rgba(var(--accent-light-rgb), 0.8);
+        > span { white-space: nowrap; }
+      }
     }
   }
 

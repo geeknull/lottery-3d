@@ -32,7 +32,7 @@ async function savedData(page: Page) {
 async function expectRestored(page: Page, winners: string[]) {
   await expect(page.locator('.lottery-header')).toHaveText(config.headerTitle)
   await expect(page.locator('.element .symbol')).toHaveText(config.roster)
-  await expect(page.locator('.prize-item-count-text')).toHaveText('1/2')
+  await expect(page.locator('.prize-item-count-text')).toHaveText('已抽 1/2')
   await expect(page.locator('.element.prize .symbol')).toHaveText(winners)
 }
 

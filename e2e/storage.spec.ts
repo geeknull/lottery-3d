@@ -23,7 +23,7 @@ test('含奖品图的抽奖保存轻量进度，刷新仍恢复中奖和图片',
   expect(stored.saved.version).toBe(2)
   expect(stored.saved.cardListWinAll).toHaveLength(10)
   await page.reload()
-  await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+  await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
   await expect(page.locator('.element.prize')).toHaveCount(10)
   await expect(page.locator('.prize-item img').last()).toHaveAttribute('src', /^data:image/)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('___lottery___')!).cardListWinAll)).toEqual(stored.saved.cardListWinAll)

@@ -25,36 +25,50 @@ export default function LotteryPrize() {
   return (
     <div className="prize-wrap">
       <ul className="prize-list">
-        {prizeList.map((item, index) => (
-          <li
-            key={index}
-            className={'prize-item' + (index === currentPrizeIndex ? ' shine' : '')}
-            onClick={() => selectPrize(item.id)}
-          >
-            {item.img && (
-              <div className="prize-item-left">
-                <img src={item.img} alt={item.name} />
-              </div>
-            )}
-            <div className="prize-item-right">
-              <div className="prize-item-title">{item.name}</div>
-              <div className="prize-item-count" style={{ display: 'none' }}>{item.count}名</div>
-              <div className="prize-item-count-wrap">
-                <div className="prize-item-count-text">{item.countRemain}/{item.count}</div>
-                <div className="progress">
+        {prizeList.map((item, index) => {
+          const drawn = item.count - item.countRemain
+          const progress = Math.max(0, Math.min(drawn, item.count))
+          return (
+            <li
+              key={index}
+              className={'prize-item' + (index === currentPrizeIndex ? ' shine' : '')}
+              onClick={() => selectPrize(item.id)}
+            >
+              {item.img && (
+                <div className="prize-item-left">
+                  <img src={item.img} alt={item.name} />
+                </div>
+              )}
+              <div className="prize-item-right">
+                <div className="prize-item-title">{item.name}</div>
+                <div className="prize-item-count-wrap">
+                  <div className="prize-item-counts">
+                    <div className="prize-item-count-text">已抽 {drawn}/{item.count}</div>
+                    <div className="prize-item-remaining">剩余 {item.countRemain}</div>
+                  </div>
                   <div
-                    style={{ width: (item.countRemain / item.count) * 100 + '%' }}
-                    className="progress-bar progress-bar-danger progress-bar-striped active"
-                  ></div>
+                    className="progress"
+                    role="progressbar"
+                    aria-label={`${item.name}已抽进度`}
+                    aria-valuemin={0}
+                    aria-valuemax={item.count}
+                    aria-valuenow={progress}
+                    aria-valuetext={`已抽 ${drawn}/${item.count}，剩余 ${item.countRemain}`}
+                  >
+                    <div
+                      style={{ width: (item.count > 0 ? progress / item.count : 0) * 100 + '%' }}
+                      className="progress-bar progress-bar-danger progress-bar-striped active"
+                    ></div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <span className="line-1"></span>
-            <span className="line-2"></span>
-            <span className="line-3"></span>
-            <span className="line-4"></span>
-          </li>
-        ))}
+              <span className="line-1"></span>
+              <span className="line-2"></span>
+              <span className="line-3"></span>
+              <span className="line-4"></span>
+            </li>
+          )
+        })}
       </ul>
       <LotteryAction />
     </div>

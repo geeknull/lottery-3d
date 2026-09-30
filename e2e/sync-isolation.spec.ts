@@ -21,9 +21,9 @@ test('两个展示页独立，控制窗只控制它配对的展示页', async ({
   await control.locator('.control-cta').click()
   await expect(control.locator('.control-cta')).toHaveText('停 !')
   await control.locator('.control-cta').click()
-  await expect(control.locator('.control-prize').first().locator('.cp-remain')).toHaveText('4/5')
-  await expect(other.locator('.prize-item-count-text').first()).toHaveText('5/5')
-  await expect(other.locator('.prize-item-count-text').last()).toHaveText('20/20')
+  await expect(control.locator('.control-prize').first().locator('.cp-remain')).toHaveText('剩余 4')
+  await expect(other.locator('.prize-item-count-text').first()).toHaveText('已抽 0/5')
+  await expect(other.locator('.prize-item-count-text').last()).toHaveText('已抽 0/20')
   await expect(other.locator('.element.prize')).toHaveCount(0)
 })
 

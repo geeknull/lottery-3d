@@ -128,7 +128,7 @@ test('撤销当前一轮会撤下已失效的中奖标题和镜头', async ({ pa
   await expect(page.locator('.lottery-win-banner')).toHaveCount(0)
   await expect(page.locator('.winner-current')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '重放揭晓', exact: true })).toHaveCount(0)
-  await expect(page.locator('.prize-item-count-text').last()).toHaveText('20/20')
+  await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 0/20')
 })
 
 test('只更改奖项揭晓节奏保留正式进度，隆重揭晓与重放不改变结果', async ({ page }) => {
@@ -141,7 +141,7 @@ test('只更改奖项揭晓节奏保留正式进度，隆重揭晓与重放不�
   await page.locator('.prize-presentation-select').last().selectOption('ceremonial')
   await page.locator('.panel-actions button.primary').click()
   await expect(page.locator('.lottery-config-panel')).toHaveCount(0)
-  await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+  await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
   expect(await saved(page)).toBe(before)
   await page.locator('.config-btn').click()
   await expect(page.locator('.prize-presentation-select').last()).toHaveValue('ceremonial')

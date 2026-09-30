@@ -192,7 +192,7 @@ test.describe('3D 视角复位', () => {
     await expect.poll(async () => (await viewState(page)).zoom).toBe(1)
     expect(await sceneState(page)).toEqual(scene)
     await expect(page.locator('.element.prize')).toHaveCount(10)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
     await page.getByRole('button', { name: '展示中奖' }).click()
     const listedWinners = await page.locator('.prize-win-user-name').allTextContents()
     for (const winner of winners) expect(listedWinners.some(name => name.includes(winner.trim()))).toBe(true)

@@ -155,7 +155,7 @@ test.describe('中奖卡片自适应排布', () => {
     expect(expectReadableLayout(narrow, 10).length).toBeGreaterThan(rows.length)
     expect(narrow.cards.map(card => card.id)).toEqual(initial.cards.map(card => card.id))
     expect(await page.evaluate(() => localStorage.getItem('___lottery___'))).toBe(savedDraw)
-    await expect(page.locator('.prize-item-count-text').last()).toHaveText('10/20')
+    await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
   })
 
   for (const count of [1, 7, 20]) {
