@@ -1,43 +1,90 @@
-import type { Card } from './lottery-types'
+import type { Card, DrawLogEntry, Prize } from './lottery-types'
 
-// 恢复存档前的完整性校验：进度数组字段必须是数组，且中奖/排除名单里的 id
-// 必须都属于当前名单。任一不满足就当新局，挡住三类问题：
-// 1) 被篡改的非数组字段 → 否则模块顶层 import 期 .map/.some 抛错导致全屏白屏
-// 2) 32 位 djb2 指纹的偶然碰撞 → 名单对不上的旧存档被照单全收
-// 3) 手改 localStorage / 未来改 id 生成规则带来的 id 错配
-export function isSavedRestorable(saved: unknown, cardList: Card[]): boolean {
-  if (!saved || typeof saved !== 'object') {
-    return false
-  }
-  const s = saved as Record<string, unknown>
+export type SavedCardReference = string | Pick<Card, 'id'>
 
-  // 进度数组字段类型校验（可选字段缺省允许，存在则必须是数组）
-  if (!Array.isArray(s.cardListWinAll) || !Array.isArray(s.cardListRemainAll)) {
-    return false
-  }
-  if (s.prizeList != null && !Array.isArray(s.prizeList)) {
-    return false
-  }
-  if (s.cardListExcluded != null && !Array.isArray(s.cardListExcluded)) {
-    return false
-  }
-  if (s.drawLog != null && !Array.isArray(s.drawLog)) {
-    return false
-  }
+export interface SavedProgress {
+  version?: 2
+  currentPrize?: string | null
+  prizeList?: {
+    id: string
+    countRemain: number
+    round: number
+    cardListWin: SavedCardReference[]
+  }[]
+  cardListWinAll: SavedCardReference[]
+  cardListRemainAll: SavedCardReference[]
+  cardListExcluded?: SavedCardReference[]
+  seed?: number
+  rngState?: number
+  seedCommit?: string
+  drawLog?: DrawLogEntry[]
+}
 
-  // 中奖/排除名单里的每个条目都必须是合法卡片且 id 属于当前名单
-  const validIds = new Set(cardList.map(c => c.id))
-  const referenced = [
-    ...(s.cardListWinAll as unknown[]),
-    ...((s.cardListExcluded as unknown[]) ?? []),
-  ]
-  for (const c of referenced) {
-    if (!c || typeof c !== 'object') {
-      return false
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+}
+
+function isSeed(value: unknown): value is number {
+  return isCount(value) && value <= 0xffffffff
+}
+
+// 同时接受旧完整卡片存档与 v2 ID 存档，但不混用两种表示。
+// 校验所有引用（包括剩余池和奖项内部），恢复时才可安全地按 id 取当前卡片。
+export function isSavedRestorable(
+  saved: unknown,
+  cardList: Card[],
+  prizeList?: Pick<Prize, 'id'>[],
+): saved is SavedProgress {
+  if (!isRecord(saved) || (saved.version !== undefined && saved.version !== 2)) return false
+  const compact = saved.version === 2
+  const validIds = new Set(cardList.map(card => card.id))
+  const prizesById = prizeList && new Map(prizeList.map(prize => [prize.id, prize]))
+
+  const isCardList = (value: unknown): value is SavedCardReference[] => Array.isArray(value)
+    && value.every(card => compact
+      ? typeof card === 'string' && validIds.has(card)
+      : isRecord(card) && typeof card.id === 'string' && validIds.has(card.id))
+  const isIds = (value: unknown): value is string[] => Array.isArray(value)
+    && value.every(id => typeof id === 'string' && validIds.has(id))
+  const isPrizeId = (value: unknown): value is string => typeof value === 'string'
+    && (!prizesById || prizesById.has(value))
+
+  if (!isCardList(saved.cardListWinAll) || !isCardList(saved.cardListRemainAll)) return false
+  if (saved.cardListExcluded !== undefined && !isCardList(saved.cardListExcluded)) return false
+  if (saved.currentPrize != null && !isPrizeId(saved.currentPrize)) return false
+
+  if (saved.prizeList !== undefined) {
+    if (!Array.isArray(saved.prizeList)) return false
+    const seen = new Set<string>()
+    for (const prize of saved.prizeList) {
+      // 旧配置入口允许小数名额，抽取后余额也可能为负；不能因此丢弃整场历史。
+      if (!isRecord(prize) || !isPrizeId(prize.id) || seen.has(prize.id)
+        || typeof prize.countRemain !== 'number' || !Number.isFinite(prize.countRemain)
+        || !isCount(prize.round)
+        || !isCardList(prize.cardListWin)) return false
+      seen.add(prize.id)
     }
-    const id = (c as Record<string, unknown>).id
-    if (typeof id !== 'string' || !validIds.has(id)) {
-      return false
+  }
+
+  if (saved.seed !== undefined && !isSeed(saved.seed)) return false
+  if (saved.rngState !== undefined && !isSeed(saved.rngState)) return false
+  if (saved.seedCommit !== undefined && typeof saved.seedCommit !== 'string') return false
+  if (saved.drawLog !== undefined) {
+    if (!Array.isArray(saved.drawLog)) return false
+    for (const entry of saved.drawLog) {
+      if (!isRecord(entry) || (entry.type !== 'draw' && entry.type !== 'void' && entry.type !== 'undo')
+        || !isCount(entry.at) || !isPrizeId(entry.prizeId) || typeof entry.prizeName !== 'string'
+        || !isIds(entry.winnerIds) || !Array.isArray(entry.winnerNames)
+        || !entry.winnerNames.every(name => typeof name === 'string')
+        || entry.winnerNames.length !== entry.winnerIds.length) return false
+      if (entry.poolIds !== undefined && !isIds(entry.poolIds)) return false
+      if (entry.rngStateBefore !== undefined && !isSeed(entry.rngStateBefore)) return false
+      if (entry.note !== undefined && typeof entry.note !== 'string') return false
+      if (entry.undone !== undefined && typeof entry.undone !== 'boolean') return false
     }
   }
   return true

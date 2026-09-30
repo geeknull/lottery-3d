@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
+    "e2e:pwa": "playwright test --config playwright.pwa.config.ts",
     "type-check": "tsc --noEmit",
     "lint": "oxlint . && eslint .",
     "lint:fix": "oxlint . --fix && eslint . --fix"

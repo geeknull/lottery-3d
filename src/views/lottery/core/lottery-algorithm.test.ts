@@ -170,6 +170,34 @@ describe('可验证公平：种子化抽奖', () => {
 })
 
 describe('undoLastDraw 撤销整轮', () => {
+  it.each([true, false])('作废后撤销只归还仍有效的名额（退回奖池=%s）', async (returnToPool) => {
+    const prize = lotteryConfig.prizeList[0]
+    prize.everyTimeGet = 2
+    const initialCount = prize.countRemain
+    const [voided, active] = getRandomCard(prize)
+    voidWinner(prize.id, voided.id, returnToPool)
+
+    expect(undoLastDraw()).toEqual([active.id])
+    expect(prize.countRemain).toBe(initialCount)
+    expect(prize.cardListWin).toHaveLength(0)
+    expect(lotteryConfig.cardListWinAll).toHaveLength(0)
+    expect(lotteryConfig.cardListRemainAll.some(c => c.id === voided.id)).toBe(returnToPool)
+    expect(undoLastDraw()).toBeNull()
+
+    vi.resetModules()
+    const { default: reloaded } = await import('./lottery-config')
+    expect(reloaded.prizeList[0].countRemain).toBe(initialCount)
+  })
+
+  it('整轮中奖均已作废时撤销不再增加名额', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const initialCount = prize.countRemain
+    for (const winner of getRandomCard(prize)) voidWinner(prize.id, winner.id, false)
+    expect(undoLastDraw()).toEqual([])
+    expect(prize.countRemain).toBe(initialCount)
+    expect(prize.round).toBe(0)
+  })
+
   it('撤销后中奖人移出、名额退回、轮数减一', () => {
     const prize = lotteryConfig.prizeList.find(p => p.everyTimeGet === 10)!
     getRandomCard(prize)

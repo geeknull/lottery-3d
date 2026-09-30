@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { broadcastChannel, createControlSync } from '../core/lottery-sync'
+import { broadcastChannel, createControlSync, getControlSessionId, isDualScreenSupported } from '../core/lottery-sync'
 import type { ControlSync, SyncCommand } from '../core/lottery-sync'
 import type { StateSnapshot } from '../core/lottery-snapshot'
 import './lottery-control.scss'
@@ -11,10 +11,12 @@ export default function LotteryControl() {
   const syncRef = useRef<ControlSync | null>(null)
 
   useEffect(() => {
-    const sync = createControlSync(broadcastChannel(), {
+    const sessionId = getControlSessionId()
+    if (!sessionId || !isDualScreenSupported()) return
+    const sync = createControlSync(broadcastChannel(sessionId), {
       onState: setSnapshot,
       onConnectionChange: setConnected,
-    })
+    }, sessionId)
     syncRef.current = sync
     return () => sync.close()
   }, [])
@@ -27,7 +29,7 @@ export default function LotteryControl() {
         <div className="control-waiting">
           <div className="control-spinner" />
           <p>{connected ? '已连接，正在获取状态…' : '等待连接展示窗…'}</p>
-          <p className="control-hint">在展示窗点击右上角「双屏」按钮，或确认展示窗已打开同一地址。</p>
+          <p className="control-hint">请从展示窗右上角「双屏控制」打开控制窗。展示窗刷新后，请重新打开控制窗配对。</p>
         </div>
       </div>
     )
@@ -73,7 +75,7 @@ export default function LotteryControl() {
         </div>
       )}
 
-      {!connected && <div className="control-offline-tip">展示窗已断开，操作暂不可用</div>}
+      {!connected && <div className="control-offline-tip">展示窗已断开，操作暂不可用。若展示窗已刷新，请从其「双屏控制」重新打开控制窗配对。</div>}
     </div>
   )
 }

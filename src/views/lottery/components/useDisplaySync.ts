@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { broadcastChannel, createDisplaySync, isDualScreenSupported, closeControlWindow } from '../core/lottery-sync'
+import { broadcastChannel, createDisplaySync, isDualScreenSupported, closeControlWindow, getDisplaySessionId, resetDisplaySessionId } from '../core/lottery-sync'
 import type { DisplaySync } from '../core/lottery-sync'
 import { buildSnapshot } from '../core/lottery-snapshot'
 import lotteryConfig from '../core/lottery-config'
@@ -11,12 +11,15 @@ import { bus } from '../core/event-bus'
 // 返回控制窗是否在线（用于自动隐藏操作 UI）+ exit（主屏一键退出双屏：关副屏 + 立即恢复操作 UI）。
 export function useDisplaySync(): { connected: boolean; exit: () => void } {
   const [controlConnected, setControlConnected] = useState(false)
+  const [sessionId, setSessionId] = useState(getDisplaySessionId)
   const syncRef = useRef<DisplaySync | null>(null)
 
   // 主屏一键退出：关闭副屏窗口，并立即恢复操作 UI（不必等 8 秒心跳超时）
   const exit = () => {
     closeControlWindow()
     setControlConnected(false)
+    // 撤销旧配对（包括复制的控制页），并重建在线检测，支持立即重新连接。
+    setSessionId(resetDisplaySessionId())
   }
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export function useDisplaySync(): { connected: boolean; exit: () => void } {
     const pushState = () =>
       syncRef.current?.postState(buildSnapshot(lotteryConfig, isSpinning()))
 
-    const sync = createDisplaySync(broadcastChannel(), {
+    const sync = createDisplaySync(broadcastChannel(sessionId), {
       onCommand(cmd) {
         switch (cmd.action) {
           case 'selectPrize': void selectPrize(cmd.prizeId); break
@@ -38,7 +41,7 @@ export function useDisplaySync(): { connected: boolean; exit: () => void } {
         }
       },
       onConnectionChange: setControlConnected,
-    })
+    }, sessionId)
     syncRef.current = sync
 
     // 任意状态变化都同步给控制窗
@@ -53,7 +56,7 @@ export function useDisplaySync(): { connected: boolean; exit: () => void } {
       bus.off('lottery-win-reveal', pushState)
       syncRef.current = null
     }
-  }, [])
+  }, [sessionId])
 
   return { connected: controlConnected, exit }
 }
