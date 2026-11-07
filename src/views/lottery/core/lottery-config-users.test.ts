@@ -12,6 +12,11 @@ describe('calcColCount', () => {
 })
 
 describe('buildCards', () => {
+  it.each(['letter', 'letter-rich', 'fun-emoji', 'bottts'])('%s 风格下 emoji 开头的名字能建卡', style => {
+    const { cardList } = buildCards([{ name: '🐱小明' }, { name: '𠮷田' }], style)
+    expect(cardList.every(card => card.avatar.startsWith('data:'))).toBe(true)
+  })
+
   it('重名自动加序号区分 id，name 保持原样', () => {
     const { cardList } = buildCards([{ name: '张三' }, { name: '张三' }, { name: '张三' }], 'letter')
     expect(cardList.map(c => c.id)).toEqual(['张三', '张三-2', '张三-3'])

@@ -24,6 +24,12 @@ describe('AVATAR_STYLES 注册表', () => {
 })
 
 describe('generateAvatarFor 派发', () => {
+  it.each(['🐱小明', '𠮷田', '\uD83D', '&<>', ''])('任何风格处理 %j 都不抛错', name => {
+    for (const style of AVATAR_STYLES) {
+      expect(generateAvatarFor(name, style.id).startsWith('data:')).toBe(true)
+    }
+  })
+
   it('按 id 生成；letter-rich 含渐变与首字', () => {
     const uri = generateAvatarFor('张三', 'letter-rich')
     expect(uri).toContain('linearGradient')

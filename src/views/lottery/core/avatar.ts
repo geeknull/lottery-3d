@@ -15,8 +15,17 @@ export function hashCode(str: string): number {
   return hash;
 }
 
+const XML_ENTITIES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+
+// 取名字的第一个字符，用于放进 SVG 文本。
+// 按码点取，emoji 和扩展区汉字不会被截成半个代理对；孤立代理无法 URL 编码，用问号代替。
+export function avatarInitial(name: string): string {
+  const first = Array.from(name.trim())[0] ?? '?';
+  return first.replace(/\p{Cs}/gu, '?').replace(/[&<>]/g, char => XML_ENTITIES[char]);
+}
+
 export function generateAvatar(name: string): string {
-  const char = name.trim().charAt(0) || '?';
+  const char = avatarInitial(name);
   const color = COLORS[hashCode(name) % COLORS.length];
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
