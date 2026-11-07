@@ -202,3 +202,74 @@ describe('轻量进度与旧存档迁移', () => {
     expect(reloaded.drawLog).toEqual([])
   })
 })
+
+describe('多窗口写入保护', () => {
+  // 模拟另一个窗口写入了更新的进度
+  function writeFromOtherWindow() {
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    localStorage.setItem('___lottery___', JSON.stringify({ ...saved, revision: saved.revision + 1, marker: 'other-window' }))
+  }
+
+  it('每次保存递增版本', () => {
+    lotteryConfig.setLocalStorage()
+    lotteryConfig.setLocalStorage()
+    expect(JSON.parse(localStorage.getItem('___lottery___')!).revision).toBe(2)
+  })
+
+  it('其他窗口写入后不覆盖，并只提醒一次', () => {
+    const onStale = vi.fn()
+    bus.on('progress-stale', onStale)
+    lotteryConfig.setLocalStorage()
+    writeFromOtherWindow()
+    lotteryConfig.setLocalStorage()
+    lotteryConfig.setLocalStorage()
+    expect(JSON.parse(localStorage.getItem('___lottery___')!).marker).toBe('other-window')
+    expect(lotteryConfig.isProgressStale()).toBe(true)
+    expect(onStale).toHaveBeenCalledTimes(1)
+  })
+
+  it('收到 storage 事件时立即失效', () => {
+    const onStale = vi.fn()
+    bus.on('progress-stale', onStale)
+    lotteryConfig.setLocalStorage()
+    writeFromOtherWindow()
+    window.dispatchEvent(new StorageEvent('storage', { key: '___lottery___' }))
+    expect(onStale).toHaveBeenCalledTimes(1)
+  })
+
+  it('其他窗口清空进度后本窗口失效', () => {
+    lotteryConfig.setLocalStorage()
+    localStorage.removeItem('___lottery___')
+    expect(lotteryConfig.isProgressStale()).toBe(true)
+  })
+
+  it('无关键名的 storage 事件不会让本窗口失效', () => {
+    const onStale = vi.fn()
+    bus.on('progress-stale', onStale)
+    lotteryConfig.setLocalStorage()
+    window.dispatchEvent(new StorageEvent('storage', { key: '___lottery_sound___' }))
+    expect(onStale).not.toHaveBeenCalled()
+  })
+
+  it('存档被拒绝恢复时，新场次仍能保存', async () => {
+    lotteryConfig.setLocalStorage()
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    localStorage.setItem('___lottery___', JSON.stringify({ ...saved, hash: 'changed', revision: 9 }))
+    vi.resetModules()
+    const { default: reloaded } = await import('./lottery-config')
+    expect(reloaded.isProgressStale()).toBe(false)
+    reloaded.setLocalStorage()
+    expect(JSON.parse(localStorage.getItem('___lottery___')!).revision).toBe(10)
+  })
+
+  it('没有 revision 的旧存档按 0 处理', async () => {
+    lotteryConfig.setLocalStorage()
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    delete saved.revision
+    localStorage.setItem('___lottery___', JSON.stringify(saved))
+    vi.resetModules()
+    const { default: reloaded } = await import('./lottery-config')
+    reloaded.setLocalStorage()
+    expect(JSON.parse(localStorage.getItem('___lottery___')!).revision).toBe(1)
+  })
+})

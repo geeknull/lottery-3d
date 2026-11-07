@@ -102,6 +102,7 @@ async function playResult(result: RevealResult, replay = false): Promise<boolean
 async function start(): Promise<boolean> {
   stopShowcase()
   if (!STATUS.isWait()) return false
+  if (lotteryConfig.isProgressStale()) { toast('此窗口的进度已过期，请刷新后再抽奖'); return false }
   const prize = lotteryConfig.getCurrentPrize()
   if (!prize) { toast('请选择奖项'); return false }
   if (prize.countRemain <= 0) { toast(prize.name + '已经抽取完毕，请选择其他奖项'); return false }
@@ -150,11 +151,12 @@ async function stop(): Promise<boolean> {
   stopSpinTicks()
   const version = flowVersion
   const prize = lotteryConfig.getCurrentPrize()
-  if (!prize || !prize.countRemain || !lotteryConfig.cardListRemainAll.length) {
+  const stale = lotteryConfig.isProgressStale()
+  if (stale || !prize || !prize.countRemain || !lotteryConfig.cardListRemainAll.length) {
     try { await rotateBallStop() } catch { /* 恢复可操作状态 */ }
     if (version !== flowVersion) return false
     STATUS.setPhase('idle')
-    toast('奖项或奖池不可用，请重新选择')
+    toast(stale ? '此窗口的进度已过期，本轮没有抽取，请刷新' : '奖项或奖池不可用，请重新选择')
     return false
   }
   try {
