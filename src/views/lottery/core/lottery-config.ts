@@ -31,6 +31,7 @@ export interface LotteryConfig {
   rngState: number; // 流式推进的当前 rng 状态
   seedCommit: string; // 种子的承诺哈希（SHA-256），开始前公布
   drawLog: DrawLogEntry[]; // 操作流水（抽奖/作废/撤销）
+  isProgressStale(): boolean; // 其他窗口已写入更新的进度时返回 true，本窗口不能再改结果
   getCurrentPrize(prizeId?: string | null): Prize | undefined;
   getUserById(id: string): Card | undefined;
   setLocalStorage(): void;
@@ -78,6 +79,31 @@ const rehearsal = isRehearsal();
 let isInit = false;
 let storageHealthy = true; // localStorage 写入是否正常（失败只提醒一次的去重标志）
 const localStorageKey = '___lottery___';
+let knownRevision = 0; // 本窗口最后读到或写入的存档版本
+let progressStale = false;
+
+// 读取存档版本。没有存档、解析失败或旧存档都按 0 处理。
+function readStoredRevision(): number {
+  try {
+    const raw = localStorage.getItem(localStorageKey);
+    if (!raw) return 0;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null || !('revision' in parsed)) return 0;
+    return Number.isSafeInteger(parsed.revision) ? parsed.revision as number : 0;
+  } catch {
+    return 0;
+  }
+}
+
+// 比较存储和本窗口的版本。不一致说明别的窗口写入或清空过，本窗口就此失效。
+function checkProgressStale(): boolean {
+  if (rehearsal) return false;
+  if (!progressStale && readStoredRevision() !== knownRevision) {
+    progressStale = true;
+    bus.emit('progress-stale');
+  }
+  return progressStale;
+}
 
 const lotteryConfig: LotteryConfig = {
   prizeList,
@@ -93,6 +119,8 @@ const lotteryConfig: LotteryConfig = {
   seedCommit: '', // 异步算出后填充
   drawLog: [],
 
+  isProgressStale: checkProgressStale,
+
   getCurrentPrize(prizeId = lotteryConfig.currentPrize) {
     return lotteryConfig.prizeList.find(_ => {
       return _.id === prizeId;
@@ -103,12 +131,15 @@ const lotteryConfig: LotteryConfig = {
   },
   setLocalStorage() {
     if (rehearsal) return;
+    if (checkProgressStale()) return; // 不用本窗口的旧内存覆盖别的窗口写入的新进度
+    const revision = knownRevision + 1;
     // 写入是抽奖热路径（每轮 getRandomCard 都调）。配额超限/隐私模式下 setItem 会抛
     // QuotaExceededError，不能让它冒泡打断 lotteryStop 的揭晓动画/彩带，更不能静默丢结果——
     // 捕获后发事件提示主持人及时导出。从健康转失败只提醒一次，避免每轮刷屏。
     try {
       localStorage.setItem(localStorageKey, JSON.stringify({
         version: 2,
+        revision,
         hash: currentHash,
         currentPrize: lotteryConfig.currentPrize,
         // 进度只存引用，不把已解析的奖品图或生成的头像重复写入 localStorage。
@@ -126,6 +157,7 @@ const lotteryConfig: LotteryConfig = {
         seedCommit: lotteryConfig.seedCommit,
         drawLog: lotteryConfig.drawLog,
       }));
+      knownRevision = revision;
       storageHealthy = true;
     } catch (e) {
       if (storageHealthy) {
@@ -191,10 +223,20 @@ const lotteryConfig: LotteryConfig = {
   clearLocalStorage() {
     if (rehearsal) return;
     localStorage.removeItem(localStorageKey)
+    knownRevision = 0;
   },
 };
 
 // 启动时恢复抽奖进度（原版此调用缺失导致进度只写不读）
 lotteryConfig.getLocalStorage();
+// 恢复被拒绝时存储里仍是旧数据，这里无条件同步，否则新场次会被误判为过期。
+knownRevision = readStoredRevision();
+
+// 其他窗口写入或清空正式进度时，本窗口立即失效。storage 事件不会发给写入者自己。
+if (!rehearsal) {
+  window.addEventListener('storage', event => {
+    if (event.key === localStorageKey || event.key === null) checkProgressStale();
+  });
+}
 
 export default lotteryConfig;

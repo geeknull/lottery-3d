@@ -277,6 +277,31 @@ describe('undoLastDraw 撤销整轮', () => {
   })
 })
 
+describe('过期窗口不能改动结果', () => {
+  function makeStale() {
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    localStorage.setItem('___lottery___', JSON.stringify({ ...saved, revision: saved.revision + 1 }))
+  }
+
+  it('进度过期后 voidWinner 返回 false，中奖名单不变', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const [winner] = getRandomCard(prize)
+    makeStale()
+    expect(voidWinner(prize.id, winner.id, true)).toBe(false)
+    expect(prize.cardListWin.some(c => c.id === winner.id)).toBe(true)
+    expect(lotteryConfig.cardListWinAll.some(c => c.id === winner.id)).toBe(true)
+  })
+
+  it('进度过期后 undoLastDraw 返回 null，中奖名单不变', () => {
+    const prize = lotteryConfig.prizeList[0]
+    const winners = getRandomCard(prize)
+    makeStale()
+    expect(undoLastDraw()).toBeNull()
+    expect(prize.cardListWin).toHaveLength(winners.length)
+    expect(lotteryConfig.cardListWinAll).toHaveLength(winners.length)
+  })
+})
+
 describe('voidWinner 作废中奖', () => {
   it('作废后从奖项中奖名单移除且名额退回', () => {
     const prize = lotteryConfig.prizeList[0]

@@ -47,6 +47,25 @@ beforeEach(async () => {
 })
 
 describe('统一抽奖指令', () => {
+  it('进度过期的窗口不能开始抽奖', async () => {
+    config.setLocalStorage()
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    localStorage.setItem('___lottery___', JSON.stringify({ ...saved, revision: saved.revision + 1 }))
+    expect(await controller.lotteryStart()).toBe(false)
+    expect(status.getPhase()).toBe('idle')
+    expect(stage.rotateBall).not.toHaveBeenCalled()
+  })
+
+  it('旋转中进度过期时不抽取，也不写入流水', async () => {
+    config.setLocalStorage()
+    await controller.lotteryStart()
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    localStorage.setItem('___lottery___', JSON.stringify({ ...saved, revision: saved.revision + 1 }))
+    expect(await controller.lotteryStop()).toBe(false)
+    expect(config.drawLog).toHaveLength(0)
+    expect(status.getPhase()).toBe('idle')
+  })
+
   it('待机、初始化、准备中收到停止指令都不抽取或改写流水', async () => {
     await controller.lotteryStop()
     status.setStatus(status.INIT)

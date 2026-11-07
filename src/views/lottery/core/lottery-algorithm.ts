@@ -63,6 +63,7 @@ const getRandomCard = function(currentPrize: Prize): Card[] {
 // 作废一条中奖记录（中奖人不在场等情况），名额退回奖项后可正常补抽。
 // returnToPool 决定该人是否回到奖池继续参与后续抽奖。
 const voidWinner = function(prizeId: string, cardId: string, returnToPool: boolean): boolean {
+  if (lotteryConfig.isProgressStale()) return false;
   const prize = lotteryConfig.prizeList.find(p => p.id === prizeId);
   if (!prize) {
     return false;
@@ -99,6 +100,7 @@ const voidWinner = function(prizeId: string, cardId: string, returnToPool: boole
 // 关键：不回退 rng 状态——被撤销的那轮确实消耗了随机流，回退会导致重抽必然抽到同一批人。
 // 被撤销轮在 drawLog 里标记 undone 保留（验证时照常复算，链才连续），重抽用新的随机流。
 const undoLastDraw = function(): string[] | null {
+  if (lotteryConfig.isProgressStale()) return null;
   const idx = lotteryConfig.drawLog.findLastIndex(e => e.type === 'draw' && !e.undone);
   if (idx === -1) {
     return null;
