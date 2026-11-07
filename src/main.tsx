@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import LotteryErrorBoundary from './views/lottery/components/LotteryErrorBoundary'
 import { initTheme } from './views/lottery/core/lottery-theme'
 import { initPwaUpdate } from './views/lottery/core/pwa-update'
 import { hydrateLotteryImages } from './views/lottery/core/config-images'
@@ -21,6 +22,8 @@ await hydrateLotteryImages()
 // 可安全开启 StrictMode（开发态双调用 effect 帮助暴露副作用/清理缺陷）
 createRoot(document.getElementById('app')!).render(
   <StrictMode>
-    <App />
+    <LotteryErrorBoundary>
+      <App />
+    </LotteryErrorBoundary>
   </StrictMode>,
 )

@@ -75,3 +75,29 @@ test('奖品图片写入失败保留原配置与进度，并恢复保存按钮',
   await page.reload()
   await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 10/20')
 })
+
+test('保存过 emoji 开头名字的配置后，页面仍能打开', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    localStorage.removeItem('___lottery___')
+    localStorage.setItem('___lottery_countdown___', 'off')
+    localStorage.setItem('___lottery_config___', JSON.stringify({
+      version: 1, headerTitle: '头像回归',
+      prizes: [{ name: '一等奖', count: 1, everyTimeGet: 1 }],
+      roster: ['🐱小明', '𠮷田', '&小红'],
+      avatarStyle: 'letter-rich',
+    }))
+  })
+  await page.reload()
+  await expect(page.locator('.lottery-wrap')).toBeVisible()
+  await expect(page.locator('.element')).toHaveCount(3)
+  await expect(page.locator('.config-btn')).toBeVisible()
+})
+
+test('配置面板贴入 emoji 开头的名字不会让页面白屏', async ({ page }) => {
+  await gotoFresh(page)
+  await page.locator('.config-btn').click()
+  await page.locator('.lottery-config-panel textarea').fill('🐱小明\n李四\n王五')
+  await expect(page.locator('.lottery-config-panel')).toBeVisible()
+  await expect(page.locator('.avatar-style-option')).toHaveCount(4)
+})

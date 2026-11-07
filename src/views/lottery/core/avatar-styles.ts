@@ -1,7 +1,7 @@
 // 头像风格注册表：把"生成款头像"抽象成可选风格，供配置面板选择、buildCards 生成。
 import { createAvatar } from '@dicebear/core'
 import { funEmoji, bottts } from '@dicebear/collection'
-import { generateAvatar as letterAvatar, hashCode } from './avatar'
+import { avatarInitial, generateAvatar as letterAvatar, hashCode } from './avatar'
 
 export interface AvatarStyle {
   id: string
@@ -24,7 +24,7 @@ function richAvatar(name: string): string {
   const l2 = 20 + ((h >>> 9) % 10)
   const ang = (h >>> 11) % 360
   const dot = (h >>> 13) % 3
-  const ch = name.trim().charAt(0) || '?'
+  const ch = avatarInitial(name)
   const id = 'g' + h.toString(36)
   const accent = dot === 0 ? ''
     : dot === 1 ? `<circle cx="82" cy="20" r="26" fill="rgba(255,255,255,.10)"/>`
@@ -53,12 +53,16 @@ function styleOf(id: string): AvatarStyle {
   return byId.get(id) ?? byId.get(DEFAULT_AVATAR_STYLE)!
 }
 
-// 生成头像；任何风格生成出错都兜底回纯色首字，永不抛。
+// 生成头像；风格生成出错时回纯色首字，再出错就用问号头像，永不抛。
 export function generateAvatarFor(name: string, styleId: string = DEFAULT_AVATAR_STYLE): string {
   try {
     return styleOf(styleId).generate(name)
   } catch {
-    return letterAvatar(name)
+    try {
+      return letterAvatar(name)
+    } catch {
+      return letterAvatar('?')
+    }
   }
 }
 

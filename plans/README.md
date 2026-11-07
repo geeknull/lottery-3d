@@ -9,7 +9,7 @@
 | Plan | 标题 | Priority | Effort | Depends on | Status |
 |------|------|----------|--------|------------|--------|
 | [001](001-agents-md.md) | 把分散的开发规则收进 AGENTS.md | P2 | S | — | DONE（分支 `advisor/001-agents-md`，`ea2c277`） |
-| [002](002-avatar-white-screen.md) | 名字以 emoji 或生僻字开头时不再白屏 | P1 | S | — | TODO |
+| [002](002-avatar-white-screen.md) | 名字以 emoji 或生僻字开头时不再白屏 | P1 | S | — | DONE（分支 `advisor/002-avatar-white-screen`，`328d883`；红灯检查与生产构建验收通过） |
 | [003](003-single-writer-progress.md) | 多个正式窗口不再互相覆盖抽奖进度 | P1 | M | — | TODO |
 | [004](004-roster-file-encoding.md) | 导入 GBK 编码的名单文件时不再乱码 | P1 | S | — | TODO |
 | [005](005-unique-ids.md) | 名单和奖项的 ID 保证唯一 | P1 | S | — | TODO |

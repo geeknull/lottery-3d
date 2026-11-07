@@ -1,0 +1,22 @@
+.lottery-error-boundary {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  color: #fff;
+  text-align: center;
+  background: #021620;
+
+  button {
+    padding: 8px 20px;
+    font-size: 14px;
+    color: #fff;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 5px;
+  }
+}
