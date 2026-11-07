@@ -11,6 +11,7 @@ import LotteryFairness from './LotteryFairness'
 import LotteryHistory from './LotteryHistory'
 import LotteryUpdateBanner from './LotteryUpdateBanner'
 import LotteryCompatNotice from './LotteryCompatNotice'
+import LotteryStaleNotice from './LotteryStaleNotice'
 import { FeedbackHost } from './feedback'
 import { useLotteryShortcuts, toggleFullscreen } from '../core/lottery-shortcuts'
 import { useDisplaySync } from './useDisplaySync'
@@ -67,6 +68,7 @@ export default function Lottery() {
       <FeedbackHost />
       <LotteryUpdateBanner />
       <LotteryCompatNotice />
+      {!rehearsal && <LotteryStaleNotice />}
       {controlConnected && (
         <button className="exit-dual-btn" onClick={exitDualScreen} title="关闭控制窗并恢复主屏操作">
           ✕ 退出双屏控制
