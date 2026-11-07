@@ -2,7 +2,7 @@ import { useRef, useState, useMemo } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import {
   clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
-  rosterEntriesToText, parseConfigJson, exportConfigFile, exportWinnersCsv,
+  rosterEntriesToText, decodeTextFile, parseConfigJson, exportConfigFile, exportWinnersCsv,
   PERF_WARN_ROSTER,
 } from '../core/config-store'
 import type { PrizeConfig, UserLotteryConfig } from '../core/config-store'
@@ -147,12 +147,14 @@ export default function LotteryConfigPanel({ onClose }: Props) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const entries = parseRosterEntries(await file.text())
+    const text = decodeTextFile(await file.arrayBuffer())
+    const entries = parseRosterEntries(text)
     if (entries.length === 0) {
       toast('文件里没有解析出任何名字')
       return
     }
     setRosterText(rosterEntriesToText(entries))
+    if (text.includes('\ufffd')) toast('部分字符无法识别，请检查名单，或把文件另存为 UTF-8 后重新导入', 8000)
   }
 
   async function handleConfigFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -331,7 +333,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         </h3>
         <p className="field-hint">
           每行一个人：「名字」或「名字,头像链接」（http(s) 或 data:image 链接才识别为头像，没有头像时按名字自动生成）。
-          可直接从 Excel 整列复制后粘贴（第二列不是链接时只取名字）。文件导入支持 .txt / .csv，规则相同。
+          可直接从 Excel 整列复制后粘贴（第二列不是链接时只取名字）。文件导入支持 .txt / .csv（UTF-8 或 GBK 编码），规则相同。
         </p>
         {rosterNames.length > PERF_WARN_ROSTER && (
           <p className="perf-warning">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRosterText, parseRosterEntries, normalizeRoster, parseConfigJson, configHash, escapeCsvCell, buildWinnersCsv, saveUserConfig } from './config-store'
+import { parseRosterText, parseRosterEntries, decodeTextFile, normalizeRoster, parseConfigJson, configHash, escapeCsvCell, buildWinnersCsv, saveUserConfig } from './config-store'
 import type { UserLotteryConfig } from './config-store'
 import type { Card, Prize } from './lottery-types'
 
@@ -230,5 +230,30 @@ describe('configHash', () => {
     for (const presentation of ['standard', 'ceremonial'] as const) {
       expect(configHash('标题', validConfig.prizes.map(prize => ({ ...prize, presentation })), validConfig.roster)).toBe(base)
     }
+  })
+})
+
+describe('decodeTextFile', () => {
+  const bytes = (...values: number[]) => new Uint8Array(values).buffer
+
+  it('解码 UTF-8', () => {
+    expect(decodeTextFile(new TextEncoder().encode('张三\n李四').buffer as ArrayBuffer)).toBe('张三\n李四')
+  })
+
+  it('去掉 UTF-8 BOM', () => {
+    expect(decodeTextFile(bytes(0xef, 0xbb, 0xbf, 0xe5, 0xbc, 0xa0))).toBe('张')
+  })
+
+  it('UTF-8 解码失败时按 GBK 解码', () => {
+    expect(decodeTextFile(bytes(0xd5, 0xc5, 0xc8, 0xfd, 0x0a, 0xc0, 0xee, 0xcb, 0xc4))).toBe('张三\n李四')
+  })
+
+  it('按 BOM 解码 UTF-16', () => {
+    expect(decodeTextFile(bytes(0xff, 0xfe, 0x20, 0x5f))).toBe('张')
+    expect(decodeTextFile(bytes(0xfe, 0xff, 0x5f, 0x20))).toBe('张')
+  })
+
+  it('空文件返回空字符串', () => {
+    expect(decodeTextFile(bytes())).toBe('')
   })
 })

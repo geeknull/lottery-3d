@@ -101,6 +101,19 @@ export function clearUserConfig(): void {
 // 第二列形如 http(s):// 或 data:image/ 才认作头像，避免误吞 Excel 粘贴的部门列
 const AVATAR_PATTERN = /^(https?:\/\/|data:image\/)/;
 
+// 解码导入的文本文件。Excel 按系统编码保存 CSV，不能假定是 UTF-8：
+// 先看 BOM，再严格按 UTF-8 解码，失败时按 GB18030（GBK 的超集）解码。
+export function decodeTextFile(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder('utf-16le').decode(bytes);
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder('utf-16be').decode(bytes);
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder('gb18030').decode(bytes);
+  }
+}
+
 // 解析粘贴/文件的名单文本：一行一个人，「名字」或「名字,头像链接」；
 // 第二列不是链接时按 Excel 多列粘贴处理（只取第一列名字）
 export function parseRosterEntries(text: string): RosterEntry[] {
