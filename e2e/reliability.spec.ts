@@ -101,3 +101,15 @@ test('配置面板贴入 emoji 开头的名字不会让页面白屏', async ({ p
   await expect(page.locator('.lottery-config-panel')).toBeVisible()
   await expect(page.locator('.avatar-style-option')).toHaveCount(4)
 })
+
+test('导入 GBK 编码的名单文件后姓名正确', async ({ page }) => {
+  await gotoFresh(page)
+  await page.locator('.config-btn').click()
+  await page.locator('.lottery-config-panel input[accept=".txt,.csv"]').setInputFiles({
+    name: 'roster.csv',
+    mimeType: 'text/csv',
+    // GBK 编码的「张三\n李四」
+    buffer: Buffer.from([0xd5, 0xc5, 0xc8, 0xfd, 0x0a, 0xc0, 0xee, 0xcb, 0xc4]),
+  })
+  await expect(page.locator('.lottery-config-panel textarea')).toHaveValue('张三\n李四')
+})
