@@ -17,7 +17,7 @@
 | [007](007-keep-rejected-progress.md) | 无法恢复的旧进度先备份并提醒 | P2 | S | — | DONE（分支 `advisor/007-keep-rejected-progress`，`ea51f48`；红灯检查与生产构建验收通过） |
 | [008](008-salted-seed-commitment.md) | 种子承诺加盐，并绑定名单和奖项规则 | P2 | M | 005 | TODO |
 | [009](009-idb-commit-semantics.md) | IndexedDB 写入以事务提交为准 | P3 | S | — | TODO |
-| [010](010-ci-least-privilege.md) | CI 的部署权限只给部署任务 | P3 | S | — | TODO |
+| [010](010-ci-least-privilege.md) | CI 的部署权限只给部署任务 | P3 | S | — | DONE（分支 `advisor/010-ci-least-privilege`，`e24de6a`；以第二批上线的 CI 部署为准） |
 | [011](011-preflight-storage-check.md) | 现场检查增加“本地存储”一项 | P3 | S | — | TODO |
 | [012](012-progress-restore-design.md) | 设计：进度备份与换机恢复 | P2 | M | 003、007（建议在 008 之后） | TODO |
 | [013](013-participant-identity-design.md) | 设计：参与者身份列 | P3 | M | 005（建议在 006 之后） | TODO |
