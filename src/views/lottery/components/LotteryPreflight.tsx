@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { loadUserConfig } from '../core/config-store'
 import { isDualScreenSupported } from '../core/lottery-sync'
 import { isRehearsal } from '../core/rehearsal'
-import { auditionAudio, browserOfflineEnvironment, checkDualScreen, checkImages, checkOffline, collectConfiguredImages } from '../core/preflight'
+import { auditionAudio, browserOfflineEnvironment, browserStorageEnvironment, checkDualScreen, checkImages, checkOffline, checkStorage, collectConfiguredImages, requestPersistentStorage } from '../core/preflight'
 import type { PreflightCheck } from '../core/preflight'
 import { useOnEscape } from './useOnEscape'
 import './lottery-preflight.scss'
@@ -15,6 +15,7 @@ export default function LotteryPreflight({ onClose, controlConnected }: Props) {
   useOnEscape(onClose)
   const [images, setImages] = useState(pending)
   const [offline, setOffline] = useState(pending)
+  const [storage, setStorage] = useState(pending)
   const [audio, setAudio] = useState<PreflightCheck>({ state: 'attention', detail: '请点击试听，并由现场人员确认扬声器有声音。' })
   const [played, setPlayed] = useState(false)
   const stopAudio = useRef<(() => void) | null>(null)
@@ -27,6 +28,7 @@ export default function LotteryPreflight({ onClose, controlConnected }: Props) {
     const urls = collectConfiguredImages(loadUserConfig())
     void checkImages(urls).then(result => { if (!cancelled) setImages(result) })
     void checkOffline(browserOfflineEnvironment(urls)).then(result => { if (!cancelled) setOffline(result) })
+    void browserStorageEnvironment().then(env => { if (!cancelled) setStorage(checkStorage(env, isRehearsal())) })
     return () => { cancelled = true; alive.current = false; stopAudio.current?.() }
   }, [run])
 
@@ -45,10 +47,18 @@ export default function LotteryPreflight({ onClose, controlConnected }: Props) {
     }
   }
 
+  async function handlePersist() {
+    setStorage(pending)
+    await requestPersistentStorage()
+    const env = await browserStorageEnvironment()
+    if (alive.current) setStorage(checkStorage(env, isRehearsal()))
+  }
+
   const checks = [
     { title: '音频', result: audio },
     { title: '奖品图与头像', result: images },
     { title: '离线资源', result: offline },
+    { title: '本地存储', result: storage },
     { title: '双屏连接', result: checkDualScreen(isDualScreenSupported(), controlConnected, isRehearsal()) },
   ]
 
@@ -66,9 +76,12 @@ export default function LotteryPreflight({ onClose, controlConnected }: Props) {
             <button type="button" disabled={audio.state === 'checking'} onClick={() => void handleAudition()}>试听当前音频</button>
             {played && <button type="button" onClick={() => { stopAudio.current?.(); setAudio({ state: 'ready', detail: '浏览器播放成功，现场人员已确认能听到声音。' }); setPlayed(false) }}>听到了</button>}
           </div>}
+          {title === '本地存储' && storage.state === 'attention' && 'storage' in navigator && !isRehearsal() && <div className="preflight-actions">
+            <button type="button" onClick={() => void handlePersist()}>申请持久保存</button>
+          </div>}
         </section>)}
       </div>
-      <button type="button" onClick={() => { setImages(pending); setOffline(pending); setRun(value => value + 1) }}>重新检查资源</button>
+      <button type="button" onClick={() => { setImages(pending); setOffline(pending); setStorage(pending); setRun(value => value + 1) }}>重新检查资源</button>
     </div>
   </div>
 }

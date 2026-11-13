@@ -107,6 +107,52 @@ export function checkDualScreen(supported: boolean, connected: boolean, rehearsa
     : { state: 'attention', detail: '尚未连接控制台。需要双屏时，关闭面板并打开控制台完成连接。' }
 }
 
+export interface StorageEnvironment {
+  writable: boolean
+  persisted: boolean | null // null 表示浏览器不支持查询
+  usage: number | null
+  quota: number | null
+  localChars: number // 正式配置和进度在 localStorage 里的字符数
+}
+
+// 浏览器的 localStorage 上限常见约 5M 字符（未逐浏览器验证），这里提前提醒。
+const LOCAL_CHARS_WARN = 4_000_000
+
+export function checkStorage(env: StorageEnvironment, rehearsal: boolean): PreflightCheck {
+  if (rehearsal) return { state: 'attention', detail: '彩排不写入正式进度。回到正式舞台检查本地存储。' }
+  if (!env.writable) return { state: 'failed', detail: '本地存储无法写入，刷新后进度无法恢复。请退出隐私模式或检查浏览器存储权限。' }
+  const size = `进度与配置约 ${Math.ceil(env.localChars / 1024)} KB`
+  if (env.localChars >= LOCAL_CHARS_WARN) return { state: 'attention', detail: `${size}，接近浏览器上限。请先导出配置和中奖名单。` }
+  if (env.usage !== null && env.quota && env.usage / env.quota >= 0.8) return { state: 'attention', detail: `站点存储已用 ${Math.round(env.usage / env.quota * 100)}%，接近上限。请先导出配置和中奖名单。` }
+  if (env.persisted === true) return { state: 'ready', detail: `已开启持久保存，${size}。` }
+  if (env.persisted === false) return { state: 'attention', detail: `浏览器可能在空间紧张时清理站点数据，${size}。可点「申请持久保存」。` }
+  return { state: 'attention', detail: `当前环境无法确认持久保存（需 HTTPS 或 localhost），${size}。活动前请导出备份。` }
+}
+
+export async function browserStorageEnvironment(): Promise<StorageEnvironment> {
+  let writable = false
+  try {
+    localStorage.setItem('___lottery_probe___', '1')
+    localStorage.removeItem('___lottery_probe___')
+    writable = true
+  } catch { /* 隐私模式或配额已满 */ }
+  const localChars = ['___lottery___', '___lottery_config___']
+    .reduce((sum, key) => { try { return sum + (localStorage.getItem(key)?.length ?? 0) } catch { return sum } }, 0)
+  const storage = typeof navigator !== 'undefined' ? navigator.storage : undefined
+  const persisted = storage?.persisted ? await storage.persisted().catch(() => null) : null
+  const estimate = storage?.estimate ? await storage.estimate().catch(() => null) : null
+  return { writable, persisted, usage: estimate?.usage ?? null, quota: estimate?.quota ?? null, localChars }
+}
+
+// 只能在用户点击时调用：部分浏览器会弹出权限询问。
+export async function requestPersistentStorage(): Promise<boolean> {
+  try {
+    return Boolean(await navigator.storage?.persist?.())
+  } catch {
+    return false
+  }
+}
+
 function withAudioTimeout<T>(operation: Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('音频打开超时，请检查浏览器声音权限后重试')), 5000)
