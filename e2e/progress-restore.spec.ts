@@ -136,3 +136,29 @@ test('当前名单和备份不同时拒绝恢复并指出差异，不弹确认',
   expect(stored.cardListWinAll).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('restore-rejected-roster.png') })
 })
+
+test('奖项抽完后底部提醒下载验证文件，下载后收起，刷新后不再提醒', async ({ page }, testInfo) => {
+  await gotoFresh(page)
+  await page.evaluate(() => {
+    localStorage.setItem('___lottery_config___', JSON.stringify({
+      version: 1, headerTitle: '备份提醒', prizes: [{ name: '大奖', count: 2, everyTimeGet: 2 }], roster: ['甲', '乙', '丙', '丁', '戊'],
+    }))
+  })
+  await page.reload()
+  await page.waitForTimeout(INIT_WAIT)
+  await expect(page.locator('.lottery-backup-reminder')).toHaveCount(0)
+  await drawOneRound(page)
+  const reminder = page.locator('.lottery-backup-reminder')
+  await expect(reminder).toContainText('「大奖」已抽完')
+  await page.waitForTimeout(500) // 等入场动画结束再截图
+  await page.screenshot({ path: testInfo.outputPath('backup-reminder.png') })
+  const downloaded = page.waitForEvent('download')
+  await reminder.getByRole('button', { name: '下载验证文件', exact: true }).click()
+  const download = await downloaded
+  expect(download.suggestedFilename()).toBe('抽奖验证.json')
+  await expect(reminder).toHaveCount(0)
+
+  await page.reload()
+  await page.waitForTimeout(INIT_WAIT)
+  await expect(page.locator('.lottery-backup-reminder')).toHaveCount(0)
+})

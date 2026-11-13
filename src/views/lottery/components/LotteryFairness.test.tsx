@@ -22,7 +22,7 @@ vi.mock('../core/lottery-config', () => ({
 }))
 vi.mock('../core/rehearsal', () => ({ isRehearsal: vi.fn(() => false) }))
 vi.mock('../core/lottery-fairness', () => ({
-  ensureSeedCommit: vi.fn(), verifyCurrent: vi.fn(), createVerificationPackage: vi.fn(),
+  ensureSeedCommit: vi.fn(), verifyCurrent: vi.fn(), createVerificationPackage: vi.fn(), downloadVerificationFile: vi.fn(),
 }))
 vi.mock('../core/fairness-package', () => ({ verifyVerificationPackage: vi.fn() }))
 vi.mock('./feedback', () => ({ toast: vi.fn(), appConfirm: vi.fn() }))

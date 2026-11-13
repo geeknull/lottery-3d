@@ -7,7 +7,7 @@ import type { Attestation } from '../core/attestation'
 import { markAttestationShown } from '../core/attestation-reminder'
 import LotteryAttestation, { FingerprintCheck } from './LotteryAttestation'
 import { getLotteryVersion, useLotteryVersion } from '../core/lottery-store'
-import { createVerificationPackage, ensureSeedCommit, verifyCurrent } from '../core/lottery-fairness'
+import { createVerificationPackage, downloadVerificationFile, ensureSeedCommit, verifyCurrent } from '../core/lottery-fairness'
 import type { VerifyResult } from '../core/lottery-fairness'
 import { verifyVerificationPackage } from '../core/fairness-package'
 import { planProgressRestore, summarizeProgress } from '../core/progress-restore'
@@ -115,14 +115,7 @@ export default function LotteryFairness({ onClose, controlConnected = false, onR
 
   async function handleDownload() {
     try {
-      await ensureSeedCommit()
-      const blob = new Blob([JSON.stringify(createVerificationPackage(), null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = '抽奖验证.json'
-      link.click()
-      URL.revokeObjectURL(url)
+      await downloadVerificationFile()
     } catch {
       toast('验证文件生成失败，请稍后重试')
     }
