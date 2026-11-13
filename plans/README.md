@@ -13,7 +13,7 @@
 | [003](003-single-writer-progress.md) | 多个正式窗口不再互相覆盖抽奖进度 | P1 | M | — | DONE（分支 `advisor/003-single-writer-progress`，`376c2ab`；红灯检查与生产构建双窗口验收通过） |
 | [004](004-roster-file-encoding.md) | 导入 GBK 编码的名单文件时不再乱码 | P1 | S | — | DONE（分支 `advisor/004-roster-file-encoding`，`ccc9d0c`；红灯检查与真实编码文件验收通过） |
 | [005](005-unique-ids.md) | 名单和奖项的 ID 保证唯一 | P1 | S | — | DONE（分支 `advisor/005-unique-ids`，`56e2a65`；红灯检查与生产构建验收通过） |
-| [006](006-history-csv-escape.md) | 抽奖流水 CSV 转义单元格内容 | P2 | S | — | TODO |
+| [006](006-history-csv-escape.md) | 抽奖流水 CSV 转义单元格内容 | P2 | S | — | DONE（分支 `advisor/006-history-csv-escape`，`5de0008`；红灯检查与生产构建导出验收通过） |
 | [007](007-keep-rejected-progress.md) | 无法恢复的旧进度先备份并提醒 | P2 | S | — | TODO |
 | [008](008-salted-seed-commitment.md) | 种子承诺加盐，并绑定名单和奖项规则 | P2 | M | 005 | TODO |
 | [009](009-idb-commit-semantics.md) | IndexedDB 写入以事务提交为准 | P3 | S | — | TODO |

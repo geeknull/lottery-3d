@@ -1,4 +1,5 @@
 // 抽奖历史时间线：把操作流水（抽奖/作废/撤销）转成可读行，并导出 CSV
+import { escapeCsvCell } from './config-store'
 import type { DrawLogEntry } from './lottery-types'
 
 const TYPE_LABEL: Record<DrawLogEntry['type'], string> = {
@@ -52,7 +53,7 @@ export function historyToCsv(drawLog: DrawLogEntry[]): string {
   drawLog.forEach(e => {
     const label = TYPE_LABEL[e.type]
     e.winnerNames.forEach(name => {
-      rows.push(`${formatDateTime(e.at)},${label},${e.prizeName},${name},${e.note ?? ''}`)
+      rows.push([formatDateTime(e.at), label, e.prizeName, name, e.note ?? ''].map(escapeCsvCell).join(','))
     })
   })
   return '﻿' + rows.join('\n') // BOM
