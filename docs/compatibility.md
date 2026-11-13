@@ -29,7 +29,7 @@ HTTPS 和可信本地地址支持安全上下文。内网普通 HTTP 地址不�
 | `localStorage` | 名单配置、中奖进度 | 写入失败会提示；应立即导出，不应假设刷新后能恢复 |
 | `crypto.getRandomValues` | 抽奖种子 | 缺失时退回 `Math.random` |
 | `crypto.randomUUID` | 图片 ID | 降级生成 ID |
-| `crypto.subtle` | SHA-256 种子承诺 | 缺失时使用弱哈希；不具有相同的密码学保证 |
+| `crypto.subtle` | SHA-256 种子承诺 | 缺失时使用弱哈希，且不加盐、不绑定名单；不具有相同的密码学保证 |
 | `IndexedDB` | 奖品图片、自定义音乐 | 受限时可能无法保存或读取自定义媒体 |
 | `BroadcastChannel` | 同源双屏控制 | 不支持时停用双屏；核心页面仍可单屏操作 |
 | Service Worker | 应用资源离线缓存 | 注册或预缓存未完成时，不能保证断网后打开或刷新 |
