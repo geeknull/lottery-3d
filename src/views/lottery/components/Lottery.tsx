@@ -50,6 +50,14 @@ export default function Lottery() {
     return () => bus.off('storage-error', onStorageError)
   }, [])
 
+  // 启动时发现无法恢复的旧进度：提醒主持人，备份可在配置面板导出
+  useEffect(() => {
+    if (!lotteryConfig.takeRejectedNotice()) return
+    toast(lotteryConfig.getRejectedProgress()
+      ? '⚠ 发现无法恢复的旧抽奖进度，本场从头开始。旧进度已备份，可在配置面板导出'
+      : '⚠ 发现无法恢复的旧抽奖进度，本场从头开始，备份失败（本地存储可能已满）', 10000)
+  }, [])
+
   return (
     <div className={'lottery-wrap' + (controlConnected ? ' control-active' : '') + (rehearsal ? ' is-rehearsal' : '')} data-stage-phase={phase}>
       <div className="stage-session-tools">

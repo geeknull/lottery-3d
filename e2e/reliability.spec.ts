@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { gotoFresh, drawOneRound, closeBanner } from './helpers'
 
@@ -133,4 +134,29 @@ test('名单序号撞车时全部人都能中奖，公平验证通过', async ({
   await page.locator('.fairness-btn').click()
   await page.getByRole('button', { name: '立即自验证', exact: true }).click()
   await expect(page.locator('.verify-result.ok')).toContainText('已复算 1 轮及全部操作')
+})
+
+test('无法恢复的旧进度会备份并提示，可从配置面板导出', async ({ page }) => {
+  await gotoFresh(page)
+  await drawOneRound(page)
+  await closeBanner(page)
+  const tampered = await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    saved.hash = 'changed'
+    const raw = JSON.stringify(saved)
+    localStorage.setItem('___lottery___', raw)
+    return raw
+  })
+  await page.reload()
+  await expect(page.getByText(/发现无法恢复的旧抽奖进度/)).toBeVisible()
+  await expect(page.locator('.prize-item-count-text').last()).toHaveText('已抽 0/20')
+
+  await page.locator('.config-btn').click()
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: '导出未恢复的旧进度' }).click(),
+  ])
+  const backup = JSON.parse(readFileSync(await download.path(), 'utf-8'))
+  expect(backup.reason).toBe('config-mismatch')
+  expect(backup.raw).toBe(tampered)
 })

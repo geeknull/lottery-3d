@@ -307,3 +307,58 @@ describe('ID 唯一性', () => {
     expect((await verifyCurrent()).ok).toBe(true)
   })
 })
+
+describe('无法恢复的旧进度', () => {
+  async function savedProgress() {
+    const { getRandomCard } = await import('./lottery-algorithm')
+    getRandomCard(lotteryConfig.prizeList[0])
+    return JSON.parse(localStorage.getItem('___lottery___')!)
+  }
+
+  async function reloadWith(raw: string) {
+    localStorage.setItem('___lottery___', raw)
+    vi.resetModules()
+    return (await import('./lottery-config')).default
+  }
+
+  it('配置指纹不符时备份原文，并且只提醒一次', async () => {
+    const raw = JSON.stringify({ ...(await savedProgress()), hash: 'changed' })
+    const reloaded = await reloadWith(raw)
+    expect(JSON.parse(reloaded.getRejectedProgress()!)).toMatchObject({ reason: 'config-mismatch', raw })
+    expect(reloaded.takeRejectedNotice()).toBe(true)
+    expect(reloaded.takeRejectedNotice()).toBe(false)
+    expect(reloaded.drawLog).toEqual([])
+  })
+
+  it('存档结构损坏时备份原因是 invalid-progress', async () => {
+    const reloaded = await reloadWith(JSON.stringify({ ...(await savedProgress()), version: 99 }))
+    expect(JSON.parse(reloaded.getRejectedProgress()!).reason).toBe('invalid-progress')
+  })
+
+  it('JSON 无法解析时备份原因是 invalid-json', async () => {
+    const reloaded = await reloadWith('{broken')
+    expect(JSON.parse(reloaded.getRejectedProgress()!)).toMatchObject({ reason: 'invalid-json', raw: '{broken' })
+  })
+
+  it('正常恢复时不产生备份，也不提醒', async () => {
+    await savedProgress()
+    vi.resetModules()
+    const { default: reloaded } = await import('./lottery-config')
+    expect(reloaded.getRejectedProgress()).toBeNull()
+    expect(reloaded.takeRejectedNotice()).toBe(false)
+  })
+
+  it('备份写入失败时启动不受影响，仍会提醒', async () => {
+    const raw = JSON.stringify({ ...(await savedProgress()), hash: 'changed' })
+    localStorage.setItem('___lottery___', raw)
+    const setItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === '___lottery_rejected___') throw new DOMException('quota', 'QuotaExceededError')
+      return setItem.call(this, key, value)
+    })
+    vi.resetModules()
+    const { default: reloaded } = await import('./lottery-config')
+    expect(reloaded.takeRejectedNotice()).toBe(true)
+    expect(reloaded.getRejectedProgress()).toBeNull()
+  })
+})
