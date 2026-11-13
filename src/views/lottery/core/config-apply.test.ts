@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { configHash, parseConfigJson } from './config-store'
 import type { UserLotteryConfig } from './config-store'
-import { createConfigApplication, prepareConfig } from './config-apply'
+import { createConfigApplication, prepareConfig, progressResetReasons, resetConfirmMessage } from './config-apply'
 
 const config: UserLotteryConfig = { version: 1, headerTitle: '活动', prizes: [{ name: '奖', count: 1, everyTimeGet: 1 }], roster: ['甲', '乙'] }
 function setup(changed = true) {
@@ -118,5 +118,42 @@ describe('身份字段保存', () => {
   it('导出配置 JSON 再导入，身份字段不丢', () => {
     const saved = draft('姓名,工号,部门\n张伟,A001,研发部\n张伟,A002,').config!
     expect(parseConfigJson(JSON.stringify(saved, null, 2))).toEqual(saved)
+  })
+})
+
+describe('清空进度的原因与确认文案', () => {
+  const prizes = [{ name: '奖', count: 1, everyTimeGet: 1 }]
+  const active = { headerTitle: '活动', prizes, roster: [{ name: '张伟', employeeId: 'A001', department: '研发部' }, { name: '张伟', employeeId: 'A002' }] }
+
+  it('只改工号时原因只有工号一条', () => {
+    expect(progressResetReasons({ ...active, roster: [{ name: '张伟', employeeId: 'A001' }, { name: '张伟', employeeId: 'A003' }] }, active)).toEqual(['employeeIds'])
+  })
+
+  it('只改部门、头像或揭晓节奏时没有原因', () => {
+    expect(progressResetReasons({
+      ...active,
+      prizes: [{ ...prizes[0], presentation: 'ceremonial' as const }],
+      roster: [{ name: '张伟', employeeId: 'A001', department: '市场部', avatar: 'https://a.com/a.png' }, { name: '张伟', employeeId: 'A002' }],
+    }, active)).toEqual([])
+  })
+
+  it('标题、奖项、姓名改动分别列出；姓名变了不再单列工号', () => {
+    expect(progressResetReasons({ headerTitle: '新活动', prizes: [{ name: '奖', count: 2, everyTimeGet: 1 }], roster: ['李娜', { name: '张伟', employeeId: 'B1' }] }, active))
+      .toEqual(['title', 'prizes', 'names'])
+  })
+
+  it('确认文案写清清空内容和工号原因', () => {
+    const message = resetConfirmMessage(['employeeIds'], { winners: 3, draws: 2 })
+    expect(message).toContain('已抽出的 3 位中奖者和 2 条抽奖流水')
+    expect(message).toContain('随机种子重新生成')
+    expect(message).toContain('工号有改动')
+    expect(message).toContain('工号参与配置指纹，用来区分同名的人')
+    expect(resetConfirmMessage(['title'], { winners: 0, draws: 0 })).toContain('当前还没有抽奖记录')
+  })
+
+  it('应用配置时把当前配置交给确认回调', async () => {
+    const { effects, apply } = setup()
+    await apply(config)
+    expect(effects.confirmReset).toHaveBeenCalledWith(config)
   })
 })

@@ -1,6 +1,6 @@
 import lotteryConfig from './lottery-config'
-import { configHash, isPrizePresentation, parseRosterEntries, saveUserConfig } from './config-store'
-import type { PrizeConfig, UserLotteryConfig } from './config-store'
+import { configHash, isPrizePresentation, normalizeRoster, parseRosterEntries, saveUserConfig } from './config-store'
+import type { PrizeConfig, RosterEntry, UserLotteryConfig } from './config-store'
 import { persistConfigImages } from './config-images'
 import { gcImages, isImageRef } from './image-store'
 import { isRehearsal } from './rehearsal'
@@ -47,7 +47,7 @@ export function prepareConfig(draft: ConfigDraft): DraftResult {
 
 interface ApplicationDependencies {
   activeHash(): string
-  confirmReset(): Promise<boolean>
+  confirmReset(config: UserLotteryConfig): Promise<boolean>
   persistImages(config: UserLotteryConfig): Promise<UserLotteryConfig>
   save(config: UserLotteryConfig): boolean
   clearProgress(): void
@@ -68,7 +68,7 @@ export function createConfigApplication(dependencies: ApplicationDependencies) {
     busy = true
     try {
       const reset = configHash(config.headerTitle, config.prizes, config.roster) !== dependencies.activeHash()
-      if (reset && !(await dependencies.confirmReset())) return 'cancelled'
+      if (reset && !(await dependencies.confirmReset(config))) return 'cancelled'
       let persisted: UserLotteryConfig
       try {
         persisted = await dependencies.persistImages(config)
@@ -94,7 +94,64 @@ function activeConfigHash(): string {
   return configHash(lotteryConfig.headerTitle, lotteryConfig.prizeList, lotteryConfig.cardList)
 }
 
-export function makeConfigApplication(confirmReset: () => Promise<boolean>) {
+// 会让进度失效的改动，与配置指纹的组成一一对应
+export type ProgressResetReason = 'title' | 'prizes' | 'names' | 'employeeIds'
+
+interface FingerprintParts { headerTitle: string; prizes: Pick<PrizeConfig, 'name' | 'count' | 'everyTimeGet'>[]; roster: (string | RosterEntry)[] }
+
+// 逐项比较指纹的组成，找出是哪些改动导致进度要清空。名单姓名或顺序变了时，工号的逐行比较没有意义，不再单列。
+export function progressResetReasons(next: FingerprintParts, active: FingerprintParts): ProgressResetReason[] {
+  const prizeKeys = (prizes: FingerprintParts['prizes']) => JSON.stringify(prizes.map(({ name, count, everyTimeGet }) => [name, count, everyTimeGet]))
+  const names = (roster: FingerprintParts['roster']) => JSON.stringify(normalizeRoster(roster).map(entry => entry.name))
+  const employeeIds = (roster: FingerprintParts['roster']) => JSON.stringify(normalizeRoster(roster).map(entry => entry.employeeId ?? ''))
+  const reasons: ProgressResetReason[] = []
+  if (next.headerTitle !== active.headerTitle) reasons.push('title')
+  if (prizeKeys(next.prizes) !== prizeKeys(active.prizes)) reasons.push('prizes')
+  if (names(next.roster) !== names(active.roster)) reasons.push('names')
+  else if (employeeIds(next.roster) !== employeeIds(active.roster)) reasons.push('employeeIds')
+  return reasons
+}
+
+const REASON_SHORT: Record<ProgressResetReason, string> = {
+  title: '活动标题', prizes: '奖项规则', names: '名单姓名或顺序', employeeIds: '工号',
+}
+const REASON_DETAIL: Record<ProgressResetReason, string> = {
+  title: '活动标题有改动',
+  prizes: '奖项名称、总数或每轮人数有改动',
+  names: '名单的姓名或顺序有改动',
+  employeeIds: '工号有改动。工号参与配置指纹，用来区分同名的人；工号变了，已保存的中奖记录无法确认对应的是谁',
+}
+
+export function shortResetReasons(reasons: ProgressResetReason[]): string {
+  return reasons.map(reason => REASON_SHORT[reason]).join('、')
+}
+
+// 清空进度确认框的文案：写清会清空什么、为什么要清空。
+export function resetConfirmMessage(reasons: ProgressResetReason[], progress: { winners: number; draws: number }): string {
+  const cleared = progress.draws > 0
+    ? `会清空：已抽出的 ${progress.winners} 位中奖者和 ${progress.draws} 条抽奖流水（含撤销、作废记录）；随机种子重新生成，已公布的开抽前指纹和公证卡作废。`
+    : '当前还没有抽奖记录；随机种子会重新生成，已公布的开抽前指纹和公证卡作废。'
+  const why = reasons.length ? reasons.map(reason => REASON_DETAIL[reason]).join('；') : '配置指纹有变化'
+  return `保存新配置会清空当前抽奖进度并刷新页面。\n${cleared}\n原因：${why}。\n确定吗？`
+}
+
+function activeFingerprintParts(): FingerprintParts {
+  return { headerTitle: lotteryConfig.headerTitle, prizes: lotteryConfig.prizeList, roster: lotteryConfig.cardList }
+}
+
+// 当前配置与正在进行的场次相比，会导致清空进度的改动
+export function describeProgressReset(config: UserLotteryConfig): ProgressResetReason[] {
+  return progressResetReasons({ headerTitle: config.headerTitle, prizes: config.prizes, roster: config.roster }, activeFingerprintParts())
+}
+
+export function currentResetConfirmMessage(config: UserLotteryConfig): string {
+  return resetConfirmMessage(describeProgressReset(config), {
+    winners: lotteryConfig.cardListWinAll.length,
+    draws: lotteryConfig.drawLog.length,
+  })
+}
+
+export function makeConfigApplication(confirmReset: (config: UserLotteryConfig) => Promise<boolean>) {
   return createConfigApplication({
     activeHash: activeConfigHash,
     confirmReset,

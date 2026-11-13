@@ -19,6 +19,8 @@ async function applyIdentityRoster(page: Page) {
       roster: ['占位1', '占位2', '占位3'],
     })),
   })
+  // 导入是异步的：等面板载入导入的配置后再粘贴名单，否则导入结果会覆盖粘贴的内容
+  await expect(page.locator('.title-input')).toHaveValue('身份列')
   await page.locator('.lottery-config-panel textarea').fill(ROSTER)
   await page.locator('.panel-actions button.primary').click()
   await page.locator('.confirm-btns button.primary').click()
@@ -66,4 +68,39 @@ test('导出中奖名单 CSV 与抽奖流水 CSV 带工号、部门列', async (
   expect(history[0]).toBe('时间,操作,奖项,姓名,备注,工号,部门')
   expect(history.slice(1).map(line => line.split(',').slice(1).join(',')).sort())
     .toEqual(['抽奖,一等奖,张伟,,A001,研发部', '抽奖,一等奖,张伟,,A002,市场部', '抽奖,一等奖,李娜,,A003,行政部'])
+})
+
+test('名单提示重复工号与多列无表头；修改工号触发清空确认并写清后果', async ({ page }, testInfo) => {
+  await applyIdentityRoster(page)
+  await drawOneRound(page)
+  await page.locator('.lottery-win-banner').click()
+
+  await page.locator('.config-btn').click()
+  const textarea = page.locator('.lottery-config-panel textarea')
+  await expect(textarea).toHaveValue(ROSTER)
+
+  await textarea.fill('张伟,研发部\n李娜,市场部\n王五')
+  await expect(page.locator('.roster-warning')).toHaveText('检测到多列内容但没有表头，附加列被忽略；首行加上「姓名,部门」可启用')
+
+  await textarea.fill('姓名,工号,部门\n张伟,A001,研发部\n张伟,A001,市场部\n李娜,A003,行政部')
+  await expect(page.locator('.roster-warning')).toHaveText('工号 A001 重复 2 处，请核对（不影响保存）')
+  await expect(page.locator('.apply-impact')).toContainText('改动了：工号')
+  await page.screenshot({ path: testInfo.outputPath('identity-panel-hints.png') })
+
+  // 只改部门：保留进度，不弹确认
+  await textarea.fill('姓名,工号,部门\n张伟,A001,总裁办\n张伟,A002,市场部\n李娜,A003,行政部')
+  await expect(page.locator('.apply-impact')).toHaveText('当前名单与奖项规则未变，保存后保留中奖进度。')
+
+  // 修正工号：确认框写清会清空什么、为什么
+  await textarea.fill('姓名,工号,部门\n张伟,A001,研发部\n张伟,A009,市场部\n李娜,A003,行政部')
+  await page.locator('.panel-actions button.primary').click()
+  const message = page.locator('.confirm-message')
+  await expect(message).toContainText('已抽出的 3 位中奖者和 1 条抽奖流水')
+  await expect(message).toContainText('工号有改动')
+  await expect(message).toContainText('工号参与配置指纹，用来区分同名的人')
+  await page.screenshot({ path: testInfo.outputPath('identity-reset-confirm.png') })
+  await page.locator('.confirm-btns button').nth(1).click()
+  await expect(page.locator('.confirm-message')).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('.element.prize')).toHaveCount(3)
 })
