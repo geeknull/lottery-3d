@@ -199,3 +199,15 @@
 - 恢复后随机状态回到备份时刻；用更旧的备份恢复后继续抽，结果取决于备份时刻的状态和之后的操作。
 - 双屏显示窗口在恢复后的重连没有自动测试，列入人工彩排。
 - 审查重点：`planProgressRestore` 必须在任何写入之前完成复算和比对；`replaceProgress` 任一步失败都要回滚内存。
+
+## 执行记录（2026-11-13）
+
+- 状态：DONE，分支 `claude/019-progress-restore-bf678f`。
+- 与计划的差异：
+  - **恢复入口的“空闲”包括 `presenting`**（计划和决策 #2 写的是 `phase === 'idle'`）。E2E 发现每轮抽完后舞台停在 `presenting`，直到下一次操作才离开；只认 `idle` 的话，抽过一轮后恢复按钮一直不可用。`presenting` 时本轮结果已经落盘、没有动画在跑，口径与公证卡的“空闲”（`isWait()`）一致；设计担心的是动画进行中（`spinning`、`revealing`），这两个阶段仍然禁用。恢复成功后页面刷新，不会留下和存档对不上的演出状态。
+  - `writeProgress` 返回 `'written' | 'stale' | 'failed'`（计划写的是 boolean），调用方要区分“被其他窗口抢先”和“写入失败”来给不同提示。
+  - 奖项抽完提醒在演出结束（进入 `idle` 或 `presenting`）时检查，而不是只在 `idle`：理由同上。提醒放在底部居中，层级 950（低于所有面板），不放角落：左下是抽奖按钮，右下是视角复位和更新提示。
+  - 追加两个提交：`fix:` 提醒最初用 1100 层级，盖住配置面板底部的“导出中奖名单 CSV”，全量 E2E 的两项 CSV 导出超时；`test:` 现有 `e2e/fairness.spec.ts` 的文件输入框选择器因面板多了一个输入框而有歧义。
+  - 测试位置：写入流程的测试在 `lottery-config.test.ts`，提醒组件测试在 `LotteryBackupReminder.test.tsx`，`appConfirm` 的红字在 `feedback.test.tsx`。
+- 验证证据：`.claude/acceptance/019/`（不入库）：`logs/`（全量 E2E、PWA E2E、红灯检查、构建、验收日志）、`redlight.sh`（18 处改动全部变红）、`acceptance.mjs`（生产构建 13 项检查，含 `--host-resolver-rules` 模拟的非安全上下文）、`shots/`。
+- 观察到但不在范围内：无头 Chromium 在非安全 HTTP 源上点“下载验证文件”不触发下载事件（原有下载逻辑同样如此），需要在真实 Chrome 的内网 HTTP 环境人工核对下载是否被浏览器拦截。
