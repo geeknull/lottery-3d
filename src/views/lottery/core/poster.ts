@@ -14,8 +14,8 @@ function cssVar(name: string, fallback: string): string {
   return v || fallback
 }
 
-// 触发浏览器下载 dataURL
-function downloadDataUrl(dataUrl: string, filename: string): void {
+// 触发浏览器下载 dataURL（公证卡 PNG 也用它）
+export function downloadDataUrl(dataUrl: string, filename: string): void {
   const a = document.createElement('a')
   a.href = dataUrl
   a.download = filename

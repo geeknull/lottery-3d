@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import type { Attestation } from '../core/attestation'
+import { exportAttestationPng } from '../core/attestation-png'
+import { toast } from './feedback'
 import './lottery-attestation.scss'
 
 interface Props {
@@ -64,6 +66,7 @@ export default function LotteryAttestation({ card, onClose }: Props) {
       </div>
 
       <div className="attestation-actions">
+        <button type="button" onClick={() => { if (!exportAttestationPng(card)) toast('公证卡图片生成失败，请改用打印或拍照') }}>导出 PNG</button>
         <button type="button" onClick={() => window.print()}>打印</button>
         <button type="button" onClick={onClose}>关闭</button>
       </div>

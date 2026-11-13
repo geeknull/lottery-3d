@@ -1,7 +1,8 @@
+import { readFile } from 'node:fs/promises'
 import { test, expect } from '@playwright/test'
 import { gotoFresh, drawOneRound, closeBanner } from './helpers'
 
-test('公证卡浮层的分组指纹与面板一致，抽奖后显示红字', async ({ page }) => {
+test('公证卡浮层的分组指纹与面板一致，可导出 PNG，抽奖后显示红字', async ({ page }, testInfo) => {
   await gotoFresh(page)
   await page.locator('.fairness-btn').click()
   const panelCommit = page.locator('.lottery-fairness .fairness-field code.mono').first()
@@ -19,6 +20,16 @@ test('公证卡浮层的分组指纹与面板一致，抽奖后显示红字', as
   await expect(card.locator('.attestation-stage').first()).toHaveText('开抽前')
   await expect(card).toContainText('本机时间，不能作为公布时间的证明')
   await expect(card.locator('.attestation-watermark')).toHaveCount(0)
+
+  const downloaded = page.waitForEvent('download')
+  await card.getByRole('button', { name: '导出 PNG', exact: true }).click()
+  const download = await downloaded
+  expect(download.suggestedFilename()).toBe(`公证卡-${commit!.slice(0, 8)}.png`)
+  const pngPath = testInfo.outputPath('attestation.png')
+  await download.saveAs(pngPath)
+  const png = await readFile(pngPath)
+  expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+  expect(png.length).toBeGreaterThan(10_000)
 
   // Escape 只关卡片，面板还在。
   await page.keyboard.press('Escape')
@@ -46,4 +57,7 @@ test('彩排页的公证卡带水印', async ({ page }) => {
   const card = page.getByRole('dialog', { name: '开抽前公证卡' })
   await expect(card.locator('.attestation-watermark')).toHaveText('彩排，不具效力')
   await expect(card.locator('.attestation-rehearsal-badge')).toHaveText('彩排，不具效力')
+  const downloaded = page.waitForEvent('download')
+  await card.getByRole('button', { name: '导出 PNG', exact: true }).click()
+  expect((await downloaded).suggestedFilename()).toMatch(/^公证卡-彩排-[0-9a-f]{8}\.png$/)
 })
