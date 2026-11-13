@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createRng, rngFromState, randomSeed, hashSeed, replaySequence } from './lottery-rng'
+import { createRng, rngFromState, randomSeed, randomSalt, hashSeed, replaySequence } from './lottery-rng'
 
 describe('hashSeed 降级（secure context 不可用）', () => {
   it('secure context 下用 SHA-256，输出 64 位 hex', async () => {
@@ -86,6 +86,34 @@ describe('hashSeed 承诺哈希', () => {
 
   it('是 64 位十六进制（SHA-256）', async () => {
     expect(await hashSeed(42)).toMatch(/^[0-9a-f]{64}$/)
+  })
+})
+
+describe('randomSalt 与带绑定的承诺', () => {
+  const binding = { salt: 'a'.repeat(64), context: '{"roster":[["1","甲"]],"prizes":[]}' }
+
+  it('盐是 64 位十六进制，且每次不同', () => {
+    expect(randomSalt()).toMatch(/^[0-9a-f]{64}$/)
+    expect(randomSalt()).not.toBe(randomSalt())
+  })
+
+  it('同一绑定结果一致；换盐、换上下文或不带绑定，结果都不同', async () => {
+    const base = await hashSeed(7, binding)
+    expect(base).toMatch(/^[0-9a-f]{64}$/)
+    expect(await hashSeed(7, { ...binding })).toBe(base)
+    expect(await hashSeed(7, { ...binding, salt: 'b'.repeat(64) })).not.toBe(base)
+    expect(await hashSeed(7, { ...binding, context: '{}' })).not.toBe(base)
+    expect(await hashSeed(7)).not.toBe(base)
+  })
+
+  it('没有 SHA-256 时，带绑定调用 reject，不带绑定仍降级为 8 位哈希', async () => {
+    vi.stubGlobal('crypto', {})
+    try {
+      await expect(hashSeed(7, binding)).rejects.toThrow()
+      expect(await hashSeed(7)).toMatch(/^[0-9a-f]{8}$/)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 

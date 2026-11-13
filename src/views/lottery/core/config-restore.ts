@@ -17,6 +17,7 @@ export interface SavedProgress {
   seed?: number
   rngState?: number
   seedCommit?: string
+  seedSalt?: string
   drawLog?: DrawLogEntry[]
 }
 
@@ -73,6 +74,7 @@ export function isSavedRestorable(
   if (saved.seed !== undefined && !isSeed(saved.seed)) return false
   if (saved.rngState !== undefined && !isSeed(saved.rngState)) return false
   if (saved.seedCommit !== undefined && typeof saved.seedCommit !== 'string') return false
+  if (saved.seedSalt !== undefined && (typeof saved.seedSalt !== 'string' || !/^([0-9a-f]{64})?$/.test(saved.seedSalt))) return false
   if (saved.drawLog !== undefined) {
     if (!Array.isArray(saved.drawLog)) return false
     for (const entry of saved.drawLog) {

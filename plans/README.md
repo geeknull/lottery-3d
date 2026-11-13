@@ -15,7 +15,7 @@
 | [005](005-unique-ids.md) | 名单和奖项的 ID 保证唯一 | P1 | S | — | DONE（分支 `advisor/005-unique-ids`，`56e2a65`；红灯检查与生产构建验收通过） |
 | [006](006-history-csv-escape.md) | 抽奖流水 CSV 转义单元格内容 | P2 | S | — | DONE（分支 `advisor/006-history-csv-escape`，`5de0008`；红灯检查与生产构建导出验收通过） |
 | [007](007-keep-rejected-progress.md) | 无法恢复的旧进度先备份并提醒 | P2 | S | — | DONE（分支 `advisor/007-keep-rejected-progress`，`ea51f48`；红灯检查与生产构建验收通过） |
-| [008](008-salted-seed-commitment.md) | 种子承诺加盐，并绑定名单和奖项规则 | P2 | M | 005 | TODO |
+| [008](008-salted-seed-commitment.md) | 种子承诺加盐，并绑定名单和奖项规则 | P2 | M | 005 | DONE（分支 `advisor/008-salted-seed-commitment`，`eae2572`；红灯检查与生产构建跨环境验证通过；执行中补了一处测试顺序调整） |
 | [009](009-idb-commit-semantics.md) | IndexedDB 写入以事务提交为准 | P3 | S | — | TODO |
 | [010](010-ci-least-privilege.md) | CI 的部署权限只给部署任务 | P3 | S | — | DONE（分支 `advisor/010-ci-least-privilege`，`e24de6a`；以第二批上线的 CI 部署为准） |
 | [011](011-preflight-storage-check.md) | 现场检查增加“本地存储”一项 | P3 | S | — | TODO |

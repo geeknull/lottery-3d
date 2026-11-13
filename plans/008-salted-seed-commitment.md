@@ -470,6 +470,8 @@ export function createVerificationPackage(): VerificationPackage {
   })
 ```
 
+7. （执行时补充，2026-11-13）`describe('现有抽奖规则的验证兼容')` 里的「保留当前 UI 可产生的空池历史」用例先生成承诺、再缩小名单和奖项，v2 承诺绑定名单与规则后必然对不上。调整为先缩小名单和奖项、再调用 `configurePrize` 生成承诺，所有断言不变。真实应用中名单或规则变化会清空进度并换新种子，不会出现这种顺序。
+
 **Verify**：`pnpm test` → 全部通过。如果有不在上面列表里的用例失败，按 STOP 条件处理。
 
 ### Step 6: 更新面板文案

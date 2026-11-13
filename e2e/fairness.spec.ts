@@ -30,7 +30,9 @@ test('完整验证文件可跨场次导入，作废撤销可复算，篡改承�
   expect(pkg.drawLog[0].winnerIds).toHaveLength(10)
   expect(pkg.drawLog[0].poolIds).toHaveLength(pkg.roster.length)
   expect(pkg.finalState.excludedIds).toHaveLength(1)
-  expect(pkg.commitmentAlgorithm).toBe('sha256')
+  expect(pkg.commitmentAlgorithm).toBe('sha256-salted')
+  expect(pkg.version).toBe(2)
+  expect(pkg.seedSalt).toMatch(/^[0-9a-f]{64}$/)
 
   // 新浏览器上下文没有原场次的 localStorage、IndexedDB 或随机种子。
   const independent = await browser.newContext({ baseURL })
@@ -45,6 +47,13 @@ test('完整验证文件可跨场次导入，作废撤销可复算，篡改承�
     await expect(verifier.locator('.verify-result.ok')).toContainText('导入文件验证通过')
     await expect(verifier.locator('.verify-result.ok')).toContainText('已复算 2 轮及全部操作')
     await expect(verifier.locator('.lottery-fairness')).toContainText('已记录 0 轮抽奖')
+
+    await verifier.locator('.lottery-fairness input[type=file]').setInputFiles({
+      name: 'reordered-verification.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ ...pkg, roster: [...pkg.roster].reverse() })),
+    })
+    await expect(verifier.locator('.verify-result.fail')).toContainText('种子与已公布的承诺不一致')
 
     pkg.seedCommit = '0'.repeat(64)
     await verifier.locator('.lottery-fairness input[type=file]').setInputFiles({

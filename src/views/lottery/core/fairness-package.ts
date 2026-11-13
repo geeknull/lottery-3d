@@ -11,10 +11,11 @@ export interface VerifyResult {
 
 export interface VerificationPackage {
   format: 'lottery-3d-verification'
-  version: 1
+  version: 1 | 2
   algorithm: 'mulberry32-v1'
-  commitmentAlgorithm: 'sha256' | 'fnv1a32'
+  commitmentAlgorithm: 'sha256' | 'fnv1a32' | 'sha256-salted'
   seed: number
+  seedSalt?: string // 仅 version 2：承诺用的随机盐
   seedCommit: string
   roster: { id: string; name: string }[]
   prizes: { id: string; name: string; count: number; everyTimeGet: number }[]
@@ -24,6 +25,18 @@ export interface VerificationPackage {
     excludedIds: string[]
     prizes: { id: string; countRemain: number; round: number; winnerIds: string[] }[]
   }
+}
+
+// v2 承诺绑定的名单顺序和奖项规则。揭晓节奏、图片不参与，和配置指纹的口径一致。
+export function commitmentContext(roster: VerificationPackage['roster'], prizes: VerificationPackage['prizes']): string {
+  return JSON.stringify({
+    roster: roster.map(({ id, name }) => [id, name]),
+    prizes: prizes.map(({ id, name, count, everyTimeGet }) => [id, name, count, everyTimeGet]),
+  })
+}
+
+export function isSeedSalt(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -58,9 +71,10 @@ function validEntry(value: unknown): value is DrawLogEntry {
 }
 
 function validPackage(value: unknown): value is VerificationPackage {
-  if (!record(value) || value.format !== 'lottery-3d-verification' || value.version !== 1 ||
+  if (!record(value) || value.format !== 'lottery-3d-verification' || (value.version !== 1 && value.version !== 2) ||
     value.algorithm !== 'mulberry32-v1' || !uint32(value.seed) || typeof value.seedCommit !== 'string') return false
-  if (value.commitmentAlgorithm !== 'sha256' && value.commitmentAlgorithm !== 'fnv1a32') return false
+  if (value.version === 1 && value.commitmentAlgorithm !== 'sha256' && value.commitmentAlgorithm !== 'fnv1a32') return false
+  if (value.version === 2 && (value.commitmentAlgorithm !== 'sha256-salted' || !isSeedSalt(value.seedSalt))) return false
   if (!Array.isArray(value.roster) || value.roster.length === 0 ||
     !value.roster.every(p => record(p) && typeof p.id === 'string' && typeof p.name === 'string')) return false
   if (!Array.isArray(value.prizes) || value.prizes.length === 0 ||
@@ -99,7 +113,9 @@ export async function verifyVerificationPackage(value: unknown): Promise<VerifyR
   } else {
     if (!globalThis.crypto?.subtle) return fail('此环境无法验证 SHA-256 承诺，请在 HTTPS 或 localhost 打开')
     try {
-      commit = await hashSeed(pkg.seed)
+      commit = pkg.version === 2
+        ? await hashSeed(pkg.seed, { salt: pkg.seedSalt!, context: commitmentContext(pkg.roster, pkg.prizes) })
+        : await hashSeed(pkg.seed)
     } catch {
       return fail('无法计算种子承诺，请稍后重试')
     }
