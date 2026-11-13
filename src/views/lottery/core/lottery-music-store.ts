@@ -2,35 +2,14 @@
 // 与图片仓分库，避免被 gcImages 误删。另在 localStorage 存一个同步可读的标记，
 // UI / 播放控制无需异步即可判断"是否有自定义音乐"。
 
+import { createKeyValueStore } from './idb-kv'
+
 const DB_NAME = 'lottery-music'
 const STORE = 'music'
 const KEY = 'bgm'
 const FLAG_KEY = '___lottery_music_custom___'
 
-let dbPromise: Promise<IDBDatabase> | null = null
-
-function openDb(): Promise<IDBDatabase> {
-  if (!dbPromise) {
-    dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1)
-      req.onupgradeneeded = () => {
-        req.result.createObjectStore(STORE)
-      }
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
-    })
-  }
-  return dbPromise
-}
-
-function withStore<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return openDb().then(db => new Promise<T>((resolve, reject) => {
-    const tx = db.transaction(STORE, mode)
-    const req = fn(tx.objectStore(STORE))
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  }))
-}
+const withStore = createKeyValueStore(DB_NAME, STORE)
 
 // 是否已上传自定义音乐（同步，供 UI / 播放控制快速判断）
 export function hasCustomMusic(): boolean {
