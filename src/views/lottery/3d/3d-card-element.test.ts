@@ -36,3 +36,24 @@ describe('createCardElement XSS 防护', () => {
     expect(createCardElement(card({}), false).classList.contains('prize')).toBe(false)
   })
 })
+
+describe('卡片身份显示', () => {
+  it('有工号时 .details 显示工号，部门在悬停提示里', () => {
+    const el = createCardElement(card({ name: '张伟', id: '张伟-2', employeeId: 'A002', department: '市场部' }), false)
+    expect(el.querySelector('.details')?.textContent).toBe('A002')
+    expect(el.querySelector<HTMLElement>('.details')?.title).toBe('A002 · 市场部')
+    expect(el.dataset.cardId).toBe('张伟-2')
+  })
+
+  it('只有部门时仍显示 ID', () => {
+    const el = createCardElement(card({ name: '张伟', id: '张伟', department: '研发部' }), false)
+    expect(el.querySelector('.details')?.textContent).toBe('张伟')
+    expect(el.querySelector<HTMLElement>('.details')?.title).toBe('张伟 · 研发部')
+  })
+
+  it('工号和部门含 HTML 时按纯文本显示', () => {
+    const el = createCardElement(card({ employeeId: '<i>1</i>', department: '<b>x</b>' }), false)
+    expect(el.querySelector('.details')?.children).toHaveLength(0)
+    expect(el.querySelector('.details')?.textContent).toBe('<i>1</i>')
+  })
+})

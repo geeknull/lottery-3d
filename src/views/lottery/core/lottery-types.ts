@@ -6,6 +6,8 @@ export interface Card {
   id: string
   sex?: string
   avatar: string
+  employeeId?: string // 工号（名单带身份列时才有），只用于展示、导出、指纹与承诺，不参与 ID
+  department?: string // 部门（名单带身份列时才有），只用于展示和导出
   index: number // 在 cardList 中的下标
   row: number // table 模式下的行号（从 1 开始）
   col: number // table 模式下的列号（从 1 开始）

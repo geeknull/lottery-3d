@@ -39,7 +39,8 @@ export function verifyDrawLog(seed: number, drawLog: DrawLogEntry[]): VerifyResu
   return { ok: true, checkedDraws, failedAt: null }
 }
 
-const currentRoster = () => lotteryConfig.cardList.map(({ id, name }) => ({ id, name }))
+// 承诺和验证文件共用：有工号才写 employeeId 键，没有工号的名单与以前逐字节相同
+const currentRoster = () => lotteryConfig.cardList.map(({ id, name, employeeId }) => (employeeId ? { id, name, employeeId } : { id, name }))
 const currentPrizes = () => lotteryConfig.prizeList.map(({ id, name, count, everyTimeGet }) => ({ id, name, count, everyTimeGet }))
 
 // 计算并固定种子承诺哈希（抽奖开始前公布）。已有则保持不变。

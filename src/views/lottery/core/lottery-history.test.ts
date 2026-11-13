@@ -57,4 +57,20 @@ describe('historyToCsv', () => {
     expect(lines[1].endsWith(`,作废,"一等奖,特别",'=1+1,'=备注`)).toBe(true)
     expect(lines[2].endsWith(`,作废,"一等奖,特别","张""三",'=备注`)).toBe(true)
   })
+
+  it('名单有身份信息时在末尾追加工号、部门，按 winnerIds 查卡片，工号公式前缀被中和', () => {
+    const card = (name: string, id: string, extra = {}) => ({ name, id, avatar: '', index: 0, row: 1, col: 1, ...extra })
+    const roster = [card('张三', '张三', { employeeId: '+A01', department: '研发部' }), card('李四', '李四'), card('王五', '王五', { employeeId: 'A03' })]
+    const lines = historyToCsv(log, roster).replace('\uFEFF', '').split('\n')
+    expect(lines[0]).toBe('时间,操作,奖项,姓名,备注,工号,部门')
+    expect(lines[1].endsWith(",抽奖,一等奖,张三,,'+A01,研发部")).toBe(true)
+    expect(lines[2].endsWith(',抽奖,一等奖,李四,,,')).toBe(true)
+    expect(lines[3].endsWith(",作废,一等奖,张三,不再参与,'+A01,研发部")).toBe(true)
+    expect(lines[4].endsWith(',抽奖,一等奖,王五,,A03,')).toBe(true)
+  })
+
+  it('名单没有身份信息时与不传名单完全相同', () => {
+    const card = (name: string) => ({ name, id: name, avatar: '', index: 0, row: 1, col: 1 })
+    expect(historyToCsv(log, [card('张三'), card('李四'), card('王五')])).toBe(historyToCsv(log))
+  })
 })

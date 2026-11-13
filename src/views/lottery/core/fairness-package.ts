@@ -17,7 +17,8 @@ export interface VerificationPackage {
   seed: number
   seedSalt?: string // 仅 version 2：承诺用的随机盐
   seedCommit: string
-  roster: { id: string; name: string }[]
+  // employeeId 只在该人有工号时出现，存在时是非空字符串；部门不进验证文件
+  roster: { id: string; name: string; employeeId?: string }[]
   prizes: { id: string; name: string; count: number; everyTimeGet: number }[]
   drawLog: DrawLogEntry[]
   finalState: {
@@ -27,10 +28,11 @@ export interface VerificationPackage {
   }
 }
 
-// v2 承诺绑定的名单顺序和奖项规则。揭晓节奏、图片不参与，和配置指纹的口径一致。
+// v2 承诺绑定的名单顺序和奖项规则。揭晓节奏、图片、部门不参与，和配置指纹的口径一致。
+// 有工号的条目写成 [id, name, employeeId]，没有工号时仍是 [id, name]，旧承诺照常复算。
 export function commitmentContext(roster: VerificationPackage['roster'], prizes: VerificationPackage['prizes']): string {
   return JSON.stringify({
-    roster: roster.map(({ id, name }) => [id, name]),
+    roster: roster.map(({ id, name, employeeId }) => (employeeId === undefined ? [id, name] : [id, name, employeeId])),
     prizes: prizes.map(({ id, name, count, everyTimeGet }) => [id, name, count, everyTimeGet]),
   })
 }
@@ -76,7 +78,8 @@ function validPackage(value: unknown): value is VerificationPackage {
   if (value.version === 1 && value.commitmentAlgorithm !== 'sha256' && value.commitmentAlgorithm !== 'fnv1a32') return false
   if (value.version === 2 && (value.commitmentAlgorithm !== 'sha256-salted' || !isSeedSalt(value.seedSalt))) return false
   if (!Array.isArray(value.roster) || value.roster.length === 0 ||
-    !value.roster.every(p => record(p) && typeof p.id === 'string' && typeof p.name === 'string')) return false
+    !value.roster.every(p => record(p) && typeof p.id === 'string' && typeof p.name === 'string' &&
+      (p.employeeId === undefined || (typeof p.employeeId === 'string' && p.employeeId.length > 0)))) return false
   if (!Array.isArray(value.prizes) || value.prizes.length === 0 ||
     !value.prizes.every(p => record(p) && typeof p.id === 'string' && typeof p.name === 'string' &&
       prizeRuleNumber(p.count) && prizeRuleNumber(p.everyTimeGet))) return false

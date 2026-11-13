@@ -67,8 +67,8 @@ const prizeList: Prize[] = prizeConfigs.map(p => ({
   cardListWin: [],
 }));
 
-// 当前配置指纹：抽奖进度只在配置未变时才恢复
-const currentHash = configHash(headerTitle, prizeConfigs, cardList.map(c => c.name));
+// 当前配置指纹：抽奖进度只在配置未变时才恢复。卡片带着工号，指纹按工号区分同名者
+const currentHash = configHash(headerTitle, prizeConfigs, cardList);
 
 // 整场抽奖的种子：无存档时新生成（rngState 从 seed 起步）
 const initialSeed = randomSeed();

@@ -1,7 +1,7 @@
 import { useRef, useState, useMemo } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import {
-  clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
+  clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries, rosterTextHints, hasRosterIdentity,
   rosterEntriesToText, decodeTextFile, parseConfigJson, exportConfigFile, exportWinnersCsv, exportRejectedProgress,
   PERF_WARN_ROSTER,
 } from '../core/config-store'
@@ -12,7 +12,7 @@ import type { ThemeId } from '../core/lottery-theme'
 import { compressImageToDataUrl } from '../core/image-utils'
 import { persistConfigImages, inlineConfigImages } from '../core/config-images'
 import { isImageRef } from '../core/image-store'
-import { configChangesProgress, makeConfigApplication, prepareConfig } from '../core/config-apply'
+import { configChangesProgress, currentResetConfirmMessage, describeProgressReset, makeConfigApplication, prepareConfig, shortResetReasons } from '../core/config-apply'
 import { isSoundEnabled, setSoundEnabled } from '../core/lottery-sound'
 import { isCountdownEnabled, setCountdownEnabled } from '../core/lottery-countdown'
 import { hasCustomMusic, putMusic, clearMusic } from '../core/lottery-music-store'
@@ -57,13 +57,21 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const rosterFileRef = useRef<HTMLInputElement>(null)
   const configFileRef = useRef<HTMLInputElement>(null)
   const musicFileRef = useRef<HTMLInputElement>(null)
-  const applyConfig = useMemo(() => makeConfigApplication(() =>
-    appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }),
+  // 确认框写清会清空什么、是哪些改动导致的（例如修改工号）
+  const applyConfig = useMemo(() => makeConfigApplication(config =>
+    appConfirm(currentResetConfirmMessage(config), { confirmText: '保存并应用' }),
   ), [])
   const rejectedProgress = lotteryConfig.getRejectedProgress()
 
   const rosterNames = parseRosterText(rosterText)
+  const rosterEntries = parseRosterEntries(rosterText)
   const dupCount = rosterNames.length - new Set(rosterNames).size
+  const rosterHints = rosterTextHints(rosterText)
+  const rosterWithIdentity = hasRosterIdentity(rosterEntries)
+  const draftFingerprint: UserLotteryConfig = { version: 1, headerTitle: title.trim(), prizes: prizes.map(prize => ({ ...prize, name: prize.name.trim() })), roster: rosterEntries }
+  // 是否清空进度以配置指纹为准，原因列表只用来说明是哪些改动
+  const changesProgress = configChangesProgress(draftFingerprint)
+  const resetReasons = describeProgressReset(draftFingerprint)
   const totalPrizeCount = prizes.reduce((sum, p) => sum + (p.count || 0), 0)
   const sampleName = rosterNames[0] || '示'
   const avatarPreviews = useMemo(
@@ -336,6 +344,23 @@ export default function LotteryConfigPanel({ onClose }: Props) {
           每行一个人：「名字」或「名字,头像链接」（http(s) 或 data:image 链接才识别为头像，没有头像时按名字自动生成）。
           可直接从 Excel 整列复制后粘贴（第二列不是链接时只取名字）。文件导入支持 .txt / .csv（UTF-8 或 GBK 编码），规则相同。
         </p>
+        <p className="field-hint roster-identity-hint">
+          要带工号、部门：首行写表头，如「姓名,工号,部门」（也认 名字、编号、头像，英文 name、employee_id、department、avatar），列顺序随意，头像列放最后。
+          工号用来区分同名的人，修改工号会重置进度；部门只用于展示和导出。不支持带双引号的 CSV 单元格（部门名不能含逗号）。
+        </p>
+        {dupCount > 0 && (
+          <p className="field-hint roster-duplicate-hint">
+            {rosterWithIdentity
+              ? '重名的人在卡片上显示工号；控制窗、中奖名单和喜报里会附上工号（没有工号时附部门）。'
+              : '名单里有重名：首行加上「姓名,工号」表头并填写工号，揭晓和导出时就能分清是谁。'}
+          </p>
+        )}
+        {rosterHints.duplicateEmployeeIds.map(({ id, count }) => (
+          <p className="perf-warning roster-warning" key={id}>工号 {id} 重复 {count} 处，请核对（不影响保存）</p>
+        ))}
+        {rosterHints.ignoredColumns && (
+          <p className="perf-warning roster-warning">检测到多列内容但没有表头，附加列被忽略；首行加上「姓名,部门」可启用</p>
+        )}
         {rosterNames.length > PERF_WARN_ROSTER && (
           <p className="perf-warning">
             ⚠ 名单 {rosterNames.length} 人较多，3D 旋转抽奖在部分设备上可能不流畅，建议精简到 {PERF_WARN_ROSTER} 人以内或分批抽奖。
@@ -353,14 +378,14 @@ export default function LotteryConfigPanel({ onClose }: Props) {
       </section>
 
       <section className="panel-actions">
-        <p className="apply-impact">{configChangesProgress({ version: 1, headerTitle: title.trim(), prizes: prizes.map(prize => ({ ...prize, name: prize.name.trim() })), roster: parseRosterEntries(rosterText) })
-          ? '本次保存将清空中奖进度和随机流水，应用前会再次确认。'
+        <p className="apply-impact">{changesProgress
+          ? `本次保存将清空中奖进度和随机流水${resetReasons.length ? `（改动了：${shortResetReasons(resetReasons)}）` : ''}，应用前会再次确认。`
           : '当前名单与奖项规则未变，保存后保留中奖进度。'}</p>
         <button className="primary" disabled={saving} onClick={handleSave}>{saving ? '保存中…' : '保存并应用'}</button>
         <button onClick={handleExportConfig}>导出配置 JSON</button>
         <button onClick={() => configFileRef.current?.click()}>导入配置 JSON</button>
         <input ref={configFileRef} type="file" accept=".json" hidden onChange={handleConfigFile} />
-        <button onClick={() => exportWinnersCsv(lotteryConfig.prizeList)}>导出中奖名单 CSV</button>
+        <button onClick={() => exportWinnersCsv(lotteryConfig.prizeList, lotteryConfig.cardList)}>导出中奖名单 CSV</button>
         {rejectedProgress && <button onClick={() => exportRejectedProgress(rejectedProgress)}>导出未恢复的旧进度</button>}
         <button className="danger" onClick={handleResetProgress}>重置抽奖进度</button>
         <button onClick={handleRestoreDefaults}>恢复默认配置</button>

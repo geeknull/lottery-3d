@@ -23,7 +23,7 @@ export default function LotteryHistory({ onClose }: Props) {
         <p className="history-empty">还没有任何抽奖记录。</p>
       ) : (
         <>
-          <button className="export-btn" onClick={() => exportHistoryCsv(lotteryConfig.drawLog)}>
+          <button className="export-btn" onClick={() => exportHistoryCsv(lotteryConfig.drawLog, lotteryConfig.cardList)}>
             导出完整流水 CSV
           </button>
           <ul className="history-list">

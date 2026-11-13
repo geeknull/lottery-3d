@@ -101,6 +101,13 @@ describe('parseConfigJson', () => {
     expect(parseConfigJson(JSON.stringify(badEntry))).toBeNull()
   })
 
+  it('名单对象可带工号、部门字符串，其他类型拒绝', () => {
+    const ok = { ...validConfig, roster: [{ name: '张伟', employeeId: 'A001', department: '研发部' }, '李四'] }
+    expect(parseConfigJson(JSON.stringify(ok))).toEqual(ok)
+    expect(parseConfigJson(JSON.stringify({ ...validConfig, roster: [{ name: '张伟', employeeId: 1 }] }))).toBeNull()
+    expect(parseConfigJson(JSON.stringify({ ...validConfig, roster: [{ name: '张伟', department: ['研发部'] }] }))).toBeNull()
+  })
+
   it('奖项可带可选的奖品图（img），非字符串则拒绝', () => {
     const withImg = {
       ...validConfig,
@@ -188,6 +195,21 @@ describe('buildWinnersCsv', () => {
     expect(csv).toBe('﻿奖项,姓名\n一等奖,张三\n一等奖,李四')
   })
 
+  it('名单没有身份信息时传入名单也与以前相同', () => {
+    const roster = [makeCard('张三'), makeCard('李四')]
+    expect(buildWinnersCsv([makePrize('一等奖', ['张三', '李四'])], roster)).toBe('﻿奖项,姓名\n一等奖,张三\n一等奖,李四')
+  })
+
+  it('名单有工号或部门时追加两列，缺的留空，新单元格也转义', () => {
+    const zw = { ...makeCard('张伟'), employeeId: '=1+1', department: '研发部,一组' }
+    const ln = { ...makeCard('李娜'), department: '市场部' }
+    const prize: Prize = { ...makePrize('一等奖', []), cardListWin: [zw, ln] }
+    expect(buildWinnersCsv([prize], [zw, ln, makeCard('王五')])).toBe(
+      '﻿奖项,姓名,工号,部门\n一等奖,张伟,\'=1+1,"研发部,一组"\n一等奖,李娜,,市场部',
+    )
+    expect(buildWinnersCsv([prize], [{ ...makeCard('x'), employeeId: '+A01' }]).split('\n')[0]).toBe('﻿奖项,姓名,工号,部门')
+  })
+
   it('对奖项名与姓名逐格转义，防注入与撑格', () => {
     const csv = buildWinnersCsv([makePrize('=坑', ['张三,组长'])])
     expect(csv).toBe('﻿奖项,姓名\n\'=坑,"张三,组长"')
@@ -255,5 +277,29 @@ describe('decodeTextFile', () => {
 
   it('空文件返回空字符串', () => {
     expect(decodeTextFile(bytes())).toBe('')
+  })
+})
+
+describe('configHash：工号', () => {
+  const prizes = [{ name: '一等奖', count: 1, everyTimeGet: 1 }]
+  // 基线 4f3b0a9 上 configHash('标题', prizes, ['张伟', '张伟', '李娜']) 的结果
+  const BASELINE = '70800e3c'
+
+  it('没有工号时与基线固定值相同', () => {
+    expect(configHash('标题', prizes, ['张伟', '张伟', '李娜'])).toBe(BASELINE)
+    expect(configHash('标题', prizes, [{ name: '张伟', department: '研发部' }, { name: '张伟', employeeId: '' }, '李娜'])).toBe(BASELINE)
+  })
+
+  it('有工号时指纹变化，改部门不变', () => {
+    const a = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A001', department: '研发部' }, { name: '张伟', employeeId: 'A002' }, '李娜'])
+    const b = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A001', department: '市场部' }, { name: '张伟', employeeId: 'A002' }, '李娜'])
+    expect(a).not.toBe(BASELINE)
+    expect(a).toBe(b)
+  })
+
+  it('互换两个同名者的工号会改变指纹', () => {
+    const a = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A001' }, { name: '张伟', employeeId: 'A002' }, '李娜'])
+    const b = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A002' }, { name: '张伟', employeeId: 'A001' }, '李娜'])
+    expect(a).not.toBe(b)
   })
 })

@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bus } from '../core/event-bus'
+import lotteryConfig from '../core/lottery-config'
 import STATUS from '../core/lottery-status'
+import { createWinnerLabeler } from '../core/participant-identity'
 import type { Card } from '../core/lottery-types'
 import './lottery-win-banner.scss'
 
@@ -9,6 +11,8 @@ interface RevealData { prizeName: string; prizeImg?: string; winners: Card[] }
 // A title above the result keeps the completed camera move visible.
 export default function LotteryWinBanner() {
   const [reveal, setReveal] = useState<RevealData | null>(null)
+  // 名单在页面生命周期内不变：重名者加工号（无工号用部门）后缀
+  const labelOf = useMemo(() => createWinnerLabeler(lotteryConfig.cardList), [])
   useEffect(() => {
     const onReveal = (data: RevealData) => setReveal(data)
     const unsubscribe = STATUS.subscribe(() => {
@@ -25,7 +29,7 @@ export default function LotteryWinBanner() {
       <span className="banner-prize-name">{reveal.prizeName}</span>
     </span>
     <span className="banner-winners" aria-live="polite">
-      {reveal.winners.map(w => <span className="banner-winner" key={w.id}>{w.name}</span>)}
+      {reveal.winners.map(w => <span className="banner-winner" key={w.id}>{labelOf(w)}</span>)}
     </span>
   </button>
 }

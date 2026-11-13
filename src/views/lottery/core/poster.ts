@@ -1,5 +1,6 @@
 import lotteryConfig from './lottery-config'
-import type { Prize } from './lottery-types'
+import { createWinnerLabeler } from './participant-identity'
+import type { Card, Prize } from './lottery-types'
 
 // 中奖喜报海报：canvas 绘制活动标题 + 各奖项中奖名单，导出 PNG 供开完奖转发到群里。
 // 纯文字版（不画头像）——头像多为 http 外链，drawImage 后 canvas 会被 taint，
@@ -35,7 +36,8 @@ function measureHeight(prizes: Prize[]): number {
 }
 
 // 绘制海报，返回 PNG dataURL；canvas 不可用时返回 ''
-function renderPoster(title: string, prizes: Prize[]): string {
+// labelOf：重名者加工号或部门后缀，不重名只显示姓名，避免撑宽网格
+function renderPoster(title: string, prizes: Prize[], labelOf: (card: Card) => string): string {
   const dpr = 2
   const height = measureHeight(prizes)
   const canvas = document.createElement('canvas')
@@ -91,7 +93,7 @@ function renderPoster(title: string, prizes: Prize[]): string {
       const row = Math.floor(i / COLS)
       const cx = PAD + col * colW + colW / 2
       const cy = y + row * 64
-      ctx.fillText(c.name, cx, cy)
+      ctx.fillText(labelOf(c), cx, cy)
     })
     y += Math.ceil(p.cardListWin.length / COLS) * 64 + 36
   }
@@ -105,7 +107,7 @@ export function exportWinnersPoster(): boolean {
   if (prizes.length === 0) {
     return false
   }
-  const dataUrl = renderPoster(lotteryConfig.headerTitle, prizes)
+  const dataUrl = renderPoster(lotteryConfig.headerTitle, prizes, createWinnerLabeler(lotteryConfig.cardList))
   if (!dataUrl || dataUrl.length < 10) {
     return false
   }
