@@ -48,7 +48,7 @@ test('完整验证文件可跨场次导入，作废撤销可复算，篡改承�
     await expect(verifier.locator('.verify-result.ok')).toContainText('已复算 2 轮及全部操作')
     await expect(verifier.locator('.lottery-fairness')).toContainText('已记录 0 轮抽奖')
 
-    await verifier.locator('.lottery-fairness input[type=file]').setInputFiles({
+    await verifier.locator('.lottery-fairness input[type=file]:not(.restore-input)').setInputFiles({
       name: 'reordered-verification.json',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify({ ...pkg, roster: [...pkg.roster].reverse() })),
@@ -56,7 +56,7 @@ test('完整验证文件可跨场次导入，作废撤销可复算，篡改承�
     await expect(verifier.locator('.verify-result.fail')).toContainText('种子与已公布的承诺不一致')
 
     pkg.seedCommit = '0'.repeat(64)
-    await verifier.locator('.lottery-fairness input[type=file]').setInputFiles({
+    await verifier.locator('.lottery-fairness input[type=file]:not(.restore-input)').setInputFiles({
       name: 'tampered-verification.json',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify(pkg)),
