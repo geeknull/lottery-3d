@@ -8,6 +8,7 @@ import { toast } from '../components/feedback'
 import { bus } from './event-bus'
 import { stopShowcase } from './lottery-showcase'
 import { ensureSeedCommit } from './lottery-fairness'
+import { START_REMINDER, takeStartReminder } from './attestation-reminder'
 import { startSpinTicks, stopSpinTicks, playReveal } from './lottery-sound'
 import { isCountdownEnabled, playCountdown } from './lottery-countdown'
 import { notifyLotteryChange } from './lottery-store'
@@ -111,6 +112,8 @@ async function start(): Promise<boolean> {
   // 在第一次 await 前取得执行权，重复 start 不能叠加准备流程。
   roundPresentation = prize.presentation ?? 'standard'
   STATUS.setPhase('preparing')
+  // 所有入口（按钮、键盘、双屏）都经过这里；只提示不等待，不改变开始节奏。
+  if (takeStartReminder(lotteryConfig.drawLog.some(entry => entry.type === 'draw'))) toast(START_REMINDER, 6000)
   const version = flowVersion
   const abort = new AbortController()
   preparation = abort

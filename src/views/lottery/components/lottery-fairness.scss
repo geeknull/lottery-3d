@@ -66,6 +66,92 @@
     }
   }
 
+  .seed-reveal {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 640px;
+
+    .mono {
+      flex: 1;
+    }
+
+    .seed-hidden {
+      color: rgba(var(--accent-light-rgb), 0.5);
+      letter-spacing: 0.2em;
+    }
+  }
+
+  .seed-toggle {
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    color: var(--text-bright);
+    background: rgba(var(--accent-light-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.4);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(var(--accent-light-rgb), 0.22);
+    }
+  }
+
+  // 决策 014 #1：不升级随机算法，所以“种子公开后可预测”的提示要醒目。
+  .fairness-warning {
+    max-width: 640px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: bold;
+    line-height: 1.6;
+    color: #ffb3b3;
+    background: rgba(180, 50, 50, 0.2);
+    border: 1px solid rgba(255, 110, 110, 0.75);
+    border-left-width: 4px;
+    border-radius: 4px;
+
+    strong {
+      color: #ff7070;
+    }
+  }
+
+  .export-hint {
+    align-self: center;
+    font-size: 13px;
+    color: #ffb3b3;
+  }
+
+  .attestation-entry {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 10px;
+
+    .hint {
+      margin-top: 0;
+    }
+  }
+
+  .attestation-btn {
+    padding: 8px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-bright);
+    background: rgba(var(--accent-dark-rgb), 0.5);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.7);
+    border-radius: 4px;
+
+    &:hover:not(:disabled) {
+      background: rgba(var(--accent-light-rgb), 0.22);
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+  }
+
   .fairness-actions {
     display: flex;
     gap: 12px;
@@ -87,6 +173,61 @@
         border-color: rgba(var(--accent-light-rgb), 0.7);
         background: rgba(var(--accent-dark-rgb), 0.5);
       }
+    }
+  }
+
+  .fingerprint-check {
+    max-width: 640px;
+    margin-top: 16px;
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 15px;
+      font-weight: normal;
+      color: rgba(var(--accent-light-rgb), 0.7);
+    }
+
+    .file-fingerprint {
+      padding: 10px 14px;
+      font-size: 20px;
+      font-weight: bold;
+      line-height: 1.5;
+      color: var(--text-bright);
+      background: rgba(var(--accent-dark-rgb), 0.2);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.25);
+      border-radius: 4px;
+    }
+  }
+
+  .fingerprint-check-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 14px;
+    color: rgba(var(--accent-light-rgb), 0.8);
+
+    input {
+      padding: 8px 12px;
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 15px;
+      color: var(--text-bright);
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.4);
+      border-radius: 4px;
+    }
+  }
+
+  .fingerprint-check-result {
+    margin-top: 8px;
+    font-size: 15px;
+    font-weight: bold;
+
+    &.ok {
+      color: #aef0c0;
+    }
+    &.fail {
+      color: #ff8a8a;
     }
   }
 

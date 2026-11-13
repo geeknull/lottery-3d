@@ -326,3 +326,38 @@ describe('统一抽奖指令', () => {
     expect(controller.isSpinning()).toBe(true)
   })
 })
+
+describe('开始时的公证卡提醒', () => {
+  it('第一次开始且本页没打开过公证卡时提示一次，不改变开始流程', async () => {
+    const { toast } = await import('../components/feedback')
+    const { START_REMINDER } = await import('./attestation-reminder')
+    expect(await controller.dispatchLotteryCommand({ action: 'toggleDraw' })).toBe(true)
+    expect(status.getPhase()).toBe('spinning')
+    expect(toast).toHaveBeenCalledWith(START_REMINDER, 6000)
+    await controller.dispatchLotteryCommand({ action: 'stop' })
+    status.setStatusWait()
+    vi.mocked(toast).mockClear()
+    await controller.dispatchLotteryCommand({ action: 'start' })
+    expect(toast).not.toHaveBeenCalledWith(START_REMINDER, 6000)
+  })
+
+  it('打开过公证卡后开始不提示', async () => {
+    const { toast } = await import('../components/feedback')
+    const { START_REMINDER, markAttestationShown } = await import('./attestation-reminder')
+    markAttestationShown()
+    await controller.dispatchLotteryCommand({ action: 'start' })
+    expect(status.getPhase()).toBe('spinning')
+    expect(toast).not.toHaveBeenCalledWith(START_REMINDER, 6000)
+  })
+
+  it('被校验拦下的开始不消耗提醒', async () => {
+    const { toast } = await import('../components/feedback')
+    const { START_REMINDER } = await import('./attestation-reminder')
+    status.setStatus(status.INIT)
+    expect(await controller.dispatchLotteryCommand({ action: 'start' })).toBe(false)
+    expect(toast).not.toHaveBeenCalledWith(START_REMINDER, 6000)
+    status.setStatusWait()
+    await controller.dispatchLotteryCommand({ action: 'start' })
+    expect(toast).toHaveBeenCalledWith(START_REMINDER, 6000)
+  })
+})

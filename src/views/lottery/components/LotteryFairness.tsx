@@ -1,5 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import lotteryConfig from '../core/lottery-config'
+import STATUS from '../core/lottery-status'
+import { isRehearsal } from '../core/rehearsal'
+import { attestationUnavailableReason, buildAttestation, commitKind, readPackageCommit } from '../core/attestation'
+import type { Attestation } from '../core/attestation'
+import { markAttestationShown } from '../core/attestation-reminder'
+import LotteryAttestation, { FingerprintCheck } from './LotteryAttestation'
 import { getLotteryVersion, useLotteryVersion } from '../core/lottery-store'
 import { createVerificationPackage, ensureSeedCommit, verifyCurrent } from '../core/lottery-fairness'
 import type { VerifyResult } from '../core/lottery-fairness'
@@ -15,19 +21,49 @@ interface Props {
 // 抽奖公平性面板：展示种子承诺/揭示，一键离线自验证
 export default function LotteryFairness({ onClose }: Props) {
   const version = useLotteryVersion()
-  useOnEscape(onClose)
-  const [result, setResult] = useState<{ value: VerifyResult; version: number | null; source: string } | null>(null)
+  const phase = useSyncExternalStore(STATUS.subscribe, STATUS.getPhase)
+  const [card, setCard] = useState<Attestation | null>(null)
+  const [seedVisible, setSeedVisible] = useState(false)
+  // 公证卡打开时 Escape 只关卡片，不连带关掉面板。
+  useOnEscape(() => { if (card) setCard(null); else onClose() })
+  // commit：导入文件里读出的指纹，只用于显示和核对。
+  const [result, setResult] = useState<{ value: VerifyResult; version: number | null; source: string; commit?: string | null; importId?: number } | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const importCount = useRef(0)
 
   // 打开即锁定承诺哈希。承诺含随机盐，公布指纹不会泄露种子
   useEffect(() => {
     void ensureSeedCommit().catch(() => toast('种子承诺生成失败，请稍后重试'))
   }, [])
 
+  // 双屏控制窗可以在面板打开时发起抽奖；离开空闲就收起公证卡，不在演出中盖住舞台。
+  useEffect(() => STATUS.subscribe(() => { if (!STATUS.isWait()) setCard(null) }), [])
+
   const drawCount = lotteryConfig.drawLog.filter(e => e.type === 'draw').length
   // 测试里的 mock 没有 seedSalt，所以用 Boolean 兜住 undefined
   const salted = Boolean(lotteryConfig.seedSalt) && lotteryConfig.seedCommit.length === 64
+
+  // “空闲”按 isWait()：idle 或 presenting，都没有动画在跑，等主持人操作。
+  const idle = phase === 'idle' || phase === 'presenting'
+  const cardUnavailable = attestationUnavailableReason(commitKind(lotteryConfig.seedCommit, lotteryConfig.seedSalt || ''))
+    ?? (idle ? null : '抽奖进行中，结束后再打开公证卡')
+
+  function openCard() {
+    const next = buildAttestation({
+      title: lotteryConfig.headerTitle,
+      seedCommit: lotteryConfig.seedCommit,
+      seedSalt: lotteryConfig.seedSalt || '',
+      rosterCount: lotteryConfig.cardList.length,
+      prizes: lotteryConfig.prizeList,
+      drawLog: lotteryConfig.drawLog,
+      rehearsal: isRehearsal(),
+      now: new Date(),
+    })
+    if (!next) return
+    markAttestationShown()
+    setCard(next)
+  }
 
   async function handleVerify() {
     setBusy(true)
@@ -73,8 +109,9 @@ export default function LotteryFairness({ onClose }: Props) {
     if (!file) return
     setBusy(true)
     try {
-      const value = await verifyVerificationPackage(JSON.parse(await file.text()))
-      setResult({ value, version: null, source: '导入文件' })
+      const parsed: unknown = JSON.parse(await file.text())
+      const value = await verifyVerificationPackage(parsed)
+      setResult({ value, version: null, source: '导入文件', commit: readPackageCommit(parsed), importId: ++importCount.current })
     } catch {
       setResult({ value: { ok: false, checkedDraws: 0, failedAt: null, reason: '文件不是有效的 JSON 验证数据' }, version: null, source: '导入文件' })
     } finally {
@@ -99,12 +136,24 @@ export default function LotteryFairness({ onClose }: Props) {
         <h3>种子承诺指纹（开抽前公布）</h3>
         <code className="mono">{lotteryConfig.seedCommit || '生成中…'}</code>
         <p className="hint">{lotteryConfig.seedCommit.length === 8 ? 'FNV-1a（兼容模式，非加密校验）' : salted ? 'SHA-256（含随机盐，绑定名单顺序与奖项规则）' : 'SHA-256'}。请在开抽前记录并公布此值，验证时与原记录核对。</p>
+        <div className="attestation-entry">
+          <button type="button" className="attestation-btn" disabled={cardUnavailable !== null} onClick={openCard}>公证卡</button>
+          <span className="hint">{cardUnavailable ?? '全屏展示分组指纹和短码，可投屏、打印、导出 PNG'}</span>
+        </div>
       </section>
 
-      <section className="fairness-field">
+      <section className="fairness-field seed-field">
         <h3>当前种子</h3>
-        <code className="mono">{lotteryConfig.seed}</code>
-        <p className="hint">已记录 {drawCount} 轮抽奖。验证文件包含有序名单、奖项规则、所有操作和最终结果，可在另一设备导入验证。种子公开后，后续结果可预测，建议活动结束后分享文件。</p>
+        {/* 默认隐藏：面板常被投屏，种子一旦出现在屏幕或照片里，后续结果就能被算出来。 */}
+        <div className="seed-reveal">
+          <code className={'mono ' + (seedVisible ? 'seed-value' : 'seed-hidden')}>{seedVisible ? lotteryConfig.seed : '已隐藏'}</code>
+          <button type="button" className="seed-toggle" onClick={() => setSeedVisible(visible => !visible)}>{seedVisible ? '隐藏种子' : '显示种子'}</button>
+        </div>
+        <p className="fairness-warning" role="note">
+          ⚠ 种子公开后，本场后续每一轮结果都可以被算出来。活动进行中不要投屏、拍照或分享种子和验证文件。
+          {seedVisible && <strong> 种子正在显示，请确认屏幕没有投出去。</strong>}
+        </p>
+        <p className="hint">已记录 {drawCount} 轮抽奖。验证文件包含有序名单、奖项规则、所有操作和最终结果，可在另一设备导入验证。</p>
       </section>
 
       <section className="fairness-actions" style={{ flexWrap: 'wrap' }}>
@@ -113,6 +162,7 @@ export default function LotteryFairness({ onClose }: Props) {
         <button onClick={handleDownload}>下载验证文件</button>
         <button disabled={busy} onClick={() => fileInput.current?.click()}>验证文件</button>
         <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={handleImport} />
+        <span className="export-hint">验证数据含种子，活动结束后再分享</span>
       </section>
 
       {visibleResult && (
@@ -122,6 +172,10 @@ export default function LotteryFairness({ onClose }: Props) {
             : `✗ ${visibleResult.source}验证未通过：${visibleResult.value.failedAt === null ? '' : `第 ${visibleResult.value.failedAt + 1} 条记录：`}${visibleResult.value.reason}`}
         </div>
       )}
+      {/* 每次导入换一个 key：重新导入时清空上一次的核对输入 */}
+      {visibleResult?.commit && <FingerprintCheck key={visibleResult.importId} commit={visibleResult.commit} />}
+
+      {card && <LotteryAttestation card={card} onClose={() => setCard(null)} />}
     </div>
   )
 }
