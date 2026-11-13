@@ -2,7 +2,7 @@ import { useRef, useState, useMemo } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import {
   clearUserConfig, loadUserConfig, parseRosterText, parseRosterEntries,
-  rosterEntriesToText, decodeTextFile, parseConfigJson, exportConfigFile, exportWinnersCsv,
+  rosterEntriesToText, decodeTextFile, parseConfigJson, exportConfigFile, exportWinnersCsv, exportRejectedProgress,
   PERF_WARN_ROSTER,
 } from '../core/config-store'
 import type { PrizeConfig, UserLotteryConfig } from '../core/config-store'
@@ -60,6 +60,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
   const applyConfig = useMemo(() => makeConfigApplication(() =>
     appConfirm('保存新配置会清空当前抽奖进度并刷新页面，确定吗？', { confirmText: '保存并应用' }),
   ), [])
+  const rejectedProgress = lotteryConfig.getRejectedProgress()
 
   const rosterNames = parseRosterText(rosterText)
   const dupCount = rosterNames.length - new Set(rosterNames).size
@@ -360,6 +361,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         <button onClick={() => configFileRef.current?.click()}>导入配置 JSON</button>
         <input ref={configFileRef} type="file" accept=".json" hidden onChange={handleConfigFile} />
         <button onClick={() => exportWinnersCsv(lotteryConfig.prizeList)}>导出中奖名单 CSV</button>
+        {rejectedProgress && <button onClick={() => exportRejectedProgress(rejectedProgress)}>导出未恢复的旧进度</button>}
         <button className="danger" onClick={handleResetProgress}>重置抽奖进度</button>
         <button onClick={handleRestoreDefaults}>恢复默认配置</button>
       </section>

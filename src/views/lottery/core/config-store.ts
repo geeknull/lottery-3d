@@ -176,6 +176,11 @@ export function exportConfigFile(cfg: UserLotteryConfig): void {
   downloadFile('抽奖配置.json', JSON.stringify(cfg, null, 2), 'application/json');
 }
 
+// 导出无法恢复的旧进度备份，交给技术人员排查或手工找回结果。
+export function exportRejectedProgress(backup: string): void {
+  downloadFile('未恢复的抽奖进度.json', backup, 'application/json');
+}
+
 // CSV 单元格转义：
 // 1) = + - @ 开头会被 Excel/WPS 当公式执行（CSV 注入 CWE-1236），前置单引号中和；
 // 2) 含逗号/引号/换行时按 RFC 4180 用双引号包裹、内部引号翻倍，避免撑破列。

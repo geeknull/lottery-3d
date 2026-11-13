@@ -36,6 +36,8 @@ export interface LotteryConfig {
   getUserById(id: string): Card | undefined;
   setLocalStorage(): void;
   getLocalStorage(): void;
+  getRejectedProgress(): string | null; // 最近一次无法恢复的旧进度备份（JSON 文本），没有时为 null
+  takeRejectedNotice(): boolean; // 本次启动有旧进度被拒绝时返回 true，只返回一次
   clearLocalStorage(): void;
 }
 
@@ -75,6 +77,19 @@ const rehearsal = isRehearsal();
 let isInit = false;
 let storageHealthy = true; // localStorage 写入是否正常（失败只提醒一次的去重标志）
 const localStorageKey = '___lottery___';
+const rejectedKey = '___lottery_rejected___';
+let rejectedNoticePending = false;
+
+// 旧进度校验不通过时先留底再开新场次，否则下一次保存会把它永久覆盖。
+// 只保留最近一份；备份写入失败（多为配额不足）不能影响启动。
+function keepRejectedProgress(raw: string, reason: 'invalid-json' | 'config-mismatch' | 'invalid-progress') {
+  rejectedNoticePending = true;
+  try {
+    localStorage.setItem(rejectedKey, JSON.stringify({ at: Date.now(), reason, raw }));
+  } catch (e) {
+    console.warn('无法恢复的旧进度备份失败（可能超出本地存储配额）', e);
+  }
+}
 let knownRevision = 0; // 本窗口最后读到或写入的存档版本
 let progressStale = false;
 
@@ -163,6 +178,18 @@ const lotteryConfig: LotteryConfig = {
       }
     }
   },
+  getRejectedProgress() {
+    try {
+      return localStorage.getItem(rejectedKey);
+    } catch {
+      return null;
+    }
+  },
+  takeRejectedNotice() {
+    const pending = rejectedNoticePending;
+    rejectedNoticePending = false;
+    return pending;
+  },
   getLocalStorage() {
     if (rehearsal) return;
     if (isInit !== false) {
@@ -177,14 +204,17 @@ const lotteryConfig: LotteryConfig = {
     try {
       saved = JSON.parse(raw);
     } catch {
+      keepRejectedProgress(raw, 'invalid-json');
       return void 0;
     }
     // 配置变过（或老版本存档没有指纹）就不恢复，避免名单/奖项对不上
     if (!saved || typeof saved !== 'object' || !('hash' in saved) || saved.hash !== currentHash) {
+      keepRejectedProgress(raw, 'config-mismatch');
       return void 0;
     }
     // 校验版本、进度结构及所有引用，通过后才更新内存，避免半恢复状态。
     if (!isSavedRestorable(saved, cardList, lotteryConfig.prizeList)) {
+      keepRejectedProgress(raw, 'invalid-progress');
       return void 0;
     }
     const cardsById = new Map(cardList.map(card => [card.id, card]));
