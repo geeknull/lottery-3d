@@ -1,4 +1,4 @@
-import { buildCards, defaultPeople } from './lottery-config-users';
+import { buildCards, createIdAllocator, defaultPeople } from './lottery-config-users';
 import { loadUserConfig, configHash, normalizeRoster } from './config-store';
 import { randomSeed } from './lottery-rng';
 import { isSavedRestorable } from './config-restore';
@@ -50,23 +50,19 @@ const effectiveStyle = resolveStyle(avatarStyle, people.length, autoDowngrade);
 const { cardList, colCount, rowCount } = buildCards(people, effectiveStyle);
 
 // 重名奖项 id 加序号去重（与卡片同规则）
-const prizeNameCount = new Map<string, number>();
-const prizeList: Prize[] = prizeConfigs.map(p => {
-  const seen = prizeNameCount.get(p.name) ?? 0;
-  prizeNameCount.set(p.name, seen + 1);
-  return {
-    count: p.count,
-    countRemain: p.count,
-    everyTimeGet: p.everyTimeGet,
-    presentation: p.presentation ?? 'standard',
-    name: p.name,
-    detail: p.name + '商品',
-    img: p.img ?? '',
-    id: seen === 0 ? p.name : `${p.name}-${seen + 1}`,
-    round: 0,
-    cardListWin: [],
-  };
-});
+const allocatePrizeId = createIdAllocator();
+const prizeList: Prize[] = prizeConfigs.map(p => ({
+  count: p.count,
+  countRemain: p.count,
+  everyTimeGet: p.everyTimeGet,
+  presentation: p.presentation ?? 'standard',
+  name: p.name,
+  detail: p.name + '商品',
+  img: p.img ?? '',
+  id: allocatePrizeId(p.name),
+  round: 0,
+  cardListWin: [],
+}));
 
 // 当前配置指纹：抽奖进度只在配置未变时才恢复
 const currentHash = configHash(headerTitle, prizeConfigs, cardList.map(c => c.name));

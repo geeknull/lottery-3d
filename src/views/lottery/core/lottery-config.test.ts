@@ -273,3 +273,37 @@ describe('多窗口写入保护', () => {
     expect(JSON.parse(localStorage.getItem('___lottery___')!).revision).toBe(1)
   })
 })
+
+describe('ID 唯一性', () => {
+  it('奖项序号撞车时 ID 仍然唯一', async () => {
+    const { saveUserConfig } = await import('./config-store')
+    saveUserConfig({
+      version: 1, headerTitle: '撞车',
+      prizes: ['奖', '奖', '奖-2'].map(name => ({ name, count: 1, everyTimeGet: 1 })),
+      roster: ['甲', '乙', '丙'],
+    })
+    vi.resetModules()
+    const { default: configured } = await import('./lottery-config')
+    expect(configured.prizeList.map(p => p.id)).toEqual(['奖', '奖-2', '奖-2-2'])
+  })
+
+  it('名单序号撞车时不误伤他人，公平验证通过', async () => {
+    const { saveUserConfig } = await import('./config-store')
+    saveUserConfig({
+      version: 1, headerTitle: '撞车',
+      prizes: [{ name: '大奖', count: 3, everyTimeGet: 1 }],
+      roster: ['张三', '张三', '张三-2'],
+    })
+    vi.resetModules()
+    const { default: configured } = await import('./lottery-config')
+    const { getRandomCard } = await import('./lottery-algorithm')
+    const { ensureSeedCommit, verifyCurrent } = await import('./lottery-fairness')
+    await ensureSeedCommit()
+    getRandomCard(configured.prizeList[0])
+    expect(configured.cardListRemainAll).toHaveLength(2)
+    getRandomCard(configured.prizeList[0])
+    getRandomCard(configured.prizeList[0])
+    expect(configured.cardListWinAll).toHaveLength(3)
+    expect((await verifyCurrent()).ok).toBe(true)
+  })
+})

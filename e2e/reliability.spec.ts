@@ -113,3 +113,24 @@ test('导入 GBK 编码的名单文件后姓名正确', async ({ page }) => {
   })
   await expect(page.locator('.lottery-config-panel textarea')).toHaveValue('张三\n李四')
 })
+
+test('名单序号撞车时全部人都能中奖，公平验证通过', async ({ page }) => {
+  await page.goto('/')
+  await page.evaluate(() => {
+    localStorage.removeItem('___lottery___')
+    localStorage.setItem('___lottery_countdown___', 'off')
+    localStorage.setItem('___lottery_config___', JSON.stringify({
+      version: 1, headerTitle: 'ID 回归',
+      prizes: [{ name: '一等奖', count: 3, everyTimeGet: 3 }],
+      roster: ['张三', '张三', '张三-2'],
+    }))
+  })
+  await page.reload()
+  await page.waitForTimeout(3500)
+  await drawOneRound(page)
+  await closeBanner(page)
+  await expect(page.locator('.element.prize')).toHaveCount(3)
+  await page.locator('.fairness-btn').click()
+  await page.getByRole('button', { name: '立即自验证', exact: true }).click()
+  await expect(page.locator('.verify-result.ok')).toContainText('已复算 1 轮及全部操作')
+})

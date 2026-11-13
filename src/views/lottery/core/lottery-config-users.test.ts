@@ -23,6 +23,16 @@ describe('buildCards', () => {
     expect(cardList.map(c => c.name)).toEqual(['张三', '张三', '张三'])
   })
 
+  it.each([
+    [['张三', '张三', '张三-2'], ['张三', '张三-2', '张三-2-2']],
+    [['张三-2', '张三', '张三'], ['张三-2', '张三', '张三-3']],
+    [['张三-2', '张三', '张三', '张三'], ['张三-2', '张三', '张三-3', '张三-4']],
+  ])('序号和其他名字撞车时 ID 仍然唯一：%j', (names, ids) => {
+    const { cardList } = buildCards(names.map(name => ({ name })), 'letter')
+    expect(cardList.map(c => c.id)).toEqual(ids)
+    expect(cardList.map(c => c.name)).toEqual(names)
+  })
+
   it('没有头像时自动生成 SVG 头像', () => {
     const { cardList } = buildCards([{ name: '张三' }], 'letter')
     expect(cardList[0].avatar).toMatch(/^data:image\/svg\+xml/)
