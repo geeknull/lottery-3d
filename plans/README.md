@@ -21,7 +21,7 @@
 | [011](011-preflight-storage-check.md) | 现场检查增加“本地存储”一项 | P3 | S | — | TODO |
 | [012](012-progress-restore-design.md) | 设计：进度备份与换机恢复 | P2 | M | 003、007（建议在 008 之后） | DONE（分支 `advisor/012-progress-restore-design`，`70e4493`；文档 `docs/superpowers/specs/2026-11-13-progress-restore-design.md`，原型 6 项通过，7 个待决问题） |
 | [013](013-participant-identity-design.md) | 设计：参与者身份列 | P3 | M | 005（建议在 006 之后） | DONE（分支 `advisor/013-participant-identity-design`，`57ab1c1`；文档 `docs/superpowers/specs/2026-11-13-participant-identity-design.md`，7 个待决问题） |
-| [014](014-pre-draw-attestation-design.md) | 设计：开抽前公证卡与随机状态升级 | P3 | M | 008 | TODO |
+| [014](014-pre-draw-attestation-design.md) | 设计：开抽前公证卡与随机状态升级 | P3 | M | 008 | DONE（分支 `advisor/014-pre-draw-attestation-design`，`0efbab7`；文档 `docs/superpowers/specs/2026-11-13-pre-draw-attestation-design.md`，9 个待决问题） |
 | [015](015-pin-ci-runner.md) | CI 的 verify 任务固定在 ubuntu-24.04（2026-11-13 新增，阻塞上线） | P1 | S | — | DONE（分支 `advisor/015-pin-ci-runner`，`bd44430`；以推送后的 CI 运行为准） |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一句原因）| REJECTED（附一句理由：已被别处修复，或方案放弃）
