@@ -61,3 +61,28 @@ test('彩排页的公证卡带水印', async ({ page }) => {
   await card.getByRole('button', { name: '导出 PNG', exact: true }).click()
   expect((await downloaded).suggestedFilename()).toMatch(/^公证卡-彩排-[0-9a-f]{8}\.png$/)
 })
+
+test('第一次开始时提醒还没展示公证卡，不阻塞开始；打开过卡片后不提醒', async ({ page }) => {
+  const reminder = page.locator('.toast-item', { hasText: '本场还没有展示开抽前公证卡' })
+  await gotoFresh(page)
+  // 键盘入口：空格开始，提醒出现，同时照常进入旋转。
+  await page.keyboard.press(' ')
+  await expect(reminder).toBeVisible()
+  await expect(page.locator('#primaryCta')).toHaveText('停 !', { timeout: 20000 })
+  await page.locator('#primaryCta').click()
+  await expect(page.locator('#primaryCta')).toBeEnabled({ timeout: 20000 })
+  await closeBanner(page)
+  await expect(reminder).toHaveCount(0, { timeout: 8000 })
+  await drawOneRound(page)
+  await expect(reminder).toHaveCount(0)
+
+  // 新场次先打开公证卡再开始，不提醒。
+  await gotoFresh(page)
+  await page.locator('.fairness-btn').click()
+  await page.getByRole('button', { name: '公证卡', exact: true }).click()
+  await page.getByRole('dialog', { name: '开抽前公证卡' }).getByRole('button', { name: '关闭', exact: true }).click()
+  await page.locator('.lottery-fairness .close-btn').click()
+  await page.locator('#primaryCta').click()
+  await expect(page.locator('#primaryCta')).toHaveText('停 !', { timeout: 20000 })
+  await expect(reminder).toHaveCount(0)
+})
