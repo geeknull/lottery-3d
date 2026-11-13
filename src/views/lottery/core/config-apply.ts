@@ -91,7 +91,7 @@ export function configChangesProgress(config: UserLotteryConfig): boolean {
 }
 
 function activeConfigHash(): string {
-  return configHash(lotteryConfig.headerTitle, lotteryConfig.prizeList, lotteryConfig.cardList.map(card => card.name))
+  return configHash(lotteryConfig.headerTitle, lotteryConfig.prizeList, lotteryConfig.cardList)
 }
 
 export function makeConfigApplication(confirmReset: () => Promise<boolean>) {

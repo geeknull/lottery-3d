@@ -261,11 +261,17 @@ export function rosterEntriesToText(roster: (string | RosterEntry)[]): string {
 }
 
 // 配置指纹：用于校验 localStorage 里的抽奖进度是否属于当前配置。
-// 奖品图、头像、揭晓节奏是纯展示字段，不参与指纹（修改它们不应清空抽奖进度）。
+// 奖品图、头像、部门、揭晓节奏是纯展示字段，不参与指纹（修改它们不应清空抽奖进度）。
+// 工号用来区分同名的人：名单里至少有一个工号时才追加 rosterEmployeeIds（与名单同序，缺省为空串），
+// 没有工号时哈希输入与加身份列之前逐字符相同，旧存档照常恢复。
 export function configHash(headerTitle: string, prizes: PrizeConfig[], roster: (string | RosterEntry)[]): string {
   const prizeKeys = prizes.map(({ name, count, everyTimeGet }) => ({ name, count, everyTimeGet }));
-  const rosterNames = normalizeRoster(roster).map(entry => entry.name);
-  const str = JSON.stringify({ headerTitle, prizes: prizeKeys, rosterNames });
+  const entries = normalizeRoster(roster);
+  const rosterNames = entries.map(entry => entry.name);
+  const rosterEmployeeIds = entries.map(entry => entry.employeeId ?? '');
+  const str = rosterEmployeeIds.some(Boolean)
+    ? JSON.stringify({ headerTitle, prizes: prizeKeys, rosterNames, rosterEmployeeIds })
+    : JSON.stringify({ headerTitle, prizes: prizeKeys, rosterNames });
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0;

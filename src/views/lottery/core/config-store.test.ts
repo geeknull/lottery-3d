@@ -264,3 +264,27 @@ describe('decodeTextFile', () => {
     expect(decodeTextFile(bytes())).toBe('')
   })
 })
+
+describe('configHash：工号', () => {
+  const prizes = [{ name: '一等奖', count: 1, everyTimeGet: 1 }]
+  // 基线 4f3b0a9 上 configHash('标题', prizes, ['张伟', '张伟', '李娜']) 的结果
+  const BASELINE = '70800e3c'
+
+  it('没有工号时与基线固定值相同', () => {
+    expect(configHash('标题', prizes, ['张伟', '张伟', '李娜'])).toBe(BASELINE)
+    expect(configHash('标题', prizes, [{ name: '张伟', department: '研发部' }, { name: '张伟', employeeId: '' }, '李娜'])).toBe(BASELINE)
+  })
+
+  it('有工号时指纹变化，改部门不变', () => {
+    const a = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A001', department: '研发部' }, { name: '张伟', employeeId: 'A002' }, '李娜'])
+    const b = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A001', department: '市场部' }, { name: '张伟', employeeId: 'A002' }, '李娜'])
+    expect(a).not.toBe(BASELINE)
+    expect(a).toBe(b)
+  })
+
+  it('互换两个同名者的工号会改变指纹', () => {
+    const a = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A001' }, { name: '张伟', employeeId: 'A002' }, '李娜'])
+    const b = configHash('标题', prizes, [{ name: '张伟', employeeId: 'A002' }, { name: '张伟', employeeId: 'A001' }, '李娜'])
+    expect(a).not.toBe(b)
+  })
+})
