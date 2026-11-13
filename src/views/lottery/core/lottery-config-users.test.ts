@@ -51,3 +51,20 @@ describe('buildCards', () => {
     expect(rowCount).toBe(Math.ceil(5 / colCount))
   })
 })
+
+describe('buildCards：身份字段', () => {
+  it('两个张伟带不同工号时 ID 仍由名字生成', () => {
+    const { cardList } = buildCards([
+      { name: '张伟', employeeId: 'A002', department: '市场部' },
+      { name: '张伟', employeeId: 'A001' },
+      { name: '李娜', department: '研发部' },
+    ], 'letter')
+    expect(cardList.map(c => c.id)).toEqual(['张伟', '张伟-2', '李娜'])
+    expect(cardList.map(c => [c.employeeId, c.department])).toEqual([['A002', '市场部'], ['A001', undefined], [undefined, '研发部']])
+  })
+
+  it('没有身份信息或为空串时卡片不带身份键', () => {
+    const { cardList } = buildCards([{ name: '张三' }, { name: '李四', employeeId: '', department: '' }], 'letter')
+    expect(cardList.every(card => !('employeeId' in card) && !('department' in card))).toBe(true)
+  })
+})

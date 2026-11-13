@@ -101,6 +101,13 @@ describe('parseConfigJson', () => {
     expect(parseConfigJson(JSON.stringify(badEntry))).toBeNull()
   })
 
+  it('名单对象可带工号、部门字符串，其他类型拒绝', () => {
+    const ok = { ...validConfig, roster: [{ name: '张伟', employeeId: 'A001', department: '研发部' }, '李四'] }
+    expect(parseConfigJson(JSON.stringify(ok))).toEqual(ok)
+    expect(parseConfigJson(JSON.stringify({ ...validConfig, roster: [{ name: '张伟', employeeId: 1 }] }))).toBeNull()
+    expect(parseConfigJson(JSON.stringify({ ...validConfig, roster: [{ name: '张伟', department: ['研发部'] }] }))).toBeNull()
+  })
+
   it('奖项可带可选的奖品图（img），非字符串则拒绝', () => {
     const withImg = {
       ...validConfig,

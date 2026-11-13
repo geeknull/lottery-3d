@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { configHash } from './config-store'
+import { configHash, parseConfigJson } from './config-store'
 import type { UserLotteryConfig } from './config-store'
 import { createConfigApplication, prepareConfig } from './config-apply'
 
@@ -96,5 +96,27 @@ describe('configuration application', () => {
   it.each([Infinity, NaN, 0])('rejects invalid per-round count %s before applying', everyTimeGet => {
     const result = prepareConfig({ title: '活动', prizes: [{ name: '奖', count: 1, everyTimeGet }], rosterText: '甲\n乙', avatarStyle: 'initials', avatarAutoDowngrade: false })
     expect(result.error).toContain('有效数字')
+  })
+})
+
+describe('身份字段保存', () => {
+  const draft = (rosterText: string) => prepareConfig({ title: '活动', prizes: [{ name: '奖', count: 1, everyTimeGet: 1 }], rosterText, avatarStyle: 'letter', avatarAutoDowngrade: false })
+
+  it('有工号或部门时保留对象，纯名字仍存字符串', () => {
+    const result = draft('姓名,工号,部门\n张伟,A001,研发部\n李娜,,市场部\n王五')
+    expect(result.config?.roster).toEqual([
+      { name: '张伟', employeeId: 'A001', department: '研发部' },
+      { name: '李娜', department: '市场部' },
+      '王五',
+    ])
+  })
+
+  it('没有身份列的名单保存结果与以前相同', () => {
+    expect(draft('张三,研发部\n李四,https://a.com/b.png').config?.roster).toEqual(['张三', { name: '李四', avatar: 'https://a.com/b.png' }])
+  })
+
+  it('导出配置 JSON 再导入，身份字段不丢', () => {
+    const saved = draft('姓名,工号,部门\n张伟,A001,研发部\n张伟,A002,').config!
+    expect(parseConfigJson(JSON.stringify(saved, null, 2))).toEqual(saved)
   })
 })

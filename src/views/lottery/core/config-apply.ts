@@ -38,7 +38,8 @@ export function prepareConfig(draft: ConfigDraft): DraftResult {
     version: 1,
     headerTitle: title.trim(),
     prizes: prizes.map(prize => ({ ...prize, name: prize.name.trim() })),
-    roster: roster.map(entry => entry.avatar ? entry : entry.name),
+    // 有头像、工号或部门任一项就保留对象，否则只存名字（纯名字名单的配置文件与以前相同）
+    roster: roster.map(entry => entry.avatar || entry.employeeId || entry.department ? entry : entry.name),
     avatarStyle,
     ...(avatarAutoDowngrade ? { avatarAutoDowngrade: true } : {}),
   } }

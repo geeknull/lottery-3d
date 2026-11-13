@@ -32,7 +32,7 @@ export function createIdAllocator(): (name: string) => string {
   };
 }
 
-// 把名单构建成卡片列表：自动生成头像、重名 id 加序号去重、计算 table 行列
+// 把名单构建成卡片列表：自动生成头像、重名 id 加序号去重、带上工号部门、计算 table 行列
 export function buildCards(people: Person[], styleId: string): { cardList: Card[]; colCount: number; rowCount: number } {
   const colCount = calcColCount(people.length);
   const allocateId = createIdAllocator();
@@ -40,6 +40,9 @@ export function buildCards(people: Person[], styleId: string): { cardList: Card[
     name: person.name,
     id: allocateId(person.name),
     avatar: person.avatar ?? generateAvatarFor(person.name, styleId),
+    // 身份字段只在有值时出现（空串按没有处理）；ID 仍只由名字生成
+    ...(person.employeeId ? { employeeId: person.employeeId } : {}),
+    ...(person.department ? { department: person.department } : {}),
     index: i,
     row: Math.floor(i / colCount) + 1,
     col: (i % colCount) + 1,

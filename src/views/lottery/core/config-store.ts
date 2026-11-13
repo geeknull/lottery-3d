@@ -62,7 +62,9 @@ function isValidConfig(data: unknown): data is UserLotteryConfig {
       const e = entry as Record<string, unknown>;
       return typeof e === 'object' && e !== null &&
         typeof e.name === 'string' && e.name.length > 0 &&
-        (e.avatar === undefined || typeof e.avatar === 'string');
+        (e.avatar === undefined || typeof e.avatar === 'string') &&
+        (e.employeeId === undefined || typeof e.employeeId === 'string') &&
+        (e.department === undefined || typeof e.department === 'string');
     })
   );
 }
