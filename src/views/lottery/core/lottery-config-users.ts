@@ -13,22 +13,35 @@ export interface Person {
   avatar?: string;
 }
 
+// 按名字生成唯一 ID。没有撞车时和原规则一致（张三、张三-2、张三-3），
+// 存档和验证文件都按 ID 保存，这条不能变。序号结果和别的名字相同时才继续往后找。
+export function createIdAllocator(): (name: string) => string {
+  const nameCount = new Map<string, number>();
+  const usedIds = new Set<string>();
+  return name => {
+    const seen = nameCount.get(name) ?? 0;
+    nameCount.set(name, seen + 1);
+    let id = seen === 0 ? name : `${name}-${seen + 1}`;
+    for (let suffix = seen + 2; usedIds.has(id); suffix++) {
+      id = `${name}-${suffix}`;
+    }
+    usedIds.add(id);
+    return id;
+  };
+}
+
 // 把名单构建成卡片列表：自动生成头像、重名 id 加序号去重、计算 table 行列
 export function buildCards(people: Person[], styleId: string): { cardList: Card[]; colCount: number; rowCount: number } {
   const colCount = calcColCount(people.length);
-  const nameCount = new Map<string, number>();
-  const cardList: Card[] = people.map((person, i) => {
-    const seen = nameCount.get(person.name) ?? 0;
-    nameCount.set(person.name, seen + 1);
-    return {
-      name: person.name,
-      id: seen === 0 ? person.name : `${person.name}-${seen + 1}`,
-      avatar: person.avatar ?? generateAvatarFor(person.name, styleId),
-      index: i,
-      row: Math.floor(i / colCount) + 1,
-      col: (i % colCount) + 1,
-    };
-  });
+  const allocateId = createIdAllocator();
+  const cardList: Card[] = people.map((person, i) => ({
+    name: person.name,
+    id: allocateId(person.name),
+    avatar: person.avatar ?? generateAvatarFor(person.name, styleId),
+    index: i,
+    row: Math.floor(i / colCount) + 1,
+    col: (i % colCount) + 1,
+  }));
   return { cardList, colCount, rowCount: Math.max(1, Math.ceil(people.length / colCount)) };
 }
 
