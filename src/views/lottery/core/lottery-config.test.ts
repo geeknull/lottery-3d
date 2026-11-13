@@ -362,3 +362,139 @@ describe('无法恢复的旧进度', () => {
     expect(reloaded.getRejectedProgress()).toBeNull()
   })
 })
+
+describe('replaceProgress 从验证文件恢复后的写入', () => {
+  const restoreConfig = {
+    version: 1 as const, headerTitle: '恢复写入',
+    prizes: [{ name: '大奖', count: 3, everyTimeGet: 1 }], roster: ['甲', '乙', '丙', '丁', '戊'],
+  }
+
+  async function stubWebCrypto() {
+    const { webcrypto } = await vi.importActual<{ webcrypto: Crypto }>('node:crypto')
+    vi.stubGlobal('crypto', webcrypto)
+  }
+
+  // 新开一个“页面”：清空进度，只保留配置。
+  async function openPage(keepProgress = false) {
+    vi.resetModules()
+    if (!keepProgress) localStorage.removeItem('___lottery___')
+    const page = (await import('./lottery-config')).default
+    const algorithm = await import('./lottery-algorithm')
+    const fairness = await import('./lottery-fairness')
+    const restore = await import('./progress-restore')
+    return { page, algorithm, fairness, restore }
+  }
+
+  // 在另一个“浏览器”里抽两轮，得到可以恢复的存档。
+  async function backupOfTwoRounds() {
+    localStorage.clear()
+    const { saveUserConfig } = await import('./config-store')
+    saveUserConfig(restoreConfig)
+    const { page, algorithm, fairness, restore } = await openPage()
+    await fairness.ensureSeedCommit()
+    algorithm.getRandomCard(page.prizeList[0])
+    algorithm.getRandomCard(page.prizeList[0])
+    const pkg = fairness.createVerificationPackage()
+    const plan = await restore.planProgressRestore(pkg, page)
+    if (!plan.ok) throw new Error(plan.reason)
+    return { saved: plan.saved, pkg, winners: page.cardListWinAll.map(card => card.id) }
+  }
+
+  beforeEach(async () => {
+    await stubWebCrypto()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('空场次恢复成功，刷新后照常加载、不被拒绝，验证文件与备份相同', async () => {
+    const backup = await backupOfTwoRounds()
+    const { page } = await openPage()
+    expect(page.replaceProgress(backup.saved)).toEqual({ ok: true })
+    expect(page.cardListWinAll.map(card => card.id)).toEqual(backup.winners)
+    expect(JSON.parse(localStorage.getItem('___lottery___')!).revision).toBe(1)
+    expect(localStorage.getItem('___lottery_rejected___')).toBeNull()
+
+    const reloaded = await openPage(true)
+    expect(reloaded.page.takeRejectedNotice()).toBe(false)
+    expect(reloaded.page.cardListWinAll.map(card => card.id)).toEqual(backup.winners)
+    expect(reloaded.fairness.createVerificationPackage()).toEqual(backup.pkg)
+    expect((await reloaded.fairness.verifyCurrent()).ok).toBe(true)
+    reloaded.algorithm.getRandomCard(reloaded.page.prizeList[0])
+    expect((await reloaded.fairness.verifyCurrent()).ok).toBe(true)
+  })
+
+  it('覆盖已有进度时旧存档留底为 replaced-by-restore', async () => {
+    const backup = await backupOfTwoRounds()
+    const { page, algorithm } = await openPage()
+    algorithm.getRandomCard(page.prizeList[0])
+    const previous = localStorage.getItem('___lottery___')!
+    expect(page.replaceProgress(backup.saved)).toEqual({ ok: true })
+    const rejected = JSON.parse(localStorage.getItem('___lottery_rejected___')!)
+    expect(rejected).toMatchObject({ reason: 'replaced-by-restore', raw: previous })
+    expect(page.takeRejectedNotice()).toBe(false)
+    expect(JSON.parse(localStorage.getItem('___lottery___')!).revision).toBe(JSON.parse(previous).revision + 1)
+  })
+
+  it('旧进度留底失败时拒绝恢复，存储和内存都不变', async () => {
+    const backup = await backupOfTwoRounds()
+    const { page, algorithm } = await openPage()
+    algorithm.getRandomCard(page.prizeList[0])
+    const previous = localStorage.getItem('___lottery___')
+    const winners = page.cardListWinAll
+    const setItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === '___lottery_rejected___') throw new DOMException('quota', 'QuotaExceededError')
+      setItem.call(this, key, value)
+    })
+    const result = page.replaceProgress(backup.saved)
+    expect(result).toEqual({ ok: false, reason: expect.stringContaining('当前进度无法留底') })
+    expect(localStorage.getItem('___lottery___')).toBe(previous)
+    expect(page.cardListWinAll).toBe(winners)
+  })
+
+  it('主存档写入失败时回滚内存，不发 storage-error', async () => {
+    const backup = await backupOfTwoRounds()
+    const { page, algorithm } = await openPage()
+    algorithm.getRandomCard(page.prizeList[0])
+    const before = { winners: page.cardListWinAll, seed: page.seed, drawLog: page.drawLog, prize: { ...page.prizeList[0] } }
+    const previous = localStorage.getItem('___lottery___')
+    const { bus: freshBus } = await import('./event-bus')
+    const onErr = vi.fn()
+    freshBus.on('storage-error', onErr)
+    const setItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === '___lottery___') throw new DOMException('quota', 'QuotaExceededError')
+      setItem.call(this, key, value)
+    })
+    expect(page.replaceProgress(backup.saved)).toEqual({ ok: false, reason: '本地存储写入失败（可能已满），进度没有改变' })
+    expect(onErr).not.toHaveBeenCalled()
+    expect(localStorage.getItem('___lottery___')).toBe(previous)
+    expect(page.cardListWinAll).toBe(before.winners)
+    expect(page.seed).toBe(before.seed)
+    expect(page.drawLog).toBe(before.drawLog)
+    expect(page.prizeList[0]).toEqual(before.prize)
+  })
+
+  it('别的窗口先写入更新的进度时拒绝', async () => {
+    const backup = await backupOfTwoRounds()
+    const { page, algorithm } = await openPage()
+    algorithm.getRandomCard(page.prizeList[0])
+    const saved = JSON.parse(localStorage.getItem('___lottery___')!)
+    localStorage.setItem('___lottery___', JSON.stringify({ ...saved, revision: saved.revision + 5 }))
+    const other = localStorage.getItem('___lottery___')
+    expect(page.replaceProgress(backup.saved)).toEqual({ ok: false, reason: '其他窗口已更新进度，请关闭其他正式窗口后刷新页面再试' })
+    expect(localStorage.getItem('___lottery___')).toBe(other)
+    expect(localStorage.getItem('___lottery_rejected___')).toBeNull()
+  })
+
+  it('彩排拒绝，不碰正式存储', async () => {
+    const backup = await backupOfTwoRounds()
+    localStorage.removeItem('___lottery___')
+    window.history.replaceState(null, '', '/?mode=rehearsal')
+    const { page } = await openPage()
+    expect(page.replaceProgress(backup.saved)).toEqual({ ok: false, reason: '彩排不读写正式进度' })
+    expect(localStorage.getItem('___lottery___')).toBeNull()
+  })
+})

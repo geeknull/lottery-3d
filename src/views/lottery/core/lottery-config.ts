@@ -40,6 +40,8 @@ export interface LotteryConfig {
   getRejectedProgress(): string | null; // 最近一次无法恢复的旧进度备份（JSON 文本），没有时为 null
   takeRejectedNotice(): boolean; // 本次启动有旧进度被拒绝时返回 true，只返回一次
   clearLocalStorage(): void;
+  // 用已通过 planProgressRestore 的存档替换正式进度。失败时存储和内存都不变；成功后由调用方刷新页面。
+  replaceProgress(saved: SavedProgress): { ok: true } | { ok: false; reason: string };
 }
 
 // 优先使用用户配置，否则用内置默认
@@ -83,14 +85,23 @@ const rejectedKey = '___lottery_rejected___';
 let rejectedNoticePending = false;
 
 // 旧进度校验不通过时先留底再开新场次，否则下一次保存会把它永久覆盖。
-// 只保留最近一份；备份写入失败（多为配额不足）不能影响启动。
-function keepRejectedProgress(raw: string, reason: 'invalid-json' | 'config-mismatch' | 'invalid-progress') {
-  rejectedNoticePending = true;
+// 手动恢复覆盖已有进度时也用它留底（replaced-by-restore）。
+// 只保留最近一份；返回是否写入成功。启动时备份失败（多为配额不足）不能影响启动，忽略返回值。
+type RejectedReason = 'invalid-json' | 'config-mismatch' | 'invalid-progress' | 'replaced-by-restore';
+function keepRejectedProgress(raw: string, reason: RejectedReason): boolean {
   try {
     localStorage.setItem(rejectedKey, JSON.stringify({ at: Date.now(), reason, raw }));
+    return true;
   } catch (e) {
-    console.warn('无法恢复的旧进度备份失败（可能超出本地存储配额）', e);
+    console.warn('旧进度备份失败（可能超出本地存储配额）', e);
+    return false;
   }
+}
+
+// 启动时发现无法恢复的旧进度：留底并提醒主持人。
+function rejectStoredProgress(raw: string, reason: Exclude<RejectedReason, 'replaced-by-restore'>) {
+  rejectedNoticePending = true;
+  keepRejectedProgress(raw, reason);
 }
 let knownRevision = 0; // 本窗口最后读到或写入的存档版本
 let progressStale = false;
@@ -258,20 +269,80 @@ const lotteryConfig: LotteryConfig = {
     try {
       saved = JSON.parse(raw);
     } catch {
-      keepRejectedProgress(raw, 'invalid-json');
+      rejectStoredProgress(raw, 'invalid-json');
       return void 0;
     }
     // 配置变过（或老版本存档没有指纹）就不恢复，避免名单/奖项对不上
     if (!saved || typeof saved !== 'object' || !('hash' in saved) || saved.hash !== currentHash) {
-      keepRejectedProgress(raw, 'config-mismatch');
+      rejectStoredProgress(raw, 'config-mismatch');
       return void 0;
     }
     // 校验版本、进度结构及所有引用，通过后才更新内存，避免半恢复状态。
     if (!isSavedRestorable(saved, cardList, lotteryConfig.prizeList)) {
-      keepRejectedProgress(raw, 'invalid-progress');
+      rejectStoredProgress(raw, 'invalid-progress');
       return void 0;
     }
     applySavedProgress(saved);
+  },
+  replaceProgress(saved) {
+    const staleReason = '其他窗口已更新进度，请关闭其他正式窗口后刷新页面再试';
+    if (rehearsal) return { ok: false, reason: '彩排不读写正式进度' };
+    if (checkProgressStale()) return { ok: false, reason: staleReason };
+    let previousRaw: string | null;
+    try {
+      previousRaw = localStorage.getItem(localStorageKey);
+    } catch {
+      return { ok: false, reason: '无法读取本地存储，进度没有改变' };
+    }
+    // 当前场次已有结果时先留底；留不下就不覆盖（决策 012 #3），让主持人先导出。
+    if (previousRaw && lotteryConfig.drawLog.length > 0 && !keepRejectedProgress(previousRaw, 'replaced-by-restore')) {
+      return { ok: false, reason: '当前进度无法留底（本地存储可能已满），没有恢复。请先在公平性面板下载当前验证文件，再清理存储后重试' };
+    }
+    const snapshot = {
+      currentPrize: lotteryConfig.currentPrize,
+      prizes: lotteryConfig.prizeList.map(prize => ({ prize, round: prize.round, countRemain: prize.countRemain, cardListWin: prize.cardListWin })),
+      cardListWinAll: lotteryConfig.cardListWinAll,
+      cardListRemainAll: lotteryConfig.cardListRemainAll,
+      cardListExcluded: lotteryConfig.cardListExcluded,
+      seed: lotteryConfig.seed,
+      rngState: lotteryConfig.rngState,
+      seedCommit: lotteryConfig.seedCommit,
+      seedSalt: lotteryConfig.seedSalt,
+      drawLog: lotteryConfig.drawLog,
+    };
+    const rollback = () => {
+      lotteryConfig.currentPrize = snapshot.currentPrize;
+      snapshot.prizes.forEach(({ prize, round, countRemain, cardListWin }) => {
+        prize.round = round;
+        prize.countRemain = countRemain;
+        prize.cardListWin = cardListWin;
+      });
+      lotteryConfig.cardListWinAll = snapshot.cardListWinAll;
+      lotteryConfig.cardListRemainAll = snapshot.cardListRemainAll;
+      lotteryConfig.cardListExcluded = snapshot.cardListExcluded;
+      lotteryConfig.seed = snapshot.seed;
+      lotteryConfig.rngState = snapshot.rngState;
+      lotteryConfig.seedCommit = snapshot.seedCommit;
+      lotteryConfig.seedSalt = snapshot.seedSalt;
+      lotteryConfig.drawLog = snapshot.drawLog;
+    };
+    applySavedProgress(saved);
+    // 走正常写入路径：过期检查和 revision 递增都在里面。写入失败不发 storage-error，由调用方提示。
+    const result = writeProgress();
+    // 读回核对：确认存储里就是刚才的内容，否则刷新后旧进度会重新生效，主持人以为恢复成功。
+    let confirmed = false;
+    if (result === 'written') {
+      try {
+        confirmed = localStorage.getItem(localStorageKey) === serializeProgress(knownRevision);
+      } catch {
+        confirmed = false;
+      }
+    }
+    if (!confirmed) {
+      rollback();
+      return { ok: false, reason: result === 'stale' ? staleReason : '本地存储写入失败（可能已满），进度没有改变' };
+    }
+    return { ok: true };
   },
   clearLocalStorage() {
     if (rehearsal) return;
