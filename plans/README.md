@@ -18,7 +18,7 @@
 | [008](008-salted-seed-commitment.md) | 种子承诺加盐，并绑定名单和奖项规则 | P2 | M | 005 | DONE（分支 `advisor/008-salted-seed-commitment`，`eae2572`；红灯检查与生产构建跨环境验证通过；执行中补了一处测试顺序调整） |
 | [009](009-idb-commit-semantics.md) | IndexedDB 写入以事务提交为准 | P3 | S | — | DONE（分支 `advisor/009-idb-commit-semantics`，`82c8335`；红灯检查与生产构建持久化验收通过） |
 | [010](010-ci-least-privilege.md) | CI 的部署权限只给部署任务 | P3 | S | — | DONE（分支 `advisor/010-ci-least-privilege`，`e24de6a`；以第二批上线的 CI 部署为准） |
-| [011](011-preflight-storage-check.md) | 现场检查增加“本地存储”一项 | P3 | S | — | TODO |
+| [011](011-preflight-storage-check.md) | 现场检查增加“本地存储”一项 | P3 | S | — | DONE（分支 `advisor/011-preflight-storage-check`，`f5f10ee`；红灯检查与生产构建验收通过） |
 | [012](012-progress-restore-design.md) | 设计：进度备份与换机恢复 | P2 | M | 003、007（建议在 008 之后） | DONE（分支 `advisor/012-progress-restore-design`，`70e4493`；文档 `docs/superpowers/specs/2026-11-13-progress-restore-design.md`，原型 6 项通过，7 个待决问题） |
 | [013](013-participant-identity-design.md) | 设计：参与者身份列 | P3 | M | 005（建议在 006 之后） | DONE（分支 `advisor/013-participant-identity-design`，`57ab1c1`；文档 `docs/superpowers/specs/2026-11-13-participant-identity-design.md`，7 个待决问题） |
 | [014](014-pre-draw-attestation-design.md) | 设计：开抽前公证卡与随机状态升级 | P3 | M | 008 | DONE（分支 `advisor/014-pre-draw-attestation-design`，`0efbab7`；文档 `docs/superpowers/specs/2026-11-13-pre-draw-attestation-design.md`，9 个待决问题） |

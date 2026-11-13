@@ -1,7 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
-import { checkDualScreen, checkImages, checkOffline, collectConfiguredImages } from './preflight'
+import { checkDualScreen, checkImages, checkOffline, checkStorage, collectConfiguredImages } from './preflight'
 
 describe('preflight evidence', () => {
+  it('reports storage readiness from write, persistence, quota and size evidence', () => {
+    const base = { writable: true, persisted: true, usage: 1_000_000, quota: 100_000_000, localChars: 20_000 }
+    expect(checkStorage(base, false).state).toBe('ready')
+    expect(checkStorage({ ...base, writable: false }, false).state).toBe('failed')
+    expect(checkStorage({ ...base, persisted: false }, false).detail).toContain('申请持久保存')
+    expect(checkStorage({ ...base, persisted: null }, false).detail).toContain('无法确认')
+    expect(checkStorage({ ...base, usage: 90_000_000 }, false).state).toBe('attention')
+    expect(checkStorage({ ...base, localChars: 4_500_000 }, false).detail).toContain('导出')
+    expect(checkStorage(base, true).detail).toContain('彩排')
+  })
   it('checks unique configured images, including unresolved IndexedDB references', () => {
     expect(collectConfiguredImages({ version: 1, headerTitle: '场', prizes: [{ name: '奖', count: 1, everyTimeGet: 1, img: 'idb:missing' }], roster: [{ name: '甲', avatar: 'https://a.test/a.png' }, { name: '乙', avatar: 'https://a.test/a.png' }] })).toEqual(['idb:missing', 'https://a.test/a.png'])
   })

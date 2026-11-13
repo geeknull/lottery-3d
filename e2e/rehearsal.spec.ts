@@ -61,6 +61,7 @@ test('现场检查显示真实缺图、未确认音频与未连接双屏', async
   await expect(dialog.locator('.preflight-check').filter({ has: page.getByRole('heading', { name: '音频', exact: true }) })).toContainText('请点击试听')
   await expect(dialog.locator('.preflight-check').filter({ has: page.getByRole('heading', { name: '双屏连接' }) })).toContainText('尚未连接控制台')
   await expect(dialog.locator('.preflight-check').filter({ has: page.getByRole('heading', { name: '离线资源' }) })).toContainText('当前页面未受离线服务控制')
+  await expect(dialog.locator('.preflight-check').filter({ has: page.getByRole('heading', { name: '本地存储' }) })).toContainText(/持久保存|进度与配置约/)
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
 })
