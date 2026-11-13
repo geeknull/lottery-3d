@@ -2,7 +2,7 @@ import { buildCards, createIdAllocator, defaultPeople } from './lottery-config-u
 import { loadUserConfig, configHash, normalizeRoster } from './config-store';
 import { randomSalt, randomSeed } from './lottery-rng';
 import { isSavedRestorable } from './config-restore';
-import type { SavedCardReference } from './config-restore';
+import type { SavedCardReference, SavedProgress } from './config-restore';
 import { bus } from './event-bus';
 import { resolveStyle, DEFAULT_AVATAR_STYLE } from './avatar-styles';
 import type { PrizeConfig } from './config-store';
@@ -118,6 +118,82 @@ function checkProgressStale(): boolean {
   return progressStale;
 }
 
+// 存档格式的唯一出处：正常写入和手动恢复后的读回核对都用它。
+function serializeProgress(revision: number): string {
+  return JSON.stringify({
+    version: 2,
+    revision,
+    hash: currentHash,
+    currentPrize: lotteryConfig.currentPrize,
+    // 进度只存引用，不把已解析的奖品图或生成的头像重复写入 localStorage。
+    prizeList: lotteryConfig.prizeList.map(prize => ({
+      id: prize.id,
+      countRemain: prize.countRemain,
+      round: prize.round,
+      cardListWin: prize.cardListWin.map(card => card.id),
+    })),
+    cardListWinAll: lotteryConfig.cardListWinAll.map(card => card.id),
+    cardListRemainAll: lotteryConfig.cardListRemainAll.map(card => card.id),
+    cardListExcluded: lotteryConfig.cardListExcluded.map(card => card.id),
+    seed: lotteryConfig.seed,
+    rngState: lotteryConfig.rngState,
+    seedCommit: lotteryConfig.seedCommit,
+    seedSalt: lotteryConfig.seedSalt,
+    drawLog: lotteryConfig.drawLog,
+  });
+}
+
+// 正式进度的唯一写入路径。过期时不写（不用本窗口的旧内存覆盖别的窗口写入的新进度），
+// 写入抛错时返回 failed，由调用方决定怎么提示。
+let lastWriteError: unknown = null;
+function writeProgress(): 'written' | 'stale' | 'failed' {
+  if (rehearsal) return 'stale';
+  if (checkProgressStale()) return 'stale';
+  const revision = knownRevision + 1;
+  try {
+    localStorage.setItem(localStorageKey, serializeProgress(revision));
+    knownRevision = revision;
+    return 'written';
+  } catch (e) {
+    lastWriteError = e;
+    return 'failed';
+  }
+}
+
+// 把已通过 isSavedRestorable 的存档应用到内存。启动恢复和手动恢复共用。
+function applySavedProgress(saved: SavedProgress) {
+  const cardsById = new Map(cardList.map(card => [card.id, card]));
+  const restoreCards = (references: SavedCardReference[]) => references.map(reference =>
+    cardsById.get(typeof reference === 'string' ? reference : reference.id)!,
+  );
+  lotteryConfig.currentPrize = saved.currentPrize ?? null;
+  // 只恢复进度字段，展示字段（img/detail 等）以当前配置为准——
+  // 整体覆盖会把"中途给奖项配的图"冲掉
+  const savedPrizeList = new Map((saved.prizeList ?? []).map(prize => [prize.id, prize]));
+  lotteryConfig.prizeList.forEach(prize => {
+    const savedPrize = savedPrizeList.get(prize.id);
+    if (savedPrize) {
+      prize.round = savedPrize.round;
+      prize.cardListWin = restoreCards(savedPrize.cardListWin);
+      // 旧版「作废后再撤销」可能重复归还名额；以仍有效的中奖名单恢复余额。
+      prize.countRemain = prize.count - prize.cardListWin.length;
+    }
+  });
+  // 旧存档里的头像/名字/下标都丢弃，统一恢复为当前名单的卡片实例。
+  lotteryConfig.cardListWinAll = restoreCards(saved.cardListWinAll);
+  lotteryConfig.cardListRemainAll = restoreCards(saved.cardListRemainAll);
+  lotteryConfig.cardListExcluded = restoreCards(saved.cardListExcluded ?? []);
+  // 种子/进度字段：老存档没有时沿用本次新生成的种子
+  if (typeof saved.seed === 'number') {
+    lotteryConfig.seed = saved.seed;
+    lotteryConfig.rngState = typeof saved.rngState === 'number' ? saved.rngState : saved.seed;
+    lotteryConfig.seedCommit = saved.seedCommit ?? '';
+    // 旧存档的承诺没有盐，保持原样；还没生成承诺的旧存档直接用本次的新盐。
+    lotteryConfig.seedSalt = saved.seedSalt ?? (lotteryConfig.seedCommit ? '' : initialSalt);
+    lotteryConfig.drawLog = saved.drawLog ?? [];
+  }
+}
+
 const lotteryConfig: LotteryConfig = {
   prizeList,
   headerTitle,
@@ -144,42 +220,16 @@ const lotteryConfig: LotteryConfig = {
     return cardList.find(_ => _.id === id);
   },
   setLocalStorage() {
-    if (rehearsal) return;
-    if (checkProgressStale()) return; // 不用本窗口的旧内存覆盖别的窗口写入的新进度
-    const revision = knownRevision + 1;
     // 写入是抽奖热路径（每轮 getRandomCard 都调）。配额超限/隐私模式下 setItem 会抛
     // QuotaExceededError，不能让它冒泡打断 lotteryStop 的揭晓动画/彩带，更不能静默丢结果——
     // 捕获后发事件提示主持人及时导出。从健康转失败只提醒一次，避免每轮刷屏。
-    try {
-      localStorage.setItem(localStorageKey, JSON.stringify({
-        version: 2,
-        revision,
-        hash: currentHash,
-        currentPrize: lotteryConfig.currentPrize,
-        // 进度只存引用，不把已解析的奖品图或生成的头像重复写入 localStorage。
-        prizeList: lotteryConfig.prizeList.map(prize => ({
-          id: prize.id,
-          countRemain: prize.countRemain,
-          round: prize.round,
-          cardListWin: prize.cardListWin.map(card => card.id),
-        })),
-        cardListWinAll: lotteryConfig.cardListWinAll.map(card => card.id),
-        cardListRemainAll: lotteryConfig.cardListRemainAll.map(card => card.id),
-        cardListExcluded: lotteryConfig.cardListExcluded.map(card => card.id),
-        seed: lotteryConfig.seed,
-        rngState: lotteryConfig.rngState,
-        seedCommit: lotteryConfig.seedCommit,
-        seedSalt: lotteryConfig.seedSalt,
-        drawLog: lotteryConfig.drawLog,
-      }));
-      knownRevision = revision;
+    const result = writeProgress();
+    if (result === 'written') {
       storageHealthy = true;
-    } catch (e) {
-      if (storageHealthy) {
-        console.warn('抽奖进度保存失败（可能超出本地存储配额）', e);
-        bus.emit('storage-error');
-        storageHealthy = false;
-      }
+    } else if (result === 'failed' && storageHealthy) {
+      console.warn('抽奖进度保存失败（可能超出本地存储配额）', lastWriteError);
+      bus.emit('storage-error');
+      storageHealthy = false;
     }
   },
   getRejectedProgress() {
@@ -221,36 +271,7 @@ const lotteryConfig: LotteryConfig = {
       keepRejectedProgress(raw, 'invalid-progress');
       return void 0;
     }
-    const cardsById = new Map(cardList.map(card => [card.id, card]));
-    const restoreCards = (references: SavedCardReference[]) => references.map(reference =>
-      cardsById.get(typeof reference === 'string' ? reference : reference.id)!,
-    );
-    lotteryConfig.currentPrize = saved.currentPrize ?? null;
-    // 只恢复进度字段，展示字段（img/detail 等）以当前配置为准——
-    // 整体覆盖会把"中途给奖项配的图"冲掉
-    const savedPrizeList = new Map((saved.prizeList ?? []).map(prize => [prize.id, prize]));
-    lotteryConfig.prizeList.forEach(prize => {
-      const savedPrize = savedPrizeList.get(prize.id);
-      if (savedPrize) {
-        prize.round = savedPrize.round;
-        prize.cardListWin = restoreCards(savedPrize.cardListWin);
-        // 旧版「作废后再撤销」可能重复归还名额；以仍有效的中奖名单恢复余额。
-        prize.countRemain = prize.count - prize.cardListWin.length;
-      }
-    });
-    // 旧存档里的头像/名字/下标都丢弃，统一恢复为当前名单的卡片实例。
-    lotteryConfig.cardListWinAll = restoreCards(saved.cardListWinAll);
-    lotteryConfig.cardListRemainAll = restoreCards(saved.cardListRemainAll);
-    lotteryConfig.cardListExcluded = restoreCards(saved.cardListExcluded ?? []);
-    // 种子/进度字段：老存档没有时沿用本次新生成的种子
-    if (typeof saved.seed === 'number') {
-      lotteryConfig.seed = saved.seed;
-      lotteryConfig.rngState = typeof saved.rngState === 'number' ? saved.rngState : saved.seed;
-      lotteryConfig.seedCommit = saved.seedCommit ?? '';
-      // 旧存档的承诺没有盐，保持原样；还没生成承诺的旧存档直接用本次的新盐。
-      lotteryConfig.seedSalt = saved.seedSalt ?? (lotteryConfig.seedCommit ? '' : initialSalt);
-      lotteryConfig.drawLog = saved.drawLog ?? [];
-    }
+    applySavedProgress(saved);
   },
   clearLocalStorage() {
     if (rehearsal) return;
