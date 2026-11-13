@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { test, expect, type Page } from '@playwright/test'
 import { gotoFresh, drawOneRound, closeBanner } from './helpers'
 
@@ -15,6 +16,28 @@ async function prizeCounts(page: Page) {
   return page.locator('.prize-item-count-text').allTextContents()
 }
 
+const CONFIG = {
+  version: 1,
+  headerTitle: '换机恢复演练',
+  prizes: [{ name: '一等奖', count: 3, everyTimeGet: 1 }, { name: '二等奖', count: 6, everyTimeGet: 3 }],
+  roster: ['甲', '乙', { name: '张伟', employeeId: 'A001' }, { name: '张伟', employeeId: 'A002' }, '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'],
+  avatarStyle: 'letter',
+}
+
+// 用配置面板导入配置 JSON 并保存（有进度时确认清空），等舞台按新配置重建。
+async function importConfig(page: Page, file: string | { name: string; mimeType: string; buffer: Buffer }) {
+  await page.locator('.config-btn').click()
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: '导入配置 JSON', exact: true }).click()
+  await (await chooser).setFiles(file)
+  await expect(page.locator('.title-input')).toHaveValue(CONFIG.headerTitle)
+  await page.locator('.panel-actions button.primary').click()
+  const confirm = page.locator('.confirm-btns button.primary')
+  if (await confirm.isVisible({ timeout: 1000 }).catch(() => false)) await confirm.click()
+  await expect(page.locator('.lottery-header')).toHaveText(CONFIG.headerTitle)
+  await page.waitForTimeout(INIT_WAIT)
+}
+
 // 在公平性面板选择验证文件恢复。不点确认，留给调用方检查确认框。
 async function chooseRestoreFile(page: Page, path: string) {
   await page.locator('.fairness-btn').click()
@@ -25,8 +48,9 @@ async function chooseRestoreFile(page: Page, path: string) {
 }
 
 test('换新浏览器上下文恢复后继续抽奖仍可验证；覆盖已有进度时红字确认并留底', async ({ page, browser, baseURL }, testInfo) => {
-  // 原场次：抽两轮，其间作废一人（不再参与）。
+  // 原场次：导入带工号的配置，抽两轮，其间作废一人（不再参与）；导出配置 JSON 和验证文件。
   await gotoFresh(page)
+  await importConfig(page, { name: 'config.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(CONFIG)) })
   await drawOneRound(page)
   await closeBanner(page)
   await page.getByRole('button', { name: '展示中奖', exact: true }).click()
@@ -38,12 +62,20 @@ test('换新浏览器上下文恢复后继续抽奖仍可验证；覆盖已有�
   const originalCounts = await prizeCounts(page)
   const twoRounds = testInfo.outputPath('two-rounds.json')
   await downloadVerification(page, twoRounds)
+  await page.locator('.config-btn').click()
+  const configDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出配置 JSON', exact: true }).click()
+  const exportedConfig = testInfo.outputPath('exported-config.json')
+  await (await configDownload).saveAs(exportedConfig)
+  await page.locator('.lottery-config-panel .close-btn').click()
+  expect(JSON.parse(await readFile(twoRounds, 'utf8')).roster[2]).toEqual({ id: '张伟', name: '张伟', employeeId: 'A001' })
 
   // 新的浏览器上下文：没有原场次的 localStorage、IndexedDB 和种子。
   const fresh = await browser.newContext({ baseURL, acceptDownloads: true })
   try {
     const stage = await fresh.newPage()
     await gotoFresh(stage)
+    await importConfig(stage, exportedConfig)
     await chooseRestoreFile(stage, twoRounds)
     await expect(stage.locator('.confirm-message')).toContainText('备份：2 轮')
     await expect(stage.locator('.confirm-message')).toContainText('当前：0 轮、0 人中奖')
