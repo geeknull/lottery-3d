@@ -25,6 +25,7 @@
 | [015](015-pin-ci-runner.md) | CI 的 verify 任务固定在 ubuntu-24.04（2026-11-13 新增，阻塞上线） | P1 | S | — | DONE（分支 `advisor/015-pin-ci-runner`，`bd44430`；以推送后的 CI 运行为准） |
 | [016](016-pre-draw-attestation-card.md) | 开抽前公证卡（浮层、打印、PNG）与开始时的一次性提醒（设计 014 路线 A） | P3 | M | 008、014 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`ef4e5d6`；红灯检查与生产构建验收通过；验收中补了一处投屏排版修正） |
 | [017](017-fairness-panel-seed-and-fingerprint-check.md) | 公平性面板默认隐藏种子、醒目风险提示，导入验证文件时核对指纹（设计 014 路线 A） | P3 | S | 016 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`fc64629`；红灯检查与生产构建验收通过） |
+| [018](018-participant-identity-columns.md) | 名单支持工号、部门身份列：表头解析、指纹与承诺带工号、重名后缀、CSV 身份列（设计 013） | P3 | M | 005、008、013 | IN PROGRESS（分支 `claude/eloquent-dubinsky-373090`） |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一句原因）| REJECTED（附一句理由：已被别处修复，或方案放弃）
 
