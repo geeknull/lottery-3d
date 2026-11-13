@@ -24,7 +24,7 @@
 | [014](014-pre-draw-attestation-design.md) | 设计：开抽前公证卡与随机状态升级 | P3 | M | 008 | DONE（分支 `advisor/014-pre-draw-attestation-design`，`0efbab7`；文档 `docs/superpowers/specs/2026-11-13-pre-draw-attestation-design.md`，9 个待决问题） |
 | [015](015-pin-ci-runner.md) | CI 的 verify 任务固定在 ubuntu-24.04（2026-11-13 新增，阻塞上线） | P1 | S | — | DONE（分支 `advisor/015-pin-ci-runner`，`bd44430`；以推送后的 CI 运行为准） |
 | [016](016-pre-draw-attestation-card.md) | 开抽前公证卡（浮层、打印、PNG）与开始时的一次性提醒（设计 014 路线 A） | P3 | M | 008、014 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`ef4e5d6`；红灯检查与生产构建验收通过；验收中补了一处投屏排版修正） |
-| [017](017-fairness-panel-seed-and-fingerprint-check.md) | 公平性面板默认隐藏种子、醒目风险提示，导入验证文件时核对指纹（设计 014 路线 A） | P3 | S | 016 | IN PROGRESS |
+| [017](017-fairness-panel-seed-and-fingerprint-check.md) | 公平性面板默认隐藏种子、醒目风险提示，导入验证文件时核对指纹（设计 014 路线 A） | P3 | S | 016 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`fc64629`；红灯检查与生产构建验收通过） |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一句原因）| REJECTED（附一句理由：已被别处修复，或方案放弃）
 
