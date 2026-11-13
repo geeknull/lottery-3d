@@ -178,3 +178,26 @@ describe('公证卡入口', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('当前种子默认隐藏', () => {
+  it('打开面板不显示种子，点“显示种子”才显示，再点隐藏', () => {
+    lotteryConfig.seed = 3141592653
+    render(<LotteryFairness onClose={() => {}} />)
+    const panel = document.querySelector('.lottery-fairness')!
+    expect(panel.textContent).not.toContain('3141592653')
+    expect(panel.querySelector('.seed-hidden')?.textContent).toBe('已隐藏')
+    fireEvent.click(screen.getByRole('button', { name: '显示种子' }))
+    expect(panel.querySelector('.seed-value')?.textContent).toBe('3141592653')
+    expect(screen.getByRole('note').textContent).toContain('种子正在显示')
+    fireEvent.click(screen.getByRole('button', { name: '隐藏种子' }))
+    expect(panel.textContent).not.toContain('3141592653')
+  })
+
+  it('醒目的风险提示、导出提示和“无法证明公布时间”的说明都在', () => {
+    render(<LotteryFairness onClose={() => {}} />)
+    expect(screen.getByRole('note').textContent).toContain('种子公开后，本场后续每一轮结果都可以被算出来')
+    expect(screen.getByText('验证数据含种子，活动结束后再分享')).toBeTruthy()
+    expect(document.querySelector('.fairness-intro')?.textContent).toContain('本地验证无法证明公布时间')
+    expect(document.querySelector('.lottery-fairness')?.textContent).toContain('已记录 0 轮抽奖')
+  })
+})

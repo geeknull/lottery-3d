@@ -86,3 +86,21 @@ test('第一次开始时提醒还没展示公证卡，不阻塞开始；打开�
   await expect(page.locator('#primaryCta')).toHaveText('停 !', { timeout: 20000 })
   await expect(reminder).toHaveCount(0)
 })
+
+test('公平性面板默认隐藏种子，点击后才显示', async ({ page }) => {
+  await gotoFresh(page)
+  await page.locator('.fairness-btn').click()
+  const panel = page.locator('.lottery-fairness')
+  // 打开面板会锁定指纹并落盘，之后存档里一定有种子。
+  await expect(panel.locator('.fairness-field code.mono').first()).toHaveText(/^[0-9a-f]{64}$/)
+  const seed = await page.evaluate(() => JSON.parse(localStorage.getItem('___lottery___')!).seed as number)
+  expect(await panel.textContent()).not.toContain(String(seed))
+  await expect(panel.locator('.seed-hidden')).toHaveText('已隐藏')
+  await expect(panel.locator('.seed-value')).toHaveCount(0)
+  await expect(panel.locator('.fairness-warning')).toContainText('种子公开后，本场后续每一轮结果都可以被算出来')
+  await expect(panel.locator('.export-hint')).toHaveText('验证数据含种子，活动结束后再分享')
+  await panel.getByRole('button', { name: '显示种子', exact: true }).click()
+  await expect(panel.locator('.seed-value')).toHaveText(String(seed))
+  await panel.getByRole('button', { name: '隐藏种子', exact: true }).click()
+  await expect(panel.locator('.seed-value')).toHaveCount(0)
+})
