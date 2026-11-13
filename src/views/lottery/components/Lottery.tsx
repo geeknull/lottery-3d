@@ -124,7 +124,7 @@ export default function Lottery() {
       }
       {showPreflight && <LotteryPreflight onClose={() => setShowPreflight(false)} controlConnected={controlConnected} />}
       {showConfig && <LotteryConfigPanel onClose={() => setShowConfig(false)} />}
-      {showFairness && <LotteryFairness onClose={() => setShowFairness(false)} />}
+      {showFairness && <LotteryFairness onClose={() => setShowFairness(false)} controlConnected={controlConnected} />}
       {showHistory && <LotteryHistory onClose={() => setShowHistory(false)} />}
       <header className="lottery-header">
         <span>{lotteryConfig.headerTitle}</span>

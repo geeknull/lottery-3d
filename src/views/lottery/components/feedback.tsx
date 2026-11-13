@@ -11,6 +11,7 @@ interface ToastItem {
 
 interface ConfirmState {
   message: string
+  warning?: string
   confirmText: string
   cancelText: string
   resolve: (ok: boolean) => void
@@ -19,6 +20,7 @@ interface ConfirmState {
 export interface ConfirmOptions {
   confirmText?: string
   cancelText?: string
+  warning?: string // 红字提醒（如会替换已有结果），显示在正文下面
 }
 
 interface HostApi {
@@ -37,12 +39,12 @@ export function toast(message: string, duration = 3000): void {
 }
 
 export function appConfirm(message: string, options: ConfirmOptions = {}): Promise<boolean> {
-  const { confirmText = '确定', cancelText = '取消' } = options
+  const { confirmText = '确定', cancelText = '取消', warning } = options
   if (!hostApi) {
-    return Promise.resolve(window.confirm(message)) // Host 未挂载时兜底
+    return Promise.resolve(window.confirm(warning ? `${message}\n\n${warning}` : message)) // Host 未挂载时兜底
   }
   return new Promise<boolean>(resolve => {
-    hostApi!.showConfirm({ message, confirmText, cancelText, resolve })
+    hostApi!.showConfirm({ message, warning, confirmText, cancelText, resolve })
   })
 }
 
@@ -88,6 +90,7 @@ export function FeedbackHost() {
         <div className="confirm-mask">
           <div className="confirm-dialog">
             <p className="confirm-message">{confirmState.message}</p>
+            {confirmState.warning && <p className="confirm-warning" role="alert">{confirmState.warning}</p>}
             <div className="confirm-btns">
               <button className="primary" onClick={() => closeConfirm(true)}>{confirmState.confirmText}</button>
               <button onClick={() => closeConfirm(false)}>{confirmState.cancelText}</button>

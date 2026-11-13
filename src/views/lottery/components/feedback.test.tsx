@@ -56,3 +56,18 @@ describe('appConfirm', () => {
     fireEvent.click(screen.getByText('再想想'))
   })
 })
+
+describe('appConfirm 红字提醒', () => {
+  it('warning 以红字段落显示在正文下方，没有时不渲染', async () => {
+    const { container } = render(<FeedbackHost />)
+    let result: Promise<boolean>
+    act(() => { result = appConfirm('正文', { warning: '会替换已有结果', confirmText: '替换' }) })
+    expect(container.querySelector('.confirm-warning')?.textContent).toBe('会替换已有结果')
+    fireEvent.click(screen.getByText('替换'))
+    await expect(result!).resolves.toBe(true)
+    act(() => { result = appConfirm('普通确认') })
+    expect(container.querySelector('.confirm-warning')).toBeNull()
+    fireEvent.click(screen.getByText('取消'))
+    await expect(result!).resolves.toBe(false)
+  })
+})

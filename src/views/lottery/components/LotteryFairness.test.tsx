@@ -9,11 +9,15 @@ import { notifyLotteryChange } from '../core/lottery-store'
 import STATUS from '../core/lottery-status'
 import { isRehearsal } from '../core/rehearsal'
 import { resetAttestationReminder, wasAttestationShown } from '../core/attestation-reminder'
+import { planProgressRestore } from '../core/progress-restore'
+import { appConfirm, toast } from './feedback'
+import type { DrawLogEntry } from '../core/lottery-types'
 
 vi.mock('../core/lottery-config', () => ({
   default: {
     seed: 7, seedCommit: '', seedSalt: '', drawLog: [], headerTitle: '年会', cardList: [{ id: 'a', name: '张三' }, { id: 'b', name: '李四' }],
     prizeList: [{ id: 'p1', name: '一等奖', count: 2, everyTimeGet: 1 }],
+    cardListWinAll: [], replaceProgress: vi.fn(),
   },
 }))
 vi.mock('../core/rehearsal', () => ({ isRehearsal: vi.fn(() => false) }))
@@ -21,7 +25,11 @@ vi.mock('../core/lottery-fairness', () => ({
   ensureSeedCommit: vi.fn(), verifyCurrent: vi.fn(), createVerificationPackage: vi.fn(),
 }))
 vi.mock('../core/fairness-package', () => ({ verifyVerificationPackage: vi.fn() }))
-vi.mock('./feedback', () => ({ toast: vi.fn() }))
+vi.mock('./feedback', () => ({ toast: vi.fn(), appConfirm: vi.fn() }))
+vi.mock('../core/progress-restore', async importOriginal => ({
+  ...await importOriginal<typeof import('../core/progress-restore')>(),
+  planProgressRestore: vi.fn(),
+}))
 
 const success: VerifyResult = { ok: true, checkedDraws: 1, failedAt: null }
 
@@ -235,5 +243,109 @@ describe('导入验证文件后核对指纹', () => {
     fireEvent.click(screen.getByRole('button', { name: '立即自验证' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toContain('当前场次验证通过'))
     expect(container.querySelector('.fingerprint-check')).toBeNull()
+  })
+})
+
+describe('从验证文件恢复进度', () => {
+  const draw = (prizeId = 'p1', undone = false): DrawLogEntry => ({ type: 'draw', at: 1, prizeId, prizeName: '一等奖', winnerIds: ['a'], winnerNames: ['张三'], ...(undone ? { undone } : {}) })
+  const saved = { version: 2 as const, cardListWinAll: ['a', 'b'], cardListRemainAll: [], drawLog: [draw(), draw()] }
+  const okPlan = { ok: true as const, saved, summary: { rounds: 2, winners: 2, entries: 2 } }
+
+  function pickRestoreFile(container: HTMLElement, text = '{"format":"lottery-3d-verification"}') {
+    const file = new File([text], 'backup.json', { type: 'application/json' })
+    Object.defineProperty(file, 'text', { value: async () => text })
+    fireEvent.change(container.querySelector('.restore-input')!, { target: { files: [file] } })
+  }
+
+  beforeEach(() => {
+    lotteryConfig.cardListWinAll = []
+    vi.mocked(planProgressRestore).mockResolvedValue(okPlan)
+    vi.mocked(appConfirm).mockResolvedValue(true)
+    vi.mocked(lotteryConfig.replaceProgress).mockReturnValue({ ok: true })
+  })
+
+  it('彩排、双屏控制中、抽奖演出中时禁用并说明原因，展示中奖时可用', () => {
+    const button = () => screen.getByRole('button', { name: '从验证文件恢复进度' }) as HTMLButtonElement
+    vi.mocked(isRehearsal).mockReturnValue(true)
+    const { rerender } = render(<LotteryFairness onClose={() => {}} />)
+    expect(button().disabled).toBe(true)
+    expect(screen.getByText('彩排不读写正式进度，请在正式舞台恢复')).toBeTruthy()
+    vi.mocked(isRehearsal).mockReturnValue(false)
+    rerender(<LotteryFairness onClose={() => {}} controlConnected />)
+    expect(button().disabled).toBe(true)
+    expect(screen.getByText('双屏控制中，请先退出双屏控制再恢复')).toBeTruthy()
+    rerender(<LotteryFairness onClose={() => {}} />)
+    expect(button().disabled).toBe(false)
+    act(() => STATUS.setPhase('presenting')) // 本轮结果已落盘、等待主持人操作，可以恢复
+    expect(button().disabled).toBe(false)
+    act(() => STATUS.setPhase('revealing'))
+    expect(button().disabled).toBe(true)
+    expect(screen.getByText('抽奖进行中，结束后再恢复')).toBeTruthy()
+  })
+
+  it('不是 JSON 时直接提示，不做检查', async () => {
+    const { container } = render(<LotteryFairness onClose={() => {}} />)
+    pickRestoreFile(container, 'not json')
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('没有恢复：文件不是有效的 JSON'))
+    expect(planProgressRestore).not.toHaveBeenCalled()
+  })
+
+  it('检查不通过时显示原因，不弹确认、不写入', async () => {
+    vi.mocked(planProgressRestore).mockResolvedValue({ ok: false, reason: '备份里的名单和当前名单不一致（人数不同）' })
+    const { container } = render(<LotteryFairness onClose={() => {}} />)
+    pickRestoreFile(container)
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('没有恢复：备份里的名单和当前名单不一致（人数不同）'))
+    expect(planProgressRestore).toHaveBeenCalledWith({ format: 'lottery-3d-verification' }, lotteryConfig)
+    expect(appConfirm).not.toHaveBeenCalled()
+    expect(lotteryConfig.replaceProgress).not.toHaveBeenCalled()
+  })
+
+  it('空场次：普通确认，显示标题和两边概况，确认后写入并刷新', async () => {
+    const onRestored = vi.fn()
+    const { container } = render(<LotteryFairness onClose={() => {}} onRestored={onRestored} />)
+    pickRestoreFile(container)
+    await waitFor(() => expect(onRestored).toHaveBeenCalled())
+    const [message, options] = vi.mocked(appConfirm).mock.calls[0]
+    expect(message).toContain('「年会」')
+    expect(message).toContain('备份：2 轮、2 人中奖（2 条操作记录）')
+    expect(message).toContain('当前：0 轮、0 人中奖（0 条操作记录）')
+    expect(options).toEqual({ confirmText: '恢复并刷新', warning: undefined })
+    expect(lotteryConfig.replaceProgress).toHaveBeenCalledWith(saved)
+  })
+
+  it('已有进度且备份更旧：红字写明替换和丢失的轮数，按钮是“替换当前进度并刷新”', async () => {
+    lotteryConfig.drawLog = [draw(), draw(), draw('p1', true), { ...draw(), type: 'undo' }, draw(), draw()]
+    lotteryConfig.cardListWinAll = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }] as typeof lotteryConfig.cardListWinAll
+    const { container } = render(<LotteryFairness onClose={() => {}} onRestored={() => {}} />)
+    pickRestoreFile(container)
+    await waitFor(() => expect(lotteryConfig.replaceProgress).toHaveBeenCalled())
+    const [, options] = vi.mocked(appConfirm).mock.calls[0]
+    expect(options?.confirmText).toBe('替换当前进度并刷新')
+    expect(options?.warning).toContain('当前场次已有 4 轮、4 人中奖（6 条操作记录），恢复后会被替换')
+    expect(options?.warning).toContain('备份比当前场次少 2 轮，这 2 轮的结果会丢失')
+  })
+
+  it('取消或确认期间开始抽奖：不写入', async () => {
+    vi.mocked(appConfirm).mockResolvedValueOnce(false)
+    const { container } = render(<LotteryFairness onClose={() => {}} onRestored={() => {}} />)
+    pickRestoreFile(container)
+    await waitFor(() => expect(appConfirm).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect((screen.getByRole('button', { name: '从验证文件恢复进度' }) as HTMLButtonElement).disabled).toBe(false))
+    expect(lotteryConfig.replaceProgress).not.toHaveBeenCalled()
+
+    vi.mocked(appConfirm).mockImplementationOnce(async () => { act(() => STATUS.setPhase('spinning')); return true })
+    pickRestoreFile(container)
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('没有恢复：抽奖进行中，结束后再恢复'))
+    expect(lotteryConfig.replaceProgress).not.toHaveBeenCalled()
+  })
+
+  it('写入失败：提示原因，不刷新', async () => {
+    vi.mocked(lotteryConfig.replaceProgress).mockReturnValue({ ok: false, reason: '当前进度无法留底（本地存储可能已满）' })
+    const onRestored = vi.fn()
+    const { container } = render(<LotteryFairness onClose={() => {}} onRestored={onRestored} />)
+    pickRestoreFile(container)
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('没有恢复：当前进度无法留底（本地存储可能已满）'))
+    expect(toast).toHaveBeenCalledWith('⚠ 恢复失败：当前进度无法留底（本地存储可能已满）', 8000)
+    expect(onRestored).not.toHaveBeenCalled()
   })
 })
