@@ -12,6 +12,7 @@ import LotteryHistory from './LotteryHistory'
 import LotteryUpdateBanner from './LotteryUpdateBanner'
 import LotteryCompatNotice from './LotteryCompatNotice'
 import LotteryStaleNotice from './LotteryStaleNotice'
+import LotteryBackupReminder from './LotteryBackupReminder'
 import { FeedbackHost } from './feedback'
 import { useLotteryShortcuts, toggleFullscreen } from '../core/lottery-shortcuts'
 import { useDisplaySync } from './useDisplaySync'
@@ -77,6 +78,7 @@ export default function Lottery() {
       <LotteryUpdateBanner />
       <LotteryCompatNotice />
       {!rehearsal && <LotteryStaleNotice />}
+      {!rehearsal && <LotteryBackupReminder controlConnected={controlConnected} />}
       {controlConnected && (
         <button className="exit-dual-btn" onClick={exitDualScreen} title="关闭控制窗并恢复主屏操作">
           ✕ 退出双屏控制
@@ -124,7 +126,7 @@ export default function Lottery() {
       }
       {showPreflight && <LotteryPreflight onClose={() => setShowPreflight(false)} controlConnected={controlConnected} />}
       {showConfig && <LotteryConfigPanel onClose={() => setShowConfig(false)} />}
-      {showFairness && <LotteryFairness onClose={() => setShowFairness(false)} />}
+      {showFairness && <LotteryFairness onClose={() => setShowFairness(false)} controlConnected={controlConnected} />}
       {showHistory && <LotteryHistory onClose={() => setShowHistory(false)} />}
       <header className="lottery-header">
         <span>{lotteryConfig.headerTitle}</span>

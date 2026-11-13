@@ -1,0 +1,69 @@
+// 奖项抽完的备份提醒：底部居中的窄条，落在中奖卡片和屏幕底边之间，
+// 避开左下的抽奖按钮、右下的视角复位和更新提示。样式与更新提示一致。
+// 层级在舞台之上、所有面板（1000）和中奖名单浮层（999）之下，不能挡住面板底部的按钮。
+.lottery-backup-reminder {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 950;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 40px));
+  padding: 10px 14px;
+  color: var(--text-bright);
+  background: rgba(var(--hud-bg-rgb), 0.95);
+  border: 1px solid rgba(var(--accent-light-rgb), 0.5);
+  border-radius: 8px;
+  box-shadow: 0 0 18px rgba(var(--accent-light-rgb), 0.25);
+  animation: backup-reminder-in 0.35s ease;
+
+  .backup-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .backup-hint {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: rgba(var(--accent-light-rgb), 0.7);
+  }
+
+  .backup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+
+    button {
+      padding: 5px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-bright);
+      background: rgba(var(--accent-light-rgb), 0.08);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.35);
+      border-radius: 5px;
+
+      &:hover {
+        background: rgba(var(--accent-light-rgb), 0.22);
+      }
+    }
+
+    .backup-download {
+      background: rgba(var(--accent-dark-rgb), 0.6);
+      border-color: rgba(var(--accent-light-rgb), 0.7);
+    }
+  }
+}
+
+@keyframes backup-reminder-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

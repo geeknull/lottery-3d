@@ -92,6 +92,18 @@ export function createVerificationPackage(): VerificationPackage {
   }
 }
 
+// 下载当前场次的验证文件。公平性面板和“奖项抽完”提醒共用，失败时抛出由调用方提示。
+export async function downloadVerificationFile(): Promise<void> {
+  await ensureSeedCommit()
+  const blob = new Blob([JSON.stringify(createVerificationPackage(), null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = '抽奖验证.json'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 // 完整验证当前局：承诺 + 规则和有序奖池 + 作废/撤销 + 最终结果。
 export function verifyCurrent(): Promise<VerifyResult> {
   return verifyVerificationPackage(createVerificationPackage())
