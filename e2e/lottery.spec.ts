@@ -213,6 +213,34 @@ test.describe('中奖名单 CSV 导出', () => {
     expect(content).toContain('奖项,姓名')
     expect(content).toContain('一等奖,"\'=坑,组长"')
   })
+
+  test('抽奖流水导出同样转义公式前缀和逗号', async ({ page }) => {
+    const evilName = '=坑,组长'
+    await page.goto('/')
+    await page.evaluate((name) => {
+      localStorage.removeItem('___lottery___')
+      localStorage.setItem('___lottery_countdown___', 'off')
+      localStorage.setItem('___lottery_config___', JSON.stringify({
+        version: 1,
+        headerTitle: '测试抽奖',
+        prizes: [{ name: '一等奖', count: 3, everyTimeGet: 3 }],
+        roster: [name, '张三', '李四'],
+      }))
+    }, evilName)
+    await page.reload()
+    await page.waitForTimeout(3500)
+    await drawOneRound(page)
+    await closeBanner(page)
+
+    await page.locator('.history-btn').click()
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('.lottery-history .export-btn').click(),
+    ])
+    const content = readFileSync(await download.path(), 'utf-8')
+    expect(content.startsWith('﻿')).toBe(true)
+    expect(content).toContain(',抽奖,一等奖,"\'=坑,组长",')
+  })
 })
 
 test.describe('配置保存容错', () => {

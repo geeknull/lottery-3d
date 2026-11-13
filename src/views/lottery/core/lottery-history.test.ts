@@ -47,4 +47,14 @@ describe('historyToCsv', () => {
   it('空流水只有表头', () => {
     expect(historyToCsv([]).replace('﻿', '')).toBe('时间,操作,奖项,姓名,备注')
   })
+
+  it('转义公式前缀、逗号和引号', () => {
+    const csv = historyToCsv([{
+      type: 'void', at: 1000, prizeId: 'a', prizeName: '一等奖,特别',
+      winnerNames: ['=1+1', '张"三'], winnerIds: ['x', 'y'], note: '=备注',
+    }])
+    const lines = csv.replace('﻿', '').split('\n')
+    expect(lines[1].endsWith(`,作废,"一等奖,特别",'=1+1,'=备注`)).toBe(true)
+    expect(lines[2].endsWith(`,作废,"一等奖,特别","张""三",'=备注`)).toBe(true)
+  })
 })
