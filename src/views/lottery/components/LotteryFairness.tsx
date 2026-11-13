@@ -2,10 +2,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import STATUS from '../core/lottery-status'
 import { isRehearsal } from '../core/rehearsal'
-import { attestationUnavailableReason, buildAttestation, commitKind } from '../core/attestation'
+import { attestationUnavailableReason, buildAttestation, commitKind, readPackageCommit } from '../core/attestation'
 import type { Attestation } from '../core/attestation'
 import { markAttestationShown } from '../core/attestation-reminder'
-import LotteryAttestation from './LotteryAttestation'
+import LotteryAttestation, { FingerprintCheck } from './LotteryAttestation'
 import { getLotteryVersion, useLotteryVersion } from '../core/lottery-store'
 import { createVerificationPackage, ensureSeedCommit, verifyCurrent } from '../core/lottery-fairness'
 import type { VerifyResult } from '../core/lottery-fairness'
@@ -26,9 +26,11 @@ export default function LotteryFairness({ onClose }: Props) {
   const [seedVisible, setSeedVisible] = useState(false)
   // 公证卡打开时 Escape 只关卡片，不连带关掉面板。
   useOnEscape(() => { if (card) setCard(null); else onClose() })
-  const [result, setResult] = useState<{ value: VerifyResult; version: number | null; source: string } | null>(null)
+  // commit：导入文件里读出的指纹，只用于显示和核对。
+  const [result, setResult] = useState<{ value: VerifyResult; version: number | null; source: string; commit?: string | null; importId?: number } | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const importCount = useRef(0)
 
   // 打开即锁定承诺哈希。承诺含随机盐，公布指纹不会泄露种子
   useEffect(() => {
@@ -107,8 +109,9 @@ export default function LotteryFairness({ onClose }: Props) {
     if (!file) return
     setBusy(true)
     try {
-      const value = await verifyVerificationPackage(JSON.parse(await file.text()))
-      setResult({ value, version: null, source: '导入文件' })
+      const parsed: unknown = JSON.parse(await file.text())
+      const value = await verifyVerificationPackage(parsed)
+      setResult({ value, version: null, source: '导入文件', commit: readPackageCommit(parsed), importId: ++importCount.current })
     } catch {
       setResult({ value: { ok: false, checkedDraws: 0, failedAt: null, reason: '文件不是有效的 JSON 验证数据' }, version: null, source: '导入文件' })
     } finally {
@@ -169,6 +172,8 @@ export default function LotteryFairness({ onClose }: Props) {
             : `✗ ${visibleResult.source}验证未通过：${visibleResult.value.failedAt === null ? '' : `第 ${visibleResult.value.failedAt + 1} 条记录：`}${visibleResult.value.reason}`}
         </div>
       )}
+      {/* 每次导入换一个 key：重新导入时清空上一次的核对输入 */}
+      {visibleResult?.commit && <FingerprintCheck key={visibleResult.importId} commit={visibleResult.commit} />}
 
       {card && <LotteryAttestation card={card} onClose={() => setCard(null)} />}
     </div>

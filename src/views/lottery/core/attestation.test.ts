@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { attestationUnavailableReason, buildAttestation, commitKind, groupFingerprint } from './attestation'
+import { attestationUnavailableReason, buildAttestation, commitKind, compareFingerprint, groupFingerprint, normalizeFingerprint, readPackageCommit } from './attestation'
 import type { AttestationInput } from './attestation'
 
 const commit = '1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809'
@@ -90,5 +90,38 @@ describe('公证卡内容', () => {
     expect(JSON.stringify(card)).not.toContain(salt)
     expect(Object.keys(card)).not.toContain('seed')
     expect(Object.keys(card)).not.toContain('seedSalt')
+  })
+})
+
+describe('核对卡片指纹', () => {
+  it('忽略空格、换行和大小写', () => {
+    expect(normalizeFingerprint(' 1A2B 3c4d\n5E6F\t7081 ')).toBe('1a2b3c4d5e6f7081')
+    expect(compareFingerprint('1A2B3C4D 5E6F7081 92A3B4C5 D6E7F809\n1a2b3c4d 5e6f7081 92a3b4c5 d6e7f809', commit)).toEqual({ state: 'match' })
+  })
+
+  it('空输入不判定', () => {
+    expect(compareFingerprint('   ', commit)).toEqual({ state: 'empty' })
+  })
+
+  it('指出第一个不同的分组', () => {
+    const third = commit.slice(0, 16) + 'x' + commit.slice(17)
+    expect(compareFingerprint(third, commit)).toEqual({ state: 'mismatch', group: 3 })
+    const last = commit.slice(0, 63) + '0'
+    expect(compareFingerprint(last, commit)).toEqual({ state: 'mismatch', group: 8 })
+  })
+
+  it('输入偏短或偏长时，缺失或多出处所在分组为不同分组', () => {
+    expect(compareFingerprint(commit.slice(0, 40), commit)).toEqual({ state: 'mismatch', group: 6 })
+    expect(compareFingerprint(commit.slice(0, 32), commit)).toEqual({ state: 'mismatch', group: 5 })
+    expect(compareFingerprint(commit + 'ab', commit)).toEqual({ state: 'mismatch', group: 9 })
+  })
+
+  it('只从验证文件里读出 8 位或 64 位小写十六进制指纹', () => {
+    expect(readPackageCommit({ seedCommit: commit })).toBe(commit)
+    expect(readPackageCommit({ seedCommit: '1a2b3c4d' })).toBe('1a2b3c4d')
+    expect(readPackageCommit({ seedCommit: 'xyz' })).toBeNull()
+    expect(readPackageCommit({ seedCommit: 12 })).toBeNull()
+    expect(readPackageCommit(null)).toBeNull()
+    expect(readPackageCommit('string')).toBeNull()
   })
 })

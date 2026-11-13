@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { compareFingerprint, groupFingerprint } from '../core/attestation'
 import type { Attestation } from '../core/attestation'
 import { exportAttestationPng } from '../core/attestation-png'
 import { toast } from './feedback'
@@ -20,6 +21,34 @@ export function FingerprintGroups({ groups, className = '' }: { groups: string[]
         </div>
       ))}
     </div>
+  )
+}
+
+// 导入验证文件后：显示文件里的指纹（与卡片同样分组），并用输入框核对公证卡上的指纹。
+export function FingerprintCheck({ commit }: { commit: string }) {
+  const [input, setInput] = useState('')
+  const match = compareFingerprint(input, commit)
+  return (
+    <section className="fingerprint-check">
+      <h3>验证文件中的指纹</h3>
+      <FingerprintGroups groups={groupFingerprint(commit)} className="file-fingerprint" />
+      <label className="fingerprint-check-label">
+        核对卡片指纹
+        <input
+          type="text"
+          value={input}
+          onChange={event => setInput(event.target.value)}
+          placeholder="输入公证卡上的指纹，空格和大小写不影响"
+          spellCheck={false}
+          autoComplete="off"
+        />
+      </label>
+      {match.state !== 'empty' && (
+        <p className={'fingerprint-check-result ' + (match.state === 'match' ? 'ok' : 'fail')} aria-live="polite">
+          {match.state === 'match' ? '✓ 与验证文件一致' : `✗ 不一致：第 ${match.group} 组开始不同`}
+        </p>
+      )}
+    </section>
   )
 }
 

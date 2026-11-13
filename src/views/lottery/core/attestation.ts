@@ -106,3 +106,28 @@ export function buildAttestation(input: AttestationInput): Attestation | null {
     watermark: input.rehearsal ? REHEARSAL_WATERMARK : null,
   }
 }
+
+// 核对卡片指纹：忽略所有空白和大小写。
+export function normalizeFingerprint(text: string): string {
+  return text.replace(/\s+/g, '').toLowerCase()
+}
+
+export type FingerprintMatch = { state: 'empty' } | { state: 'match' } | { state: 'mismatch'; group: number }
+
+// 不一致时给出第一个不同的分组（从 1 开始）；输入偏短或偏长时，第一处缺失或多出的位置所在分组即为不同分组。
+export function compareFingerprint(input: string, expected: string): FingerprintMatch {
+  const actual = normalizeFingerprint(input)
+  const target = normalizeFingerprint(expected)
+  if (!actual) return { state: 'empty' }
+  if (actual === target) return { state: 'match' }
+  let index = 0
+  while (index < actual.length && index < target.length && actual[index] === target[index]) index++
+  return { state: 'mismatch', group: Math.floor(index / GROUP_SIZE) + 1 }
+}
+
+// 只从导入的 JSON 里读出指纹做显示和比对，不参与校验；校验仍由 fairness-package 完成。
+export function readPackageCommit(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null) return null
+  const commit = (value as { seedCommit?: unknown }).seedCommit
+  return typeof commit === 'string' && /^(?:[0-9a-f]{8}|[0-9a-f]{64})$/.test(commit) ? commit : null
+}

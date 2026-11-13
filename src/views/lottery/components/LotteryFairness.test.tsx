@@ -201,3 +201,39 @@ describe('当前种子默认隐藏', () => {
     expect(document.querySelector('.lottery-fairness')?.textContent).toContain('已记录 0 轮抽奖')
   })
 })
+
+describe('导入验证文件后核对指纹', () => {
+  async function importPackage(container: HTMLElement, body: unknown) {
+    const file = new File(['x'], 'verification.json', { type: 'application/json' })
+    Object.defineProperty(file, 'text', { value: async () => JSON.stringify(body) })
+    fireEvent.change(container.querySelector('input[type=file]')!, { target: { files: [file] } })
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('导入文件'))
+  }
+
+  it('显示文件中的分组指纹，核对输入忽略空格和大小写，不一致时指出第一个不同分组', async () => {
+    const { container } = render(<LotteryFairness onClose={() => {}} />)
+    await importPackage(container, { seedCommit: commit })
+    const groups = [...container.querySelectorAll('.file-fingerprint .fp-group')].map(el => el.textContent)
+    expect(groups.join('')).toBe(commit)
+    expect(groups).toHaveLength(8)
+
+    const input = screen.getByLabelText('核对卡片指纹')
+    fireEvent.change(input, { target: { value: commit.toUpperCase().replace(/(.{8})/g, '$1 ') } })
+    expect(container.querySelector('.fingerprint-check-result')?.textContent).toBe('✓ 与验证文件一致')
+    fireEvent.change(input, { target: { value: commit.slice(0, 20) + '0000' + commit.slice(24) } })
+    expect(container.querySelector('.fingerprint-check-result')?.textContent).toBe('✗ 不一致：第 3 组开始不同')
+
+    // 重新导入清空上一次的输入
+    await importPackage(container, { seedCommit: commit })
+    await waitFor(() => expect((screen.getByLabelText('核对卡片指纹') as HTMLInputElement).value).toBe(''))
+  })
+
+  it('文件里没有有效指纹时不显示核对区；当前场次自验证也不显示', async () => {
+    const { container } = render(<LotteryFairness onClose={() => {}} />)
+    await importPackage(container, { seedCommit: 'not-hex' })
+    expect(container.querySelector('.fingerprint-check')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '立即自验证' }))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toContain('当前场次验证通过'))
+    expect(container.querySelector('.fingerprint-check')).toBeNull()
+  })
+})

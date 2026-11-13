@@ -104,3 +104,38 @@ test('公平性面板默认隐藏种子，点击后才显示', async ({ page }) 
   await panel.getByRole('button', { name: '隐藏种子', exact: true }).click()
   await expect(panel.locator('.seed-value')).toHaveCount(0)
 })
+
+test('导入验证文件后显示文件指纹，核对卡片指纹一致或指出不同分组', async ({ page }, testInfo) => {
+  await gotoFresh(page)
+  await page.locator('.fairness-btn').click()
+  await page.getByRole('button', { name: '公证卡', exact: true }).click()
+  const card = page.getByRole('dialog', { name: '开抽前公证卡' })
+  const cardGroups = await card.locator('.attestation-fingerprint .fp-group').allTextContents()
+  await card.getByRole('button', { name: '关闭', exact: true }).click()
+  await page.locator('.lottery-fairness .close-btn').click()
+  await drawOneRound(page)
+  await closeBanner(page)
+
+  await page.locator('.fairness-btn').click()
+  const downloaded = page.waitForEvent('download')
+  await page.getByRole('button', { name: '下载验证文件', exact: true }).click()
+  const filePath = testInfo.outputPath('verification.json')
+  await (await downloaded).saveAs(filePath)
+
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: '验证文件', exact: true }).click()
+  await (await chooser).setFiles(filePath)
+  const panel = page.locator('.lottery-fairness')
+  await expect(panel.locator('.verify-result.ok')).toContainText('导入文件验证通过')
+  expect(await panel.locator('.file-fingerprint .fp-group').allTextContents()).toEqual(cardGroups)
+
+  // 像人从卡片上抄下来那样：分组带空格、大写。
+  const input = panel.getByLabel('核对卡片指纹')
+  await input.fill(cardGroups.join('  ').toUpperCase())
+  await expect(panel.locator('.fingerprint-check-result')).toHaveText('✓ 与验证文件一致')
+  const wrong = [...cardGroups]
+  wrong[4] = wrong[4].slice(0, 7) + (wrong[4][7] === '0' ? '1' : '0')
+  await input.fill(wrong.join(' '))
+  await expect(panel.locator('.fingerprint-check-result')).toHaveText('✗ 不一致：第 5 组开始不同')
+  await expect(panel.locator('.fingerprint-check-result')).toHaveClass(/fail/)
+})
