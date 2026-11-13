@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { verifyDrawLog } from './lottery-fairness'
 import { hashSeed } from './lottery-rng'
-import { verifyVerificationPackage } from './fairness-package'
+import { commitmentContext, verifyVerificationPackage } from './fairness-package'
 import type { LotteryConfig } from './lottery-config'
 import type { Card, Prize } from './lottery-types'
 
@@ -81,9 +81,16 @@ describe('ensureSeedCommit', () => {
     lotteryConfig.seed = 123
     lotteryConfig.seedCommit = ''
     await fairness.ensureSeedCommit()
-    expect(lotteryConfig.seedCommit).toBe(await hashSeed(123))
+    expect(lotteryConfig.seedCommit).toBe(await hashSeed(123, {
+      salt: lotteryConfig.seedSalt,
+      context: commitmentContext(
+        lotteryConfig.cardList.map(({ id, name }) => ({ id, name })),
+        lotteryConfig.prizeList.map(({ id, name, count, everyTimeGet }) => ({ id, name, count, everyTimeGet })),
+      ),
+    }))
     const saved = JSON.parse(localStorage.getItem('___lottery___')!)
     expect(saved.seedCommit).toBe(lotteryConfig.seedCommit)
+    expect(saved.seedSalt).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('已有承诺则不重算（保持开始前公布的值不变）', async () => {
@@ -151,6 +158,12 @@ describe('完整验证文件', () => {
     return fairness.createVerificationPackage()
   }
 
+  // 复算规则对 v1、v2 相同。用 v1 包绕开 v2 的承诺绑定，专门测复算分支。
+  async function legacyPackage() {
+    const { seedSalt: _salt, ...pkg } = await drawPackage()
+    return { ...pkg, version: 1 as const, commitmentAlgorithm: 'sha256' as const, seedCommit: await hashSeed(pkg.seed) }
+  }
+
   it('导出算法版本、有序名单、规则、全部操作与最终结果，可脱离当前场次验证', async () => {
     const pkg = await drawPackage()
     expect(pkg.algorithm).toBe('mulberry32-v1')
@@ -205,7 +218,7 @@ describe('完整验证文件', () => {
   })
 
   it('拒绝与抽取人数不一致的奖项规则', async () => {
-    const pkg = await drawPackage()
+    const pkg = await legacyPackage()
     pkg.prizes[0].everyTimeGet = 2
     expect((await verifyVerificationPackage(pkg)).reason).toContain('抽取人数')
   })
@@ -249,7 +262,7 @@ describe('完整验证文件', () => {
   it('拒绝重复 ID、未知版本及损坏字段，不抛异常', async () => {
     const pkg = await drawPackage()
     for (const malformed of [
-      null, { ...pkg, version: 2 }, { ...pkg, algorithm: 'unknown' },
+      null, { ...pkg, version: 3 }, { ...pkg, algorithm: 'unknown' },
       { ...pkg, roster: [...pkg.roster, pkg.roster[0]] },
       { ...pkg, drawLog: [{ ...pkg.drawLog[0], winnerIds: null }] },
       { ...pkg, finalState: { ...pkg.finalState, prizes: [null] } },
@@ -259,10 +272,42 @@ describe('完整验证文件', () => {
   it('验证 SHA-256 承诺，并拒绝替换后的承诺', async () => {
     await useWebCrypto()
     const pkg = await drawPackage()
-    expect(pkg.commitmentAlgorithm).toBe('sha256')
+    expect(pkg.commitmentAlgorithm).toBe('sha256-salted')
+    expect(pkg.version).toBe(2)
     expect((await verifyVerificationPackage(pkg)).ok).toBe(true)
     pkg.seedCommit = await hashSeed(pkg.seed + 1)
     expect((await verifyVerificationPackage(pkg)).reason).toContain('承诺不一致')
+  })
+
+  it('v2 承诺绑定名单顺序、奖项规则和盐', async () => {
+    const pkg = await drawPackage()
+    expect(pkg.version).toBe(2)
+    for (const tampered of [
+      { ...pkg, roster: [...pkg.roster].reverse() },
+      { ...pkg, prizes: [{ ...pkg.prizes[0], count: pkg.prizes[0].count + 1 }, ...pkg.prizes.slice(1)] },
+      { ...pkg, seedSalt: 'f'.repeat(64) },
+    ]) expect((await verifyVerificationPackage(tampered)).reason).toContain('承诺不一致')
+  })
+
+  it('v2 包缺少盐时按格式无效拒绝', async () => {
+    const { seedSalt: _salt, ...pkg } = await drawPackage()
+    expect((await verifyVerificationPackage(pkg)).reason).toContain('格式无效')
+  })
+
+  it('旧的 v1 SHA-256 验证文件仍能通过', async () => {
+    expect((await verifyVerificationPackage(await legacyPackage())).ok).toBe(true)
+  })
+
+  it('已有无盐承诺的旧存档继续导出 v1', async () => {
+    lotteryConfig.seed = 42
+    lotteryConfig.rngState = 42
+    lotteryConfig.seedSalt = ''
+    lotteryConfig.seedCommit = await hashSeed(42)
+    getRandomCard(lotteryConfig.prizeList[0])
+    const pkg = fairness.createVerificationPackage()
+    expect(pkg).toMatchObject({ version: 1, commitmentAlgorithm: 'sha256' })
+    expect(pkg).not.toHaveProperty('seedSalt')
+    expect((await verifyVerificationPackage(pkg)).ok).toBe(true)
   })
 
   it('FNV 兼容包移到支持 SHA-256 的环境仍按原算法验证', async () => {
@@ -342,10 +387,11 @@ describe('现有抽奖规则的验证兼容', () => {
   })
 
   it('保留当前 UI 可产生的空池历史：仍有名额但全部参与者已被作废排除', async () => {
-    const prize = await configurePrize(1, 1)
-    lotteryConfig.prizeList = [prize]
+    // v2 承诺绑定名单和奖项规则，先缩小名单和奖项再生成承诺，与真实流程一致
+    lotteryConfig.prizeList = [lotteryConfig.prizeList[0]]
     lotteryConfig.cardList = lotteryConfig.cardList.slice(0, 1)
     lotteryConfig.cardListRemainAll = [...lotteryConfig.cardList]
+    const prize = await configurePrize(1, 1)
     const [winner] = getRandomCard(prize)
     algorithm.voidWinner(prize.id, winner.id, false)
     expect(prize.countRemain).toBe(1)

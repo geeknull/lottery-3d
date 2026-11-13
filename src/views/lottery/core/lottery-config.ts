@@ -1,6 +1,6 @@
 import { buildCards, createIdAllocator, defaultPeople } from './lottery-config-users';
 import { loadUserConfig, configHash, normalizeRoster } from './config-store';
-import { randomSeed } from './lottery-rng';
+import { randomSalt, randomSeed } from './lottery-rng';
 import { isSavedRestorable } from './config-restore';
 import type { SavedCardReference } from './config-restore';
 import { bus } from './event-bus';
@@ -30,6 +30,7 @@ export interface LotteryConfig {
   seed: number; // 整场抽奖的随机种子（可验证公平）
   rngState: number; // 流式推进的当前 rng 状态
   seedCommit: string; // 种子的承诺哈希（SHA-256），开始前公布
+  seedSalt: string; // 承诺用的随机盐。旧存档和非安全上下文为空串
   drawLog: DrawLogEntry[]; // 操作流水（抽奖/作废/撤销）
   isProgressStale(): boolean; // 其他窗口已写入更新的进度时返回 true，本窗口不能再改结果
   getCurrentPrize(prizeId?: string | null): Prize | undefined;
@@ -71,6 +72,7 @@ const currentHash = configHash(headerTitle, prizeConfigs, cardList.map(c => c.na
 
 // 整场抽奖的种子：无存档时新生成（rngState 从 seed 起步）
 const initialSeed = randomSeed();
+const initialSalt = randomSalt();
 // Capture this once: a rehearsal never reads or mutates the formal draw stream.
 const rehearsal = isRehearsal();
 
@@ -128,6 +130,7 @@ const lotteryConfig: LotteryConfig = {
   seed: initialSeed,
   rngState: initialSeed,
   seedCommit: '', // 异步算出后填充
+  seedSalt: initialSalt,
   drawLog: [],
 
   isProgressStale: checkProgressStale,
@@ -166,6 +169,7 @@ const lotteryConfig: LotteryConfig = {
         seed: lotteryConfig.seed,
         rngState: lotteryConfig.rngState,
         seedCommit: lotteryConfig.seedCommit,
+        seedSalt: lotteryConfig.seedSalt,
         drawLog: lotteryConfig.drawLog,
       }));
       knownRevision = revision;
@@ -243,6 +247,8 @@ const lotteryConfig: LotteryConfig = {
       lotteryConfig.seed = saved.seed;
       lotteryConfig.rngState = typeof saved.rngState === 'number' ? saved.rngState : saved.seed;
       lotteryConfig.seedCommit = saved.seedCommit ?? '';
+      // 旧存档的承诺没有盐，保持原样；还没生成承诺的旧存档直接用本次的新盐。
+      lotteryConfig.seedSalt = saved.seedSalt ?? (lotteryConfig.seedCommit ? '' : initialSalt);
       lotteryConfig.drawLog = saved.drawLog ?? [];
     }
   },

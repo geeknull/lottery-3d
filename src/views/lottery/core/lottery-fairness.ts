@@ -4,7 +4,7 @@ import lotteryConfig from './lottery-config'
 import { notifyLotteryChange } from './lottery-store'
 import { rngFromState, hashSeed } from './lottery-rng'
 import type { DrawLogEntry } from './lottery-types'
-import { verifyVerificationPackage } from './fairness-package'
+import { commitmentContext, verifyVerificationPackage } from './fairness-package'
 import type { VerificationPackage, VerifyResult } from './fairness-package'
 export type { VerifyResult } from './fairness-package'
 
@@ -39,15 +39,23 @@ export function verifyDrawLog(seed: number, drawLog: DrawLogEntry[]): VerifyResu
   return { ok: true, checkedDraws, failedAt: null }
 }
 
+const currentRoster = () => lotteryConfig.cardList.map(({ id, name }) => ({ id, name }))
+const currentPrizes = () => lotteryConfig.prizeList.map(({ id, name, count, everyTimeGet }) => ({ id, name, count, everyTimeGet }))
+
 // 计算并固定种子承诺哈希（抽奖开始前公布）。已有则保持不变。
 export async function ensureSeedCommit(): Promise<void> {
   while (!lotteryConfig.seedCommit) {
     const seed = lotteryConfig.seed
-    const commit = await hashSeed(seed)
+    // 非安全上下文没有 SHA-256，只能退回旧的无盐承诺。
+    const salt = globalThis.crypto?.subtle ? lotteryConfig.seedSalt : ''
+    const commit = salt
+      ? await hashSeed(seed, { salt, context: commitmentContext(currentRoster(), currentPrizes()) })
+      : await hashSeed(seed)
     // 哈希期间重置了场次时，旧结果不能写回；继续为当前种子计算。
     if (seed !== lotteryConfig.seed) continue
     // 面板 effect 和按钮可能并发等待同一个种子，先完成者负责唯一的一次落盘和通知。
     if (lotteryConfig.seedCommit) return
+    lotteryConfig.seedSalt = salt
     lotteryConfig.seedCommit = commit
     lotteryConfig.setLocalStorage()
     notifyLotteryChange()
@@ -56,15 +64,17 @@ export async function ensureSeedCommit(): Promise<void> {
 
 // 只导出业务事实，图片等展示数据不参与验证。数组全部复制，后续抽奖不会改写已生成的包。
 export function createVerificationPackage(): VerificationPackage {
+  const salted = Boolean(lotteryConfig.seedSalt) && lotteryConfig.seedCommit.length === 64
   return {
     format: 'lottery-3d-verification',
-    version: 1,
+    version: salted ? 2 : 1,
     algorithm: 'mulberry32-v1',
-    commitmentAlgorithm: lotteryConfig.seedCommit.length === 8 ? 'fnv1a32' : 'sha256',
+    commitmentAlgorithm: salted ? 'sha256-salted' : lotteryConfig.seedCommit.length === 8 ? 'fnv1a32' : 'sha256',
     seed: lotteryConfig.seed,
+    ...(salted ? { seedSalt: lotteryConfig.seedSalt } : {}),
     seedCommit: lotteryConfig.seedCommit,
-    roster: lotteryConfig.cardList.map(({ id, name }) => ({ id, name })),
-    prizes: lotteryConfig.prizeList.map(({ id, name, count, everyTimeGet }) => ({ id, name, count, everyTimeGet })),
+    roster: currentRoster(),
+    prizes: currentPrizes(),
     drawLog: lotteryConfig.drawLog.map(entry => ({
       ...entry,
       winnerIds: [...entry.winnerIds],

@@ -20,12 +20,14 @@ export default function LotteryFairness({ onClose }: Props) {
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
-  // 打开即锁定承诺哈希（种子已在加载时确定，提前公布也无妨）
+  // 打开即锁定承诺哈希。承诺含随机盐，公布指纹不会泄露种子
   useEffect(() => {
     void ensureSeedCommit().catch(() => toast('种子承诺生成失败，请稍后重试'))
   }, [])
 
   const drawCount = lotteryConfig.drawLog.filter(e => e.type === 'draw').length
+  // 测试里的 mock 没有 seedSalt，所以用 Boolean 兜住 undefined
+  const salted = Boolean(lotteryConfig.seedSalt) && lotteryConfig.seedCommit.length === 64
 
   async function handleVerify() {
     setBusy(true)
@@ -89,14 +91,14 @@ export default function LotteryFairness({ onClose }: Props) {
 
       <p className="fairness-intro">
         本程序使用<strong>种子化随机</strong>，可以用完整验证文件复算每轮抽奖、作废和撤销。
-        验证通过表示文件内部的承诺、规则与结果一致；请另行核对开抽前公布的指纹与名单。
+        验证通过表示文件内部的承诺、规则与结果一致；{salted ? '指纹已绑定本场名单顺序和奖项规则，请核对开抽前公布的指纹。' : '请另行核对开抽前公布的指纹与名单。'}
         本地验证无法证明公布时间，也无法阻止整份数据被替换。
       </p>
 
       <section className="fairness-field">
         <h3>种子承诺指纹（开抽前公布）</h3>
         <code className="mono">{lotteryConfig.seedCommit || '生成中…'}</code>
-        <p className="hint">{lotteryConfig.seedCommit.length === 8 ? 'FNV-1a（兼容模式，非加密校验）' : 'SHA-256'}。请在开抽前记录并公布此值，验证时与原记录核对。</p>
+        <p className="hint">{lotteryConfig.seedCommit.length === 8 ? 'FNV-1a（兼容模式，非加密校验）' : salted ? 'SHA-256（含随机盐，绑定名单顺序与奖项规则）' : 'SHA-256'}。请在开抽前记录并公布此值，验证时与原记录核对。</p>
       </section>
 
       <section className="fairness-field">

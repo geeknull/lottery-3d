@@ -43,6 +43,18 @@ export function randomSeed(): number {
   return Math.floor(Math.random() * 0x100000000)
 }
 
+// 承诺用的随机盐（32 字节十六进制）。有了它，公布的指纹无法通过穷举 2^32 个种子反推。
+export function randomSalt(): string {
+  const bytes = new Uint8Array(32)
+  const cryptoObj = globalThis.crypto
+  if (cryptoObj?.getRandomValues) {
+    cryptoObj.getRandomValues(bytes)
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256)
+  }
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+}
+
 // 非加密兜底哈希（FNV-1a）：secure context 不可用时退而求其次
 function fnv1a(str: string): string {
   let h = 0x811c9dc5
@@ -53,12 +65,20 @@ function fnv1a(str: string): string {
   return (h >>> 0).toString(16).padStart(8, '0')
 }
 
+export interface SeedBinding {
+  salt: string // randomSalt() 的结果
+  context: string // 名单顺序与奖项规则，由 fairness-package 的 commitmentContext 生成
+}
+
 // 种子的承诺哈希（SHA-256）：抽奖开始前公布它，结束后公布种子，
 // 任何人都能验证「种子没被根据结果改过」。
 // crypto.subtle 仅在 secure context（HTTPS/localhost）可用；file:// 或内网 HTTP 下
 // 降级为非加密 FNV-1a（仍是种子的确定性函数、承诺-验证逻辑成立，但密码学强度弱）。
-export async function hashSeed(seed: number): Promise<string> {
-  const message = `lottery-3d-seed:${seed >>> 0}`
+// 传入 binding 时生成 v2 承诺：加盐并绑定名单与规则。v2 只用 SHA-256，没有降级。
+export async function hashSeed(seed: number, binding?: SeedBinding): Promise<string> {
+  const message = binding
+    ? `lottery-3d-commitment-v2:${seed >>> 0}:${binding.salt}:${binding.context}`
+    : `lottery-3d-seed:${seed >>> 0}`
   const subtle = globalThis.crypto?.subtle
   if (subtle) {
     const digest = await subtle.digest('SHA-256', new TextEncoder().encode(message))
@@ -66,6 +86,7 @@ export async function hashSeed(seed: number): Promise<string> {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
   }
+  if (binding) throw new Error('加盐承诺需要 SHA-256，请在 HTTPS 或 localhost 打开')
   return fnv1a(message)
 }
 
