@@ -22,7 +22,7 @@
 | [012](012-progress-restore-design.md) | 设计：进度备份与换机恢复 | P2 | M | 003、007（建议在 008 之后） | TODO |
 | [013](013-participant-identity-design.md) | 设计：参与者身份列 | P3 | M | 005（建议在 006 之后） | TODO |
 | [014](014-pre-draw-attestation-design.md) | 设计：开抽前公证卡与随机状态升级 | P3 | M | 008 | TODO |
-| [015](015-pin-ci-runner.md) | CI 的 verify 任务固定在 ubuntu-24.04（2026-11-13 新增，阻塞上线） | P1 | S | — | TODO |
+| [015](015-pin-ci-runner.md) | CI 的 verify 任务固定在 ubuntu-24.04（2026-11-13 新增，阻塞上线） | P1 | S | — | DONE（分支 `advisor/015-pin-ci-runner`，`bd44430`；以推送后的 CI 运行为准） |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一句原因）| REJECTED（附一句理由：已被别处修复，或方案放弃）
 
