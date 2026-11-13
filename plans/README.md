@@ -26,7 +26,7 @@
 | [016](016-pre-draw-attestation-card.md) | 开抽前公证卡（浮层、打印、PNG）与开始时的一次性提醒（设计 014 路线 A） | P3 | M | 008、014 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`ef4e5d6`；红灯检查与生产构建验收通过；验收中补了一处投屏排版修正） |
 | [017](017-fairness-panel-seed-and-fingerprint-check.md) | 公平性面板默认隐藏种子、醒目风险提示，导入验证文件时核对指纹（设计 014 路线 A） | P3 | S | 016 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`fc64629`；红灯检查与生产构建验收通过） |
 | [018](018-participant-identity-columns.md) | 名单支持工号、部门身份列：表头解析、指纹与承诺带工号、重名后缀、CSV 身份列（设计 013） | P3 | M | 005、008、013 | DONE（分支 `claude/eloquent-dubinsky-373090`，`4f00788`；红灯检查、基线夹具回归与生产构建验收通过；执行中追加中奖名单面板的重名后缀） |
-| [019](019-progress-restore-from-verification.md) | 从验证文件恢复进度（复算、逐项比对名单含工号、写后读回、失败回滚、旧进度留底），奖项抽完提醒导出（设计 012） | P2 | M–L | 003、007、008、012、018 | DONE（分支 `claude/019-progress-restore-bf678f`；红灯检查、基线夹具与生产构建验收通过；执行中把“空闲”放宽到 presenting，见计划执行记录） |
+| [019](019-progress-restore-from-verification.md) | 从验证文件恢复进度（复算、逐项比对名单含工号、写后读回、失败回滚、旧进度留底），奖项抽完提醒导出（设计 012） | P2 | M–L | 003、007、008、012、018 | DONE（分支 `claude/019-progress-restore-bf678f`；红灯检查、基线夹具与生产构建验收通过；两处偏离（presenting 也算空闲、只在有流水时留底）见计划“偏离”一节） |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一句原因）| REJECTED（附一句理由：已被别处修复，或方案放弃）
 
