@@ -88,7 +88,7 @@ export default function LotteryControl() {
       {lastReveal && (
         <div className="control-reveal">
           <div className="cr-title">最近中奖 · {lastReveal.prizeName}</div>
-          <div className="cr-names">{lastReveal.winnerNames.join('、') || '—'}</div>
+          <div className="cr-names">{(lastReveal.winnerLabels ?? lastReveal.winnerNames).join('、') || '—'}</div>
         </div>
       )}
 

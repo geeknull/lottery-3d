@@ -1,0 +1,43 @@
+import { readFile } from 'node:fs/promises'
+import { test, expect, type Page } from '@playwright/test'
+import { gotoFresh, drawOneRound } from './helpers'
+
+// 名单身份列（工号、部门），见 plans/018。
+const ROSTER = '姓名,工号,部门\n张伟,A001,研发部\n张伟,A002,市场部\n李娜,A003,行政部'
+
+// 通过配置面板粘贴带表头的名单并保存：一个奖项 3 个名额，一轮全部抽出。
+async function applyIdentityRoster(page: Page) {
+  await gotoFresh(page)
+  await page.locator('.config-btn').click()
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: '导入配置 JSON', exact: true }).click()
+  await (await chooser).setFiles({
+    name: 'identity.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({
+      version: 1, headerTitle: '身份列', avatarStyle: 'letter',
+      prizes: [{ name: '一等奖', count: 3, everyTimeGet: 3 }],
+      roster: ['占位1', '占位2', '占位3'],
+    })),
+  })
+  await page.locator('.lottery-config-panel textarea').fill(ROSTER)
+  await page.locator('.panel-actions button.primary').click()
+  await page.locator('.confirm-btns button.primary').click()
+  await expect(page.locator('.lottery-header')).toHaveText('身份列')
+  await page.waitForTimeout(3500)
+}
+
+test('两个张伟带不同工号：卡片显示工号，揭晓横幅只对重名者加后缀', async ({ page }, testInfo) => {
+  await applyIdentityRoster(page)
+  await expect(page.locator('.element[data-card-id="张伟-2"] .details')).toHaveText('A002')
+  await expect(page.locator('.element[data-card-id="李娜"] .details')).toHaveText('A003')
+
+  await drawOneRound(page)
+  const winners = page.locator('.lottery-win-banner .banner-winner')
+  await expect(winners).toHaveCount(3)
+  expect((await winners.allTextContents()).sort()).toEqual(['张伟（A001）', '张伟（A002）', '李娜'].sort())
+  await page.screenshot({ path: testInfo.outputPath('identity-banner.png') })
+
+  // 刷新后进度照常恢复（带工号的指纹前后一致）
+  await page.reload()
+  await expect(page.locator('.element.prize')).toHaveCount(3)
+})

@@ -70,4 +70,12 @@ describe('buildSnapshot', () => {
     const presentation = { phase: 'presenting' as const, winnerGroupIndex: 1, groupCount: 3, replayAvailable: true }
     expect(buildSnapshot(source(), false, presentation)).toMatchObject(presentation)
   })
+
+  it('带名单时生成重名后缀，不带名单时与以前相同', () => {
+    const card = (name: string, id: string, employeeId?: string) => ({ name, id, avatar: '', index: 0, row: 1, col: 1, ...(employeeId ? { employeeId } : {}) })
+    const drawLog = [draw({ winnerNames: ['张伟', '李娜'], winnerIds: ['张伟-2', '李娜'] })]
+    const withRoster = buildSnapshot(source({ drawLog, cardList: [card('张伟', '张伟', 'A1'), card('张伟', '张伟-2', 'A2'), card('李娜', '李娜', 'A3')] }), false)
+    expect(withRoster.lastReveal).toEqual({ prizeName: '奖', winnerNames: ['张伟', '李娜'], winnerLabels: ['张伟（A2）', '李娜'] })
+    expect(buildSnapshot(source({ drawLog }), false).lastReveal).toEqual({ prizeName: '奖', winnerNames: ['张伟', '李娜'] })
+  })
 })

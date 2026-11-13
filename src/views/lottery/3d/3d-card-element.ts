@@ -28,10 +28,12 @@ export function createCardElement(card: Card, isPrize: boolean): HTMLDivElement 
   symbol.style.setProperty('--winner-name-size', `${card.name.length > 12 ? 16 : card.name.length > 6 ? 21 : 29}px`);
   element.appendChild(symbol);
 
+  // 有工号显示工号，否则显示卡片 ID；部门放进悬停提示
+  const detailText = card.employeeId ?? card.id;
   const details = document.createElement('div');
   details.className = 'details';
-  details.title = card.id;
-  details.textContent = card.id; // 纯文本展示，防 XSS（原为 innerHTML）
+  details.title = card.department ? `${detailText} · ${card.department}` : detailText;
+  details.textContent = detailText; // 纯文本展示，防 XSS（原为 innerHTML）
   element.appendChild(details);
 
   return element;
