@@ -1,0 +1,245 @@
+// 公证卡：投屏用深色底大字号；打印时黑字白底，只输出卡片。
+
+.fingerprint-groups {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+
+  .fp-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2em 0.9em;
+  }
+
+  .fp-group {
+    letter-spacing: 0.04em;
+  }
+}
+
+.lottery-attestation {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px;
+  color: #fff;
+  background-color: #02080c;
+
+  .attestation-sheet {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 1040px;
+    padding: 36px 44px;
+    border: 1px solid rgba(var(--accent-light-rgb), 0.35);
+    border-radius: 8px;
+    background: rgba(var(--accent-dark-rgb), 0.18);
+  }
+
+  .attestation-watermark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    font-size: clamp(64px, 11vw, 150px);
+    font-weight: bold;
+    white-space: nowrap;
+    color: rgba(255, 90, 90, 0.16);
+    transform: rotate(-22deg);
+  }
+
+  .attestation-stage {
+    display: inline-block;
+    margin-bottom: 12px;
+    padding: 4px 12px;
+    font-size: 18px;
+    border-radius: 4px;
+    color: #aef0c0;
+    border: 1px solid rgba(80, 200, 120, 0.6);
+
+    &.drawn {
+      display: block;
+      font-size: 24px;
+      font-weight: bold;
+      color: #ff5a5a;
+      border-color: #ff5a5a;
+      background: rgba(180, 40, 40, 0.18);
+    }
+
+    &.footer {
+      margin: 22px 0 0;
+    }
+  }
+
+  .attestation-rehearsal-badge {
+    margin-bottom: 12px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #ff8a8a;
+  }
+
+  .attestation-title {
+    margin-bottom: 22px;
+    font-size: clamp(26px, 3.4vw, 40px);
+    color: var(--header-color);
+    word-break: break-word;
+  }
+
+  h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: normal;
+    color: rgba(var(--accent-light-rgb), 0.75);
+  }
+
+  .attestation-fingerprint {
+    margin-bottom: 20px;
+
+    .fingerprint-groups {
+      font-size: clamp(24px, 3.6vw, 46px);
+      font-weight: bold;
+      line-height: 1.5;
+      color: var(--text-bright);
+    }
+  }
+
+  .attestation-short {
+    margin-top: 8px;
+    font-size: 20px;
+
+    strong {
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 26px;
+      letter-spacing: 0.06em;
+    }
+  }
+
+  .attestation-unsalted {
+    margin-bottom: 18px;
+    padding: 8px 14px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #ffd166;
+    border: 2px solid #ffd166;
+    border-radius: 4px;
+  }
+
+  .attestation-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 8px 18px;
+    margin-bottom: 20px;
+    font-size: 18px;
+    line-height: 1.6;
+
+    dt {
+      color: rgba(var(--accent-light-rgb), 0.7);
+    }
+
+    dd {
+      word-break: break-word;
+    }
+
+    ul {
+      list-style: none;
+    }
+  }
+
+  .attestation-verify p {
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .attestation-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 22px;
+
+    button {
+      padding: 10px 26px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-bright);
+      background: rgba(var(--accent-light-rgb), 0.12);
+      border: 1px solid rgba(var(--accent-light-rgb), 0.45);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(var(--accent-light-rgb), 0.24);
+      }
+    }
+  }
+}
+
+@media print {
+  html.attestation-open {
+    body * {
+      visibility: hidden !important;
+    }
+
+    .lottery-attestation,
+    .lottery-attestation * {
+      visibility: visible !important;
+    }
+
+    .lottery-fairness {
+      position: static;
+      overflow: visible;
+    }
+
+    .lottery-attestation {
+      position: absolute;
+      inset: 0 0 auto 0;
+      overflow: visible;
+      padding: 0;
+      color: #000;
+      background: #fff;
+
+      .attestation-sheet {
+        max-width: none;
+        border-color: #000;
+        background: #fff;
+      }
+
+      .attestation-title,
+      .fingerprint-groups,
+      h3,
+      dt,
+      .attestation-verify p {
+        color: #000;
+      }
+
+      .attestation-stage {
+        color: #000;
+        border-color: #000;
+
+        &.drawn {
+          color: #c00;
+          border-color: #c00;
+          background: none;
+        }
+      }
+
+      .attestation-unsalted {
+        color: #000;
+        border-color: #000;
+      }
+
+      .attestation-rehearsal-badge {
+        color: #c00;
+      }
+
+      .attestation-watermark {
+        color: rgba(200, 0, 0, 0.14);
+      }
+
+      .attestation-actions {
+        display: none;
+      }
+    }
+  }
+}

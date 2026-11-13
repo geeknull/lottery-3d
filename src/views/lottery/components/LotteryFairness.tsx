@@ -1,5 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import lotteryConfig from '../core/lottery-config'
+import STATUS from '../core/lottery-status'
+import { isRehearsal } from '../core/rehearsal'
+import { attestationUnavailableReason, buildAttestation, commitKind } from '../core/attestation'
+import type { Attestation } from '../core/attestation'
+import { markAttestationShown } from '../core/attestation-reminder'
+import LotteryAttestation from './LotteryAttestation'
 import { getLotteryVersion, useLotteryVersion } from '../core/lottery-store'
 import { createVerificationPackage, ensureSeedCommit, verifyCurrent } from '../core/lottery-fairness'
 import type { VerifyResult } from '../core/lottery-fairness'
@@ -15,7 +21,10 @@ interface Props {
 // 抽奖公平性面板：展示种子承诺/揭示，一键离线自验证
 export default function LotteryFairness({ onClose }: Props) {
   const version = useLotteryVersion()
-  useOnEscape(onClose)
+  const phase = useSyncExternalStore(STATUS.subscribe, STATUS.getPhase)
+  const [card, setCard] = useState<Attestation | null>(null)
+  // 公证卡打开时 Escape 只关卡片，不连带关掉面板。
+  useOnEscape(() => { if (card) setCard(null); else onClose() })
   const [result, setResult] = useState<{ value: VerifyResult; version: number | null; source: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -25,9 +34,33 @@ export default function LotteryFairness({ onClose }: Props) {
     void ensureSeedCommit().catch(() => toast('种子承诺生成失败，请稍后重试'))
   }, [])
 
+  // 双屏控制窗可以在面板打开时发起抽奖；离开空闲就收起公证卡，不在演出中盖住舞台。
+  useEffect(() => STATUS.subscribe(() => { if (!STATUS.isWait()) setCard(null) }), [])
+
   const drawCount = lotteryConfig.drawLog.filter(e => e.type === 'draw').length
   // 测试里的 mock 没有 seedSalt，所以用 Boolean 兜住 undefined
   const salted = Boolean(lotteryConfig.seedSalt) && lotteryConfig.seedCommit.length === 64
+
+  // “空闲”按 isWait()：idle 或 presenting，都没有动画在跑，等主持人操作。
+  const idle = phase === 'idle' || phase === 'presenting'
+  const cardUnavailable = attestationUnavailableReason(commitKind(lotteryConfig.seedCommit, lotteryConfig.seedSalt || ''))
+    ?? (idle ? null : '抽奖进行中，结束后再打开公证卡')
+
+  function openCard() {
+    const next = buildAttestation({
+      title: lotteryConfig.headerTitle,
+      seedCommit: lotteryConfig.seedCommit,
+      seedSalt: lotteryConfig.seedSalt || '',
+      rosterCount: lotteryConfig.cardList.length,
+      prizes: lotteryConfig.prizeList,
+      drawLog: lotteryConfig.drawLog,
+      rehearsal: isRehearsal(),
+      now: new Date(),
+    })
+    if (!next) return
+    markAttestationShown()
+    setCard(next)
+  }
 
   async function handleVerify() {
     setBusy(true)
@@ -99,6 +132,10 @@ export default function LotteryFairness({ onClose }: Props) {
         <h3>种子承诺指纹（开抽前公布）</h3>
         <code className="mono">{lotteryConfig.seedCommit || '生成中…'}</code>
         <p className="hint">{lotteryConfig.seedCommit.length === 8 ? 'FNV-1a（兼容模式，非加密校验）' : salted ? 'SHA-256（含随机盐，绑定名单顺序与奖项规则）' : 'SHA-256'}。请在开抽前记录并公布此值，验证时与原记录核对。</p>
+        <div className="attestation-entry">
+          <button type="button" className="attestation-btn" disabled={cardUnavailable !== null} onClick={openCard}>公证卡</button>
+          <span className="hint">{cardUnavailable ?? '全屏展示分组指纹和短码，可投屏、打印、导出 PNG'}</span>
+        </div>
       </section>
 
       <section className="fairness-field">
@@ -122,6 +159,8 @@ export default function LotteryFairness({ onClose }: Props) {
             : `✗ ${visibleResult.source}验证未通过：${visibleResult.value.failedAt === null ? '' : `第 ${visibleResult.value.failedAt + 1} 条记录：`}${visibleResult.value.reason}`}
         </div>
       )}
+
+      {card && <LotteryAttestation card={card} onClose={() => setCard(null)} />}
     </div>
   )
 }

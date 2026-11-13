@@ -66,6 +66,36 @@
     }
   }
 
+  .attestation-entry {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 10px;
+
+    .hint {
+      margin-top: 0;
+    }
+  }
+
+  .attestation-btn {
+    padding: 8px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-bright);
+    background: rgba(var(--accent-dark-rgb), 0.5);
+    border: 1px solid rgba(var(--accent-light-rgb), 0.7);
+    border-radius: 4px;
+
+    &:hover:not(:disabled) {
+      background: rgba(var(--accent-light-rgb), 0.22);
+    }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+  }
+
   .fairness-actions {
     display: flex;
     gap: 12px;
