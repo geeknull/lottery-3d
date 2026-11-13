@@ -306,17 +306,21 @@ export function escapeCsvCell(value: string): string {
   return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
 }
 
-// 中奖名单 CSV 文本（纯函数，便于测试）；带 BOM，Excel 打开中文不乱码
-export function buildWinnersCsv(prizeList: Prize[]): string {
-  const rows: string[] = ['奖项,姓名'];
+// 中奖名单 CSV 文本（纯函数，便于测试）；带 BOM，Excel 打开中文不乱码。
+// roster 是当前名单：有人带工号或部门时追加「工号,部门」两列，否则与以前逐字节相同。
+export function buildWinnersCsv(prizeList: Prize[], roster: readonly RosterEntry[] = []): string {
+  const withIdentity = hasRosterIdentity([...roster]);
+  const rows: string[] = [withIdentity ? '奖项,姓名,工号,部门' : '奖项,姓名'];
   prizeList.forEach(prize => {
     prize.cardListWin.forEach(card => {
-      rows.push(`${escapeCsvCell(prize.name)},${escapeCsvCell(card.name)}`);
+      const cells = [prize.name, card.name];
+      if (withIdentity) cells.push(card.employeeId ?? '', card.department ?? '');
+      rows.push(cells.map(escapeCsvCell).join(','));
     });
   });
-  return '﻿' + rows.join('\n');
+  return '\uFEFF' + rows.join('\n');
 }
 
-export function exportWinnersCsv(prizeList: Prize[]): void {
-  downloadFile('中奖名单.csv', buildWinnersCsv(prizeList), 'text/csv;charset=utf-8');
+export function exportWinnersCsv(prizeList: Prize[], roster: readonly RosterEntry[] = []): void {
+  downloadFile('中奖名单.csv', buildWinnersCsv(prizeList, roster), 'text/csv;charset=utf-8');
 }

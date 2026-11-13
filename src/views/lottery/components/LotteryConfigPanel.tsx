@@ -360,7 +360,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         <button onClick={handleExportConfig}>导出配置 JSON</button>
         <button onClick={() => configFileRef.current?.click()}>导入配置 JSON</button>
         <input ref={configFileRef} type="file" accept=".json" hidden onChange={handleConfigFile} />
-        <button onClick={() => exportWinnersCsv(lotteryConfig.prizeList)}>导出中奖名单 CSV</button>
+        <button onClick={() => exportWinnersCsv(lotteryConfig.prizeList, lotteryConfig.cardList)}>导出中奖名单 CSV</button>
         {rejectedProgress && <button onClick={() => exportRejectedProgress(rejectedProgress)}>导出未恢复的旧进度</button>}
         <button className="danger" onClick={handleResetProgress}>重置抽奖进度</button>
         <button onClick={handleRestoreDefaults}>恢复默认配置</button>

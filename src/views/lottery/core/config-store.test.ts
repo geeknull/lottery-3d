@@ -195,6 +195,21 @@ describe('buildWinnersCsv', () => {
     expect(csv).toBe('﻿奖项,姓名\n一等奖,张三\n一等奖,李四')
   })
 
+  it('名单没有身份信息时传入名单也与以前相同', () => {
+    const roster = [makeCard('张三'), makeCard('李四')]
+    expect(buildWinnersCsv([makePrize('一等奖', ['张三', '李四'])], roster)).toBe('﻿奖项,姓名\n一等奖,张三\n一等奖,李四')
+  })
+
+  it('名单有工号或部门时追加两列，缺的留空，新单元格也转义', () => {
+    const zw = { ...makeCard('张伟'), employeeId: '=1+1', department: '研发部,一组' }
+    const ln = { ...makeCard('李娜'), department: '市场部' }
+    const prize: Prize = { ...makePrize('一等奖', []), cardListWin: [zw, ln] }
+    expect(buildWinnersCsv([prize], [zw, ln, makeCard('王五')])).toBe(
+      '﻿奖项,姓名,工号,部门\n一等奖,张伟,\'=1+1,"研发部,一组"\n一等奖,李娜,,市场部',
+    )
+    expect(buildWinnersCsv([prize], [{ ...makeCard('x'), employeeId: '+A01' }]).split('\n')[0]).toBe('﻿奖项,姓名,工号,部门')
+  })
+
   it('对奖项名与姓名逐格转义，防注入与撑格', () => {
     const csv = buildWinnersCsv([makePrize('=坑', ['张三,组长'])])
     expect(csv).toBe('﻿奖项,姓名\n\'=坑,"张三,组长"')
