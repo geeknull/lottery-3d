@@ -351,7 +351,7 @@ export default function LotteryConfigPanel({ onClose }: Props) {
         {dupCount > 0 && (
           <p className="field-hint roster-duplicate-hint">
             {rosterWithIdentity
-              ? '重名的人在揭晓横幅、控制窗和喜报里会附上工号（没有工号时附部门）。'
+              ? '重名的人在卡片上显示工号；控制窗、中奖名单和喜报里会附上工号（没有工号时附部门）。'
               : '名单里有重名：首行加上「姓名,工号」表头并填写工号，揭晓和导出时就能分清是谁。'}
           </p>
         )}
