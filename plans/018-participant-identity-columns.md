@@ -95,7 +95,7 @@
 - `src/views/lottery/core/poster.ts`、`poster.test.ts`（新建）
 - `src/views/lottery/core/identity-baseline.test.ts`（新建，基线夹具回归）、`__fixtures__/baseline-4f3b0a9/*`
 - `src/views/lottery/3d/3d-card-element.ts`、`3d-card-element.test.ts`
-- `src/views/lottery/components/LotteryWinBanner.tsx`、`LotteryWinBanner.test.tsx`、`LotteryControl.tsx`、`LotteryHistory.tsx`、`useDisplaySync.ts`、`LotteryConfigPanel.tsx`、`lottery-config-panel.scss`
+- `src/views/lottery/components/LotteryWinBanner.tsx`、`LotteryWinBanner.test.tsx`、`LotteryControl.tsx`、`LotteryHistory.tsx`、`LotteryAction.tsx`（执行中追加，见执行记录）、`useDisplaySync.ts`、`LotteryConfigPanel.tsx`、`lottery-config-panel.scss`
 - `e2e/identity.spec.ts`（新建）
 - `README.md`、`plans/README.md`、本计划
 
@@ -220,3 +220,14 @@
 - 表头模式下所有分隔符都切格，不支持引号；部门名含逗号会被切开。从 JSON 导入的配置若身份值本身含分隔符，回填面板再保存会被切开（与现在名字含逗号的行为相同）。
 - 历史时间线面板仍只显示姓名，没有加后缀；需要时用 `createWinnerLabeler`。
 - 审查重点：`configHash` 无工号分支与原实现的输入字符串完全相同；`commitmentContext` 无工号分支同理。
+
+## 执行记录（2026-11-13）
+
+- 状态：DONE，分支 `claude/eloquent-dubinsky-373090`。
+- 与计划的差异：
+  - Step 1 的新测试单独放在 `roster-identity.test.ts`；Step 6 的验证文件测试放在 `identity-baseline.test.ts`（要用同一批基线夹具），`lottery-fairness.test.ts` 没有改。`useDisplaySync.ts`、`lottery-config-panel.scss` 不需要改（前者已经传整个 `lotteryConfig`，后者沿用 `.perf-warning` 黄字）。
+  - 追加 `LotteryAction.tsx`：「展示中奖」面板是作废入口，两个张伟都中奖时只显示姓名分不清作废哪一位，按同一后缀规则显示（单独一个提交）。
+  - 揭晓横幅的中奖人列表是读屏用的视觉隐藏区域（`lottery-win-banner.scss` 里 `.banner-winners` 被裁成 1px），后缀只影响读屏文本；台上靠卡片 `.details` 的工号区分。面板提示和 README 已按实际可见的位置写。
+  - 验证文件 `employeeId` 存在时要求非空字符串（决策写的是“有则必须是字符串”），保证“没有工号”只有一种写法，便于计划 012 逐项比较。
+  - 补了两个 `test:` 提交：一个修正 tsc 多余属性报错，一个覆盖“修改工号后旧进度被拒绝并留底”（红灯检查发现 `lottery-config.ts` 的指纹调用原先没有测试能抓住）。
+- 验证证据：`.claude/acceptance/018/`（不入库）：`logs/`（门禁、红灯检查、全量 E2E）、`baseline-export.mjs`（基线夹具导出）、`redlight.sh`、`acceptance.mjs`、`shots/`。
