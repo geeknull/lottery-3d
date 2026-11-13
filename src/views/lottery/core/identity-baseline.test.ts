@@ -2,7 +2,7 @@
 // 没有身份列的名单，旧存档必须照常恢复，指纹、验证文件和两种 CSV 必须逐字节不变。
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { configHash, normalizeRoster, parseConfigJson } from './config-store'
-import type { UserLotteryConfig } from './config-store'
+import type { RosterEntry, UserLotteryConfig } from './config-store'
 import { buildWinnersCsv } from './config-store'
 import { historyToCsv } from './lottery-history'
 import storageRaw from './__fixtures__/baseline-4f3b0a9/storage-v2.json?raw'
@@ -170,5 +170,29 @@ describe('带工号的验证文件', () => {
       const roster = [{ ...pkg.roster[0], employeeId }, ...pkg.roster.slice(1)]
       expect((await verifyVerificationPackage({ ...pkg, roster })).reason).toContain('格式无效')
     }
+  })
+
+  it('带工号的进度刷新后照常恢复；只改部门仍恢复；修改工号后旧进度被拒绝并留底', async () => {
+    await identityPackage()
+    const progress = localStorage.getItem('___lottery___')!
+    const reload = async (roster: UserLotteryConfig['roster']) => {
+      vi.resetModules()
+      localStorage.setItem('___lottery_config___', JSON.stringify({ ...identityConfig, roster }))
+      localStorage.setItem('___lottery___', progress)
+      localStorage.removeItem('___lottery_rejected___')
+      const { default: lotteryConfig } = await import('./lottery-config')
+      return lotteryConfig
+    }
+    const [first, second, ...rest] = identityConfig.roster as RosterEntry[]
+    const same = await reload(identityConfig.roster)
+    expect(same.takeRejectedNotice()).toBe(false)
+    expect(same.cardListWinAll).toHaveLength(2)
+    const departmentOnly = await reload([{ ...first, department: '总裁办' }, second, ...rest])
+    expect(departmentOnly.takeRejectedNotice()).toBe(false)
+    expect(departmentOnly.cardListWinAll).toHaveLength(2)
+    const changedId = await reload([first, { ...second, employeeId: 'A009' }, ...rest])
+    expect(changedId.takeRejectedNotice()).toBe(true)
+    expect(changedId.cardListWinAll).toHaveLength(0)
+    expect(JSON.parse(changedId.getRejectedProgress()!).reason).toBe('config-mismatch')
   })
 })
