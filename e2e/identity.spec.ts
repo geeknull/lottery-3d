@@ -39,6 +39,14 @@ test('两个张伟带不同工号：卡片显示工号，揭晓横幅只对重�
   expect((await winners.allTextContents()).sort()).toEqual(['张伟（A001）', '张伟（A002）', '李娜'].sort())
   await page.screenshot({ path: testInfo.outputPath('identity-banner.png') })
 
+  // 中奖名单面板（作废入口）同样只对重名者加后缀
+  await page.locator('.lottery-win-banner').click()
+  await page.getByRole('button', { name: '展示中奖', exact: true }).click()
+  const names = page.locator('.prize-win-user-name')
+  await expect(names).toHaveCount(3)
+  expect((await names.allTextContents()).map(text => text.replace('✖', '')).sort()).toEqual(['张伟（A001）', '张伟（A002）', '李娜'].sort())
+  await page.locator('.show-all-win-user .close-btn').click()
+
   // 刷新后进度照常恢复（带工号的指纹前后一致）
   await page.reload()
   await expect(page.locator('.element.prize')).toHaveCount(3)

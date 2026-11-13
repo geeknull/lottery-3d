@@ -1,10 +1,11 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import lotteryConfig from '../core/lottery-config'
 import { useLotteryVersion } from '../core/lottery-store'
 import { toggleDraw, isSpinning, tableShow } from '../core/lottery-controller'
 import { startShowcase, stopShowcase, returnToTable, isShowcaseActive } from '../core/lottery-showcase'
 import { voidWinner, undoLastDraw } from '../core/lottery-algorithm'
 import { exportWinnersPoster } from '../core/poster'
+import { createWinnerLabeler } from '../core/participant-identity'
 import { setCardPrizeMark } from '../3d/3d-card-element'
 import STATUS from '../core/lottery-status'
 import { toast, appConfirm } from './feedback'
@@ -61,6 +62,8 @@ export default function LotteryAction() {
   const phase = useSyncExternalStore(STATUS.subscribe, STATUS.getPhase)
   const drawBusy = !['idle', 'presenting', 'spinning'].includes(phase)
   const prizeList = lotteryConfig.prizeList
+  // 重名的中奖人附工号（无工号附部门），作废时才分得清是哪一位
+  const labelOf = useMemo(() => createWinnerLabeler(lotteryConfig.cardList), [])
 
   // 中奖名单按姓名搜索（大名单现场作废时快速定位），不碰抽奖逻辑
   const winTerm = winSearch.trim()
@@ -168,13 +171,13 @@ export default function LotteryAction() {
                 <div className="prize-win-user">
                   {matched.map((user, userIndex) => (
                     <span className="prize-win-user-name" key={userIndex}>
-                      {user.name}
+                      {labelOf(user)}
                       <button
                         type="button"
                         className="void-btn"
                         disabled={drawBusy || spinning}
                         title="作废此中奖（名额退回，可补抽）"
-                        aria-label={`作废 ${item.name} ${user.name} 的中奖`}
+                        aria-label={`作废 ${item.name} ${labelOf(user)} 的中奖`}
                         onClick={() => setVoidTarget({ prizeId: item.id, prizeName: item.name, card: user })}
                       >✖</button>
                     </span>
@@ -186,7 +189,7 @@ export default function LotteryAction() {
           {voidTarget && (
             <div className="void-confirm">
               <p>
-                作废「{voidTarget.prizeName} - {voidTarget.card.name}」的中奖记录？
+                作废「{voidTarget.prizeName} - {labelOf(voidTarget.card)}」的中奖记录？
                 名额将退回该奖项，可重新抽取。
               </p>
               <div className="void-confirm-btns">
