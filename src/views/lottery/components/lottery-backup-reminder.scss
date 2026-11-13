@@ -1,11 +1,12 @@
 // 奖项抽完的备份提醒：底部居中的窄条，落在中奖卡片和屏幕底边之间，
 // 避开左下的抽奖按钮、右下的视角复位和更新提示。样式与更新提示一致。
+// 层级在舞台之上、所有面板（1000）和中奖名单浮层（999）之下，不能挡住面板底部的按钮。
 .lottery-backup-reminder {
   position: fixed;
   left: 50%;
   bottom: 14px;
   transform: translateX(-50%);
-  z-index: 1100;
+  z-index: 950;
   width: max-content;
   max-width: min(560px, calc(100vw - 40px));
   padding: 10px 14px;

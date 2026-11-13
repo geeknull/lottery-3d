@@ -152,6 +152,12 @@ test('奖项抽完后底部提醒下载验证文件，下载后收起，刷新�
   await expect(reminder).toContainText('「大奖」已抽完')
   await page.waitForTimeout(500) // 等入场动画结束再截图
   await page.screenshot({ path: testInfo.outputPath('backup-reminder.png') })
+  // 提醒不能挡住面板：配置面板底部的导出按钮照常可点。
+  await page.locator('.config-btn').click()
+  const csv = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出中奖名单 CSV', exact: true }).click({ timeout: 5000 })
+  expect((await csv).suggestedFilename()).toMatch(/\.csv$/)
+  await page.locator('.lottery-config-panel .close-btn').click()
   const downloaded = page.waitForEvent('download')
   await reminder.getByRole('button', { name: '下载验证文件', exact: true }).click()
   const download = await downloaded
