@@ -84,7 +84,7 @@
 ## Scope
 
 **In scope**：
-- `src/views/lottery/core/config-store.ts`、`config-store.test.ts`
+- `src/views/lottery/core/config-store.ts`、`config-store.test.ts`、`roster-identity.test.ts`（新建，名单解析与提示）
 - `src/views/lottery/core/lottery-types.ts`、`lottery-config-users.ts`、`lottery-config-users.test.ts`
 - `src/views/lottery/core/config-apply.ts`、`config-apply.test.ts`
 - `src/views/lottery/core/lottery-config.ts`（只改指纹调用一行）

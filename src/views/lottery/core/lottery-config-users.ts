@@ -11,6 +11,8 @@ export function calcColCount(n: number): number {
 export interface Person {
   name: string;
   avatar?: string;
+  employeeId?: string;
+  department?: string;
 }
 
 // 按名字生成唯一 ID。没有撞车时和原规则一致（张三、张三-2、张三-3），

@@ -1,0 +1,177 @@
+{
+  "format": "lottery-3d-verification",
+  "version": 2,
+  "algorithm": "mulberry32-v1",
+  "commitmentAlgorithm": "sha256-salted",
+  "seed": 3511863070,
+  "seedSalt": "ecc9d5a7677199a129d3a601b7c7c6e87b7223d1e798413ac6742b7cf728cb73",
+  "seedCommit": "1dc6c0cc4a1a1811cec3e43f5aa8ce4e7baff13a55b6ab280bc835946e6dd3a4",
+  "roster": [
+    {
+      "id": "张伟",
+      "name": "张伟"
+    },
+    {
+      "id": "李娜",
+      "name": "李娜"
+    },
+    {
+      "id": "张伟-2",
+      "name": "张伟"
+    },
+    {
+      "id": "王芳",
+      "name": "王芳"
+    },
+    {
+      "id": "=SUM(1)",
+      "name": "=SUM(1)"
+    },
+    {
+      "id": "刘洋",
+      "name": "刘洋"
+    },
+    {
+      "id": "陈静",
+      "name": "陈静"
+    },
+    {
+      "id": "杨帆",
+      "name": "杨帆"
+    },
+    {
+      "id": "张三",
+      "name": "张三"
+    },
+    {
+      "id": "+王五",
+      "name": "+王五"
+    }
+  ],
+  "prizes": [
+    {
+      "id": "一等奖",
+      "name": "一等奖",
+      "count": 2,
+      "everyTimeGet": 1
+    },
+    {
+      "id": "二等奖",
+      "name": "二等奖",
+      "count": 3,
+      "everyTimeGet": 3
+    }
+  ],
+  "drawLog": [
+    {
+      "type": "draw",
+      "at": 1794600596047,
+      "prizeId": "二等奖",
+      "prizeName": "二等奖",
+      "winnerNames": [
+        "李娜",
+        "王芳",
+        "杨帆"
+      ],
+      "winnerIds": [
+        "李娜",
+        "王芳",
+        "杨帆"
+      ],
+      "rngStateBefore": 3511863070,
+      "poolIds": [
+        "张伟",
+        "李娜",
+        "张伟-2",
+        "王芳",
+        "=SUM(1)",
+        "刘洋",
+        "陈静",
+        "杨帆",
+        "张三",
+        "+王五"
+      ]
+    },
+    {
+      "type": "draw",
+      "at": 1794600601930,
+      "prizeId": "一等奖",
+      "prizeName": "一等奖",
+      "winnerNames": [
+        "+王五"
+      ],
+      "winnerIds": [
+        "+王五"
+      ],
+      "rngStateBefore": 416625917,
+      "poolIds": [
+        "张伟",
+        "张伟-2",
+        "=SUM(1)",
+        "刘洋",
+        "陈静",
+        "张三",
+        "+王五"
+      ],
+      "undone": true
+    },
+    {
+      "type": "undo",
+      "at": 1794600604872,
+      "prizeId": "一等奖",
+      "prizeName": "一等奖",
+      "winnerNames": [
+        "+王五"
+      ],
+      "winnerIds": [
+        "+王五"
+      ]
+    },
+    {
+      "type": "draw",
+      "at": 1794600608030,
+      "prizeId": "一等奖",
+      "prizeName": "一等奖",
+      "winnerNames": [
+        "陈静"
+      ],
+      "winnerIds": [
+        "陈静"
+      ],
+      "rngStateBefore": 2248191730,
+      "poolIds": [
+        "张伟",
+        "张伟-2",
+        "=SUM(1)",
+        "刘洋",
+        "陈静",
+        "张三",
+        "+王五"
+      ]
+    }
+  ],
+  "finalState": {
+    "rngState": 4079757543,
+    "excludedIds": [],
+    "prizes": [
+      {
+        "id": "一等奖",
+        "countRemain": 1,
+        "round": 1,
+        "winnerIds": [
+          "陈静"
+        ]
+      },
+      {
+        "id": "二等奖",
+        "countRemain": 0,
+        "round": 1,
+        "winnerIds": [
+          "李娜",
+          "王芳",
+          "杨帆"
+        ]
+      }
+    ]
+  }
+}

@@ -14,10 +14,12 @@ export function isPrizePresentation(value: unknown): value is PrizePresentation 
   return value === 'standard' || value === 'ceremonial';
 }
 
-// 名单条目：纯名字用字符串，带头像用对象（两种形态可混用，便于老配置兼容）
+// 名单条目：纯名字用字符串，带头像或身份信息用对象（两种形态可混用，便于老配置兼容）
 export interface RosterEntry {
   name: string;
   avatar?: string; // 头像（http(s) 或 data:image 链接），可选
+  employeeId?: string; // 工号，可选。区分同名的人，参与配置指纹和种子承诺
+  department?: string; // 部门，可选。只用于展示和导出，不参与指纹
 }
 
 export interface UserLotteryConfig {
@@ -114,14 +116,17 @@ export function decodeTextFile(buffer: ArrayBuffer): string {
   }
 }
 
-// 解析粘贴/文件的名单文本：一行一个人，「名字」或「名字,头像链接」；
-// 第二列不是链接时按 Excel 多列粘贴处理（只取第一列名字）
-export function parseRosterEntries(text: string): RosterEntry[] {
+// 名单列分隔符：半角逗号、制表符（Excel 复制）、全角逗号
+const SEPARATOR = /[,\t，]/;
+
+// 旧格式：一行一个人，「名字」或「名字,头像链接」；第二列不是链接时按 Excel 多列粘贴处理（只取第一列名字）。
+// 没有身份表头的名单一律走这里，结果必须和加身份列之前完全相同。
+function parseLegacyRoster(text: string): RosterEntry[] {
   return text
     .split(/\r?\n/)
     .map((line): RosterEntry => {
       // 只切第一个分隔符：data URL 头像本身含逗号，不能按列全切
-      const sep = line.search(/[,\t，]/);
+      const sep = line.search(SEPARATOR);
       if (sep === -1) {
         return { name: line.trim() };
       }
@@ -130,6 +135,93 @@ export function parseRosterEntries(text: string): RosterEntry[] {
       return AVATAR_PATTERN.test(rest) ? { name, avatar: rest } : { name };
     })
     .filter(entry => entry.name.length > 0);
+}
+
+type RosterColumn = 'name' | 'employeeId' | 'department' | 'avatar';
+// 表头关键字，英文不分大小写（统一转小写后比较）
+const NAME_HEADERS = new Set(['姓名', '名字', 'name']);
+const COLUMN_HEADERS: Record<string, Exclude<RosterColumn, 'name'>> = {
+  工号: 'employeeId', 编号: 'employeeId', employee_id: 'employeeId',
+  部门: 'department', department: 'department',
+  头像: 'avatar', avatar: 'avatar',
+};
+
+// 按分隔符切开一行，同时记下每格在原文里的起点（头像列要取到行尾）
+function splitCells(line: string): { text: string; start: number }[] {
+  const cells: { text: string; start: number }[] = [];
+  let start = 0;
+  for (let i = 0; i <= line.length; i++) {
+    if (i === line.length || SEPARATOR.test(line[i])) {
+      cells.push({ text: line.slice(start, i), start });
+      start = i + 1;
+    }
+  }
+  return cells;
+}
+
+// 首个非空行第一格是姓名类关键字、后面至少一格是已知列名时，返回各列含义；否则返回 null。
+function detectHeader(lines: string[]): { index: number; columns: (RosterColumn | null)[] } | null {
+  const index = lines.findIndex(line => line.trim().length > 0);
+  if (index === -1) return null;
+  const cells = splitCells(lines[index]).map(cell => cell.text.trim().toLowerCase());
+  if (!NAME_HEADERS.has(cells[0])) return null;
+  const columns: (RosterColumn | null)[] = cells.map((cell, i) => (i === 0 ? 'name' : COLUMN_HEADERS[cell] ?? null));
+  return columns.slice(1).some(Boolean) ? { index, columns } : null;
+}
+
+// 表头模式：列按表头对应，不认识的列忽略。头像列放最后时取到行尾（data URL 含逗号）。
+function parseHeaderRoster(lines: string[], header: { index: number; columns: (RosterColumn | null)[] }): RosterEntry[] {
+  const { columns } = header;
+  const lastColumn = columns.length - 1;
+  const entries: RosterEntry[] = [];
+  for (const line of lines.slice(header.index + 1)) {
+    const cells = splitCells(line);
+    const entry: RosterEntry = { name: '' };
+    columns.forEach((column, i) => {
+      const cell = cells[i];
+      if (!column || !cell) return;
+      const value = (column === 'avatar' && i === lastColumn ? line.slice(cell.start) : cell.text).trim();
+      if (!value) return;
+      if (column === 'name') entry.name = value;
+      else if (column === 'avatar') { if (AVATAR_PATTERN.test(value)) entry.avatar = value; }
+      else entry[column] = value;
+    });
+    if (entry.name) entries.push(entry);
+  }
+  return entries;
+}
+
+// 解析粘贴/文件的名单文本。首行是身份表头（如「姓名,工号,部门」）时按列解析，否则按旧格式解析。
+export function parseRosterEntries(text: string): RosterEntry[] {
+  const lines = text.split(/\r?\n/);
+  const header = detectHeader(lines);
+  return header ? parseHeaderRoster(lines, header) : parseLegacyRoster(text);
+}
+
+export interface RosterTextHints {
+  headerMode: boolean; // 按身份表头解析
+  ignoredColumns: boolean; // 没有表头、但有行带了头像以外的附加列（会被忽略）
+  duplicateEmployeeIds: { id: string; count: number }[]; // 重复的工号，按首次出现顺序
+}
+
+// 配置面板用的提示：多列无表头、重复工号。只读文本，不改变解析结果。
+export function rosterTextHints(text: string): RosterTextHints {
+  const lines = text.split(/\r?\n/);
+  const header = detectHeader(lines);
+  const ignoredColumns = !header && lines.some(line => {
+    const sep = line.search(SEPARATOR);
+    if (sep === -1 || !line.slice(0, sep).trim()) return false;
+    const rest = line.slice(sep + 1).trim();
+    return rest.length > 0 && !AVATAR_PATTERN.test(rest);
+  });
+  const counts = new Map<string, number>();
+  if (header) {
+    for (const entry of parseHeaderRoster(lines, header)) {
+      if (entry.employeeId) counts.set(entry.employeeId, (counts.get(entry.employeeId) ?? 0) + 1);
+    }
+  }
+  const duplicateEmployeeIds = [...counts].filter(([, count]) => count > 1).map(([id, count]) => ({ id, count }));
+  return { headerMode: Boolean(header), ignoredColumns, duplicateEmployeeIds };
 }
 
 // 仅取名字列表（计数、构建指纹用）
@@ -142,11 +234,28 @@ export function normalizeRoster(roster: (string | RosterEntry)[]): RosterEntry[]
   return roster.map(entry => (typeof entry === 'string' ? { name: entry } : entry));
 }
 
-// 名单条目序列化回文本行（配置面板编辑用）
+// 名单里是否有人带工号或部门
+export function hasRosterIdentity(roster: (string | RosterEntry)[]): boolean {
+  return normalizeRoster(roster).some(entry => Boolean(entry.employeeId || entry.department));
+}
+
+// 名单条目序列化回文本行（配置面板编辑用）。没有身份信息时保持旧格式；
+// 有时输出「姓名,工号,部门[,头像]」表头，头像放最后（data URL 含逗号）。
 export function rosterEntriesToText(roster: (string | RosterEntry)[]): string {
-  return normalizeRoster(roster)
-    .map(entry => (entry.avatar ? `${entry.name},${entry.avatar}` : entry.name))
-    .join('\n');
+  const entries = normalizeRoster(roster);
+  if (!hasRosterIdentity(entries)) {
+    return entries
+      .map(entry => (entry.avatar ? `${entry.name},${entry.avatar}` : entry.name))
+      .join('\n');
+  }
+  const withAvatar = entries.some(entry => entry.avatar);
+  const header = withAvatar ? '姓名,工号,部门,头像' : '姓名,工号,部门';
+  const rows = entries.map(entry => {
+    const cells = [entry.name, entry.employeeId ?? '', entry.department ?? ''];
+    if (withAvatar) cells.push(entry.avatar ?? '');
+    return cells.join(',');
+  });
+  return [header, ...rows].join('\n');
 }
 
 // 配置指纹：用于校验 localStorage 里的抽奖进度是否属于当前配置。
