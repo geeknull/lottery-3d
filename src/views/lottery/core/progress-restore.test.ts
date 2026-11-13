@@ -118,6 +118,35 @@ describe('planProgressRestore 重建', () => {
     expect(plan.saved.seedCommit).toHaveLength(8)
   })
 
+  it('version 1 的无盐 SHA-256 文件在安全上下文可以重建，且不写 seedSalt', async () => {
+    const storage = JSON.parse(storageRaw) as { config: string }
+    vi.resetModules()
+    localStorage.clear()
+    localStorage.setItem('___lottery_config___', storage.config)
+    const lotteryConfig = (await import('./lottery-config')).default
+    const pkg = JSON.parse(verificationV1ShaRaw)
+    expect(pkg).toMatchObject({ version: 1, commitmentAlgorithm: 'sha256' })
+    const plan = await planProgressRestore(pkg, lotteryConfig)
+    if (!plan.ok) throw new Error(plan.reason)
+    expect('seedSalt' in plan.saved).toBe(false)
+    expect(plan.saved.seedCommit).toHaveLength(64)
+  })
+
+  it('只有部门不同：部门不进验证文件，照常恢复', async () => {
+    const withDepartments = { ...CONFIG, roster: CONFIG.roster.map(person => typeof person === 'string' ? person : { ...person, department: '研发部' }) }
+    const { pkg, stored } = await playSession(withDepartments)
+    const changed = { ...CONFIG, roster: CONFIG.roster.map(person => typeof person === 'string' ? person : { ...person, department: '市场部' }) }
+    vi.resetModules()
+    localStorage.clear()
+    const { saveUserConfig } = await import('./config-store')
+    saveUserConfig(changed)
+    const current = (await import('./lottery-config')).default
+    expect(current.cardList.find(card => card.employeeId === 'A001')?.department).toBe('市场部')
+    const plan = await planProgressRestore(pkg, current)
+    if (!plan.ok) throw new Error(plan.reason)
+    expect(progressFields(plan.saved as unknown as Record<string, unknown>)).toEqual(progressFields(stored))
+  })
+
   it('没有 crypto.subtle 时 SHA-256 文件被拒绝，不降级为只看结构', async () => {
     const storage = JSON.parse(storageRaw) as { config: string }
     vi.stubGlobal('crypto', {})
@@ -141,6 +170,15 @@ describe('planProgressRestore 拒绝', () => {
     })
     expect(await planProgressRestore({ format: 'nope' }, lotteryConfig)).toEqual({
       ok: false, reason: '验证文件没有通过复算：验证文件格式无效或版本不受支持',
+    })
+  })
+
+  it('文件里的名单顺序被改（两人互换）：v2 承诺绑定名单顺序，复算失败', async () => {
+    const { lotteryConfig, pkg } = await playSession()
+    const roster = [...pkg.roster]
+    ;[roster[0], roster[1]] = [roster[1], roster[0]]
+    expect(await planProgressRestore({ ...pkg, roster }, lotteryConfig)).toEqual({
+      ok: false, reason: '验证文件没有通过复算：种子与已公布的承诺不一致',
     })
   })
 

@@ -437,6 +437,17 @@ describe('replaceProgress 从验证文件恢复后的写入', () => {
     expect(JSON.parse(localStorage.getItem('___lottery___')!).revision).toBe(JSON.parse(previous).revision + 1)
   })
 
+  it('当前没有流水时不留底，不覆盖启动时被拒绝的旧进度备份', async () => {
+    const backup = await backupOfTwoRounds()
+    const { page, fairness } = await openPage()
+    await fairness.ensureSeedCommit() // 打开公平性面板就会写一份只有承诺、没有结果的存档
+    expect(localStorage.getItem('___lottery___')).toBeTruthy()
+    const earlier = JSON.stringify({ at: 1, reason: 'config-mismatch', raw: '{"旧":"进度"}' })
+    localStorage.setItem('___lottery_rejected___', earlier)
+    expect(page.replaceProgress(backup.saved)).toEqual({ ok: true })
+    expect(localStorage.getItem('___lottery_rejected___')).toBe(earlier)
+  })
+
   it('旧进度留底失败时拒绝恢复，存储和内存都不变', async () => {
     const backup = await backupOfTwoRounds()
     const { page, algorithm } = await openPage()
