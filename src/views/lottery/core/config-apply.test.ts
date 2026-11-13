@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { configHash, parseConfigJson } from './config-store'
-import type { UserLotteryConfig } from './config-store'
+import type { PrizeConfig, UserLotteryConfig } from './config-store'
 import { createConfigApplication, prepareConfig, progressResetReasons, resetConfirmMessage } from './config-apply'
 
 const config: UserLotteryConfig = { version: 1, headerTitle: '活动', prizes: [{ name: '奖', count: 1, everyTimeGet: 1 }], roster: ['甲', '乙'] }
@@ -130,9 +130,10 @@ describe('清空进度的原因与确认文案', () => {
   })
 
   it('只改部门、头像或揭晓节奏时没有原因', () => {
+    const ceremonial: PrizeConfig[] = [{ ...prizes[0], presentation: 'ceremonial' }]
     expect(progressResetReasons({
       ...active,
-      prizes: [{ ...prizes[0], presentation: 'ceremonial' as const }],
+      prizes: ceremonial,
       roster: [{ name: '张伟', employeeId: 'A001', department: '市场部', avatar: 'https://a.com/a.png' }, { name: '张伟', employeeId: 'A002' }],
     }, active)).toEqual([])
   })
