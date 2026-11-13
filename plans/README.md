@@ -23,14 +23,14 @@
 | [013](013-participant-identity-design.md) | 设计：参与者身份列 | P3 | M | 005（建议在 006 之后） | DONE（分支 `advisor/013-participant-identity-design`，`57ab1c1`；文档 `docs/superpowers/specs/2026-11-13-participant-identity-design.md`，7 个待决问题） |
 | [014](014-pre-draw-attestation-design.md) | 设计：开抽前公证卡与随机状态升级 | P3 | M | 008 | DONE（分支 `advisor/014-pre-draw-attestation-design`，`0efbab7`；文档 `docs/superpowers/specs/2026-11-13-pre-draw-attestation-design.md`，9 个待决问题） |
 | [015](015-pin-ci-runner.md) | CI 的 verify 任务固定在 ubuntu-24.04（2026-11-13 新增，阻塞上线） | P1 | S | — | DONE（分支 `advisor/015-pin-ci-runner`，`bd44430`；以推送后的 CI 运行为准） |
-| [016](016-pre-draw-attestation-card.md) | 开抽前公证卡（浮层、打印、PNG）与开始时的一次性提醒（设计 014 路线 A） | P3 | M | 008、014 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`ef4e5d6`；红灯检查与生产构建验收通过；验收中补了一处投屏排版修正） |
-| [017](017-fairness-panel-seed-and-fingerprint-check.md) | 公平性面板默认隐藏种子、醒目风险提示，导入验证文件时核对指纹（设计 014 路线 A） | P3 | S | 016 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`fc64629`；红灯检查与生产构建验收通过） |
-| [018](018-participant-identity-columns.md) | 名单支持工号、部门身份列：表头解析、指纹与承诺带工号、重名后缀、CSV 身份列（设计 013） | P3 | M | 005、008、013 | DONE（分支 `claude/eloquent-dubinsky-373090`，`4f00788`；红灯检查、基线夹具回归与生产构建验收通过；执行中追加中奖名单面板的重名后缀） |
-| [019](019-progress-restore-from-verification.md) | 从验证文件恢复进度（复算、逐项比对名单含工号、写后读回、失败回滚、旧进度留底），奖项抽完提醒导出（设计 012） | P2 | M–L | 003、007、008、012、018 | DONE（分支 `claude/019-progress-restore-bf678f`；红灯检查、基线夹具与生产构建验收通过；两处偏离（presenting 也算空闲、只在有流水时留底）见计划“偏离”一节） |
+| [016](016-pre-draw-attestation-card.md) | 开抽前公证卡（浮层、打印、PNG）与开始时的一次性提醒（设计 014 路线 A） | P3 | M | 008、014 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`ef4e5d6`；红灯检查与生产构建验收通过；验收中补了一处投屏排版修正；PR #8 合并为 `4f3b0a9`，2026-11-13 已上线） |
+| [017](017-fairness-panel-seed-and-fingerprint-check.md) | 公平性面板默认隐藏种子、醒目风险提示，导入验证文件时核对指纹（设计 014 路线 A） | P3 | S | 016 | DONE（分支 `claude/upbeat-hodgkin-77ae46`，`fc64629`；红灯检查与生产构建验收通过；PR #8 合并为 `4f3b0a9`，2026-11-13 已上线） |
+| [018](018-participant-identity-columns.md) | 名单支持工号、部门身份列：表头解析、指纹与承诺带工号、重名后缀、CSV 身份列（设计 013） | P3 | M | 005、008、013 | DONE（分支 `claude/eloquent-dubinsky-373090`，`4f00788`；红灯检查、基线夹具回归与生产构建验收通过；执行中追加中奖名单面板的重名后缀；PR #9 合并为 `d2ca889`，2026-11-13 已上线） |
+| [019](019-progress-restore-from-verification.md) | 从验证文件恢复进度（复算、逐项比对名单含工号、写后读回、失败回滚、旧进度留底），奖项抽完提醒导出（设计 012） | P2 | M–L | 003、007、008、012、018 | DONE（分支 `claude/019-progress-restore-bf678f`；红灯检查、基线夹具与生产构建验收通过；两处偏离（presenting 也算空闲、只在有流水时留底）见计划“偏离”一节；PR #10 合并为 `c20f5f9`，2026-11-13 已上线） |
 
 状态取值：TODO | IN PROGRESS | DONE | BLOCKED（附一句原因）| REJECTED（附一句理由：已被别处修复，或方案放弃）
 
-012–014 是设计计划，产物是 `docs/superpowers/specs/` 下的设计文档，不改生产代码。
+012–014 是设计计划，产物是 `docs/superpowers/specs/` 下的设计文档，不改生产代码。016–019 是它们的实现：016、017 实现 014 的路线 A，018 实现 013，019 实现 012；待决问题的答案见 [decisions-2026-11-13.md](decisions-2026-11-13.md)。
 
 ## 依赖说明
 
@@ -39,6 +39,7 @@
 - **012 依赖 003 和 007**：恢复会写入正式进度，必须遵守 003 的多窗口版本规则，并考虑 007 的备份能否作为恢复来源。
 - **013 依赖 005**：身份列会影响 ID 规则，要在唯一 ID 的基础上设计。
 - **014 依赖 008**：公证卡展示的是加盐并绑定名单的指纹。
+- **016–019 按 016、017 → 018 → 019 的顺序串行实现并上线**：019 的名单比对要包含 018 引入的 `employeeId`（验证文件里只在有工号时出现，值为非空字符串）。
 
 ## 不能并行执行的组合
 
@@ -46,12 +47,13 @@
 
 | 文件 | 涉及的计划 |
 |---|---|
-| `src/views/lottery/core/lottery-config.ts` | 003、005、007、008 |
+| `src/views/lottery/core/lottery-config.ts` | 003、005、007、008、018、019 |
 | `e2e/reliability.spec.ts` | 002、004、005、007 |
-| `src/views/lottery/components/LotteryConfigPanel.tsx` | 004、007 |
-| `src/views/lottery/core/config-store.ts` | 004、007 |
+| `src/views/lottery/components/LotteryConfigPanel.tsx` | 004、007、018 |
+| `src/views/lottery/core/config-store.ts` | 004、007、018 |
 | `src/views/lottery/components/Lottery.tsx` | 003、007 |
-| `README.md` | 003、008、011 |
+| `README.md` | 003、008、011、016、018、019 |
+| `src/views/lottery/components/LotteryFairness.tsx` | 016、017、019 |
 
 006、009、010 和其他计划没有文件重叠，可以随时并行。
 
@@ -59,8 +61,17 @@
 
 - **升级 Playwright**（2026-11-13 新增）：`ubuntu-latest` 已切到 26.04，`@playwright/test` 1.60 不支持。计划 015 先固定 `ubuntu-24.04` 恢复 CI；升级到支持新镜像的版本（当时最新 1.65）要改 lockfile 和浏览器版本，并重跑全量 E2E 与 PWA E2E，应在 GitHub 下线 24.04 镜像前完成。
 
-- **随机状态只有 32 位**（计划 008 之后仍然存在）：前几轮中奖结果公开后，理论上可以反推随机状态并预测后续轮次。彻底解决需要新的随机算法版本，并保持 `mulberry32-v1` 的验证兼容。计划 014 会评估，不在任何实现计划的范围内。
+- **随机状态只有 32 位**（计划 008 之后仍然存在）：前几轮中奖结果公开后，理论上可以反推随机状态并预测后续轮次。014 设计评估过升级方案（路线 B，`sha256-ctr-v1`），维护者 2026-11-13 决定不做，改为计划 017 的缓解：面板默认隐藏种子、醒目提示“种子公开后后续结果可预测”、导出旁提示活动结束后再分享。
 - **抽奖流水的 `poolIds` 存储增长**：每轮都保存完整奖池 ID。实测估算 3000 人 300 轮约 790 万字符，超过 localStorage 常见的约 5M 字符上限；1000 人 100 轮只有约 85 万字符。正常规模用不到，计划 011 会在接近上限时提前提醒。真有超大活动时再考虑压缩存储。
+
+### 016–019 上线后留下的后续事项（2026-11-13）
+
+- **双屏时公证卡提醒只出现在投影窗**（PR #8）：第一次开始时的“还没展示公证卡”提示是展示窗的 toast，不同步到控制窗，主持人看不到、观众可能看到。要同步需要改双屏协议。
+- **只有部门、没有工号的重名者在台上难以区分**（PR #9）：卡片 `.details` 按设计在没有工号时显示 ID（如 `陈静-2`），部门只在悬停提示里；揭晓横幅的人名是视觉隐藏的读屏文本。可考虑没有工号时卡片显示部门。
+- **历史时间线面板（🕑）没有重名后缀**（PR #9）：它的 CSV 导出已带身份列，面板本身仍只显示姓名。
+- **内网 HTTP 下的下载**（PR #10）：无头 Chromium 在非安全 HTTP 源上不触发下载事件（原有下载逻辑同样如此）。需要在真实 Chrome 的内网 HTTP 环境确认“下载验证文件”和奖项抽完提醒里的下载是否被拦截。
+- **恢复时内存有结果、存储却为空**（总控审查 PR #10 时发现）：`replaceProgress` 只在存储里有旧存档且有流水时留底。如果之前的写入一直失败（存储为空），内存里未落盘的结果在确认框红字提示后会被替换，没有留底。场景很窄（此前已有 `storage-error` 提示），暂不处理。
+- **需要人工彩排**：Firefox、Safari 的公证卡浮层、打印预览和 PNG 字体；投影的字号和对比度；双屏下恢复进度后再打开控制窗、显示窗口重连。
 
 ## 考虑过但不做的事项
 
