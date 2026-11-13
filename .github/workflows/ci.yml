@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # PR 连续 push 时取消上一次未跑完的 run；main 推送不取消，避免打断部署链路
 concurrency:
@@ -63,6 +61,10 @@ jobs:
     if: ${{ github.event_name != 'pull_request' }}
     needs: verify
     runs-on: ubuntu-latest
+    # 部署到 Pages 需要这两项权限，只授予这个任务
+    permissions:
+      pages: write
+      id-token: write
     # 部署串行化，避免并发部署互相打断
     concurrency:
       group: pages
