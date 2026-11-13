@@ -20,7 +20,8 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # ubuntu-latest 已切到 26.04，当前 Playwright 不支持；升级 Playwright 后可改回
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
