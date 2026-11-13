@@ -296,7 +296,7 @@ const lotteryConfig: LotteryConfig = {
     }
     // 当前场次已有结果时先留底；留不下就不覆盖（决策 012 #3），让主持人先导出。
     if (previousRaw && lotteryConfig.drawLog.length > 0 && !keepRejectedProgress(previousRaw, 'replaced-by-restore')) {
-      return { ok: false, reason: '当前进度无法留底（本地存储可能已满），没有恢复。请先在公平性面板下载当前验证文件，再清理存储后重试' };
+      return { ok: false, reason: '当前进度无法留底（本地存储可能已满）。请先在公平性面板下载当前验证文件，再清理存储后重试' };
     }
     const snapshot = {
       currentPrize: lotteryConfig.currentPrize,
