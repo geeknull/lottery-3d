@@ -1,34 +1,13 @@
 // IndexedDB 图片仓：上传的图片二进制（dataURL）存这里，配置只存 `idb:<id>` 引用。
 // 把大体积图片移出 localStorage，避免配置/进度因超过 ~5MB 配额而静默写入失败。
 
+import { createKeyValueStore } from './idb-kv'
+
 const DB_NAME = 'lottery-images'
 const STORE = 'images'
 const REF_PREFIX = 'idb:'
 
-let dbPromise: Promise<IDBDatabase> | null = null
-
-function openDb(): Promise<IDBDatabase> {
-  if (!dbPromise) {
-    dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1)
-      req.onupgradeneeded = () => {
-        req.result.createObjectStore(STORE)
-      }
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
-    })
-  }
-  return dbPromise
-}
-
-function withStore<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return openDb().then(db => new Promise<T>((resolve, reject) => {
-    const tx = db.transaction(STORE, mode)
-    const req = fn(tx.objectStore(STORE))
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  }))
-}
+const withStore = createKeyValueStore(DB_NAME, STORE)
 
 // 是否为 idb 引用（区别于 http URL、data URL、空）；类型守卫，便于 filter 后窄化为 string
 export function isImageRef(s: string | undefined | null): s is string {
